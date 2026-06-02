@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GemSpot — Design System (MVP)</title>
+<meta name="description" content="Production-ready MVP design system extracted from the GemSpot Direction C concept: tokens, components, states, map UI, and React handoff." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="lib/web.css" />
+<link rel="stylesheet" href="design-system/ds.css?v=4" />
+<style>
+  /* map-tint vars for the phone specimen (from DIR_C config) */
+  :root{ --park:#d3e7ca; --water:#cfe0f2; --map-land:#eef1f6; }
+</style>
+</head>
+<body>
+<div class="ds-wrap">
+
+  <!-- ===== top bar ===== -->
+  <header class="ds-top">
+    <button class="ds-nav-toggle" id="navToggle" aria-label="Open navigation" aria-expanded="false">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="ds-logo">
+      <span class="ds-logo-mark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 21c4.5-4.2 7-7.4 7-11a7 7 0 1 0-14 0c0 3.6 2.5 6.8 7 11z" fill="#fff"/><circle cx="12" cy="10" r="2.6" fill="#2f6fe0"/></svg>
+      </span>
+      GemSpot
+    </div>
+    <span class="ds-top-tag">Design System · v1.0 (MVP)</span>
+    <div class="ds-top-dir"><span class="ds-dot"></span> Direction&nbsp;<b>C</b> — clean geo + playful accents</div>
+    <button class="ds-theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
+  </header>
+
+  <!-- ===== sidebar ===== -->
+  <div class="ds-scrim" id="navScrim"></div>
+  <nav class="ds-nav" id="dsNav">
+    <div class="ds-nav-group">Foundations</div>
+    <a href="#overview">Design principles</a>
+    <a href="#color">Color system</a>
+    <a href="#type">Typography</a>
+    <a href="#spacing">Spacing</a>
+    <a href="#shape">Radius · borders · shadows</a>
+    <div class="ds-nav-group">Components</div>
+    <a href="#inventory">Component inventory</a>
+    <a href="#buttons">Buttons &amp; CTA hierarchy</a>
+    <a href="#chips">Chips &amp; category pills</a>
+    <a href="#cards">Cards</a>
+    <a href="#states">Component states</a>
+    <a href="#listitem">List item structure</a>
+    <a href="#forms">Form controls &amp; selection</a>
+    <div class="ds-nav-group">Map &amp; navigation</div>
+    <a href="#map">Map-specific UI</a>
+    <a href="#sheet">Bottom sheet &amp; nav</a>
+    <div class="ds-nav-group">For engineering</div>
+    <a href="#tokens">MVP design tokens</a>
+    <a href="#standardize">Standardize first</a>
+    <a href="#checklist">Component checklist</a>
+    <a href="#naming">React token naming</a>
+    <a href="#next">Design next</a>
+  </nav>
+
+  <!-- ===== main ===== -->
+  <main class="ds-main">
+  <div class="ds-inner">
+
+    <div class="ds-hero">
+      <h1>GemSpot Design System</h1>
+      <p>A small, production-ready system extracted from the existing <b>Direction C</b> concept — a clean geo-product with playful accents. Nothing here is redesigned: the visual language, tokens, and components are taken verbatim from the prototype and normalized into reusable, React-ready rules scoped to MVP.</p>
+      <div class="ds-hero-meta">
+        <span class="ds-pill">One accent · <b>#2f6fe0</b></span>
+        <span class="ds-pill">Type · <b>Space Grotesk + Hanken Grotesk</b></span>
+        <span class="ds-pill">7 category hues</span>
+        <span class="ds-pill">Map-first · mobile + desktop</span>
+        <span class="ds-pill">Light <b>+ dark</b> mode</span>
+      </div>
+    </div>
+
+    <!-- ============ DESIGN PRINCIPLES ============ -->
+    <section class="ds-section" id="overview">
+      <div class="ds-kicker">01 — Foundations</div>
+      <h2>Design principles</h2>
+      <p class="ds-lead">Five rules decide every component below. When a choice is ambiguous, these break the tie.</p>
+      <ul>
+        <li><b>The map is the stage, not the wallpaper.</b> Chrome stays calm and neutral so markers, cards, and the accent carry all the signal. Surfaces never compete with the map.</li>
+        <li><b>One accent, decorative colour is data.</b> <code>--accent</code> blue is the only action colour — buttons, links, selection, active nav. Category colours appear on markers, chips, and badges only; a category hue never becomes a CTA.</li>
+        <li><b>Every category reads twice — colour <i>and</i> glyph.</b> Markers and chips pair a hue with a distinct icon shape so they survive colour-blindness, greyscale, and tiny sizes.</li>
+        <li><b>States are the product, not polish.</b> For a map + UGC app, loading / empty / denied / pending / error are core scope. Each component ships its full state set.</li>
+        <li><b>Motion preserves spatial continuity.</b> Selecting a pin, opening a panel, expanding a sheet — motion exists to keep the user oriented, stays under 300ms, and respects reduced-motion. It is never decoration.</li>
+      </ul>
+      <div class="ds-note lock"><span class="ds-note-ic">!</span><div><b>13 UX decisions are locked</b> (see <code>docs/07</code>) and shape this system: bookmark is the single save metaphor (no hearts), category chips are the only filter, no ratings/stars in MVP, submissions go to a moderation queue, and Tallinn is the only city at launch. Don’t silently revert these in the build.</div></div>
+    </section>
+
+    <!-- ============ COLOR ============ -->
+    <section class="ds-section" id="color">
+      <div class="ds-kicker">02 — Foundations</div>
+      <h2>Color system</h2>
+      <p>The entire UI runs on one neutral ramp plus one accent. Cool, low-chroma greys keep the map legible; the accent does all the work of signalling action and selection.</p>
+
+      <h4>Neutrals &amp; accent</h4>
+      <div class="ds-swatches" id="swNeutral"></div>
+
+      <h4>Semantic status — add as tokens (used in prototype, not yet in <code>:root</code>)</h4>
+      <div class="ds-swatches" id="swStatus"></div>
+
+      <h3>Category palette — markers &amp; badges only</h3>
+      <p>Seven curated hues, each locked to a glyph. They identify content; they are never used for buttons, links, or backgrounds. MVP ships <b>3–5</b> of these (launch subset pending); the system supports any subset because categories are data-driven.</p>
+      <div class="ds-cats" id="catPalette"></div>
+      <div class="ds-note"><span class="ds-note-ic">i</span><div>Each category is recognisable by <b>both</b> colour and glyph. Keep that rule when adding a category — pick a hue that is distinct in greyscale <i>and</i> a glyph shape that is not already in use.</div></div>
+
+      <h3>Dark mode</h3>
+      <p>The system is dark-ready: every surface reads from the same role tokens, so dark mode is a ramp swap, not a re-skin. The neutral family goes cool-dark, the accent <b>brightens</b> to stay recognisable and hold WCAG AA on dark surfaces, and category hues are unchanged — the white marker ring carries their contrast over any background. Flip the <span style="display:inline-flex;vertical-align:middle;width:18px;height:18px;border:1px solid var(--line);border-radius:5px;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"/></svg></span> toggle in the top bar to preview the whole page.</p>
+      <div class="ds-swatches" id="swDark"></div>
+      <div class="ds-note"><span class="ds-note-ic">i</span><div>Don’t ship a half-built dark mode — these values are the baseline. Audit marker, chip, and CTA contrast in dark before release (it’s folded into the a11y pass in <a href="#next">Design next</a>).</div></div>
+    </section>
+
+    <!-- ============ TYPOGRAPHY ============ -->
+    <section class="ds-section" id="type">
+      <div class="ds-kicker">03 — Foundations</div>
+      <h2>Typography</h2>
+      <p><b>Space Grotesk</b> for display &amp; headings (tight, geometric, a little personality) paired with <b>Hanken Grotesk</b> for body &amp; UI (humanist, highly legible at small sizes). One pairing across consumer <i>and</i> admin — admin just runs tighter sizes. Headings use negative tracking; body never does.</p>
+      <div class="ds-block">
+        <div class="ds-type-row"><div class="ds-type-spec">Hero H1<br>Space Grotesk 700<br>54 / 1.02 / −0.03em</div><div class="ds-type-sample" style="font-family:var(--font-head);font-weight:700;font-size:48px;line-height:1.02;letter-spacing:-0.03em;">Find the city’s gems</div></div>
+        <div class="ds-type-row"><div class="ds-type-spec">Section H2<br>Space Grotesk 700<br>32 / −0.025em</div><div class="ds-type-sample" style="font-family:var(--font-head);font-weight:700;font-size:32px;letter-spacing:-0.025em;">Browse by category</div></div>
+        <div class="ds-type-row"><div class="ds-type-spec">Detail title H1<br>Space Grotesk 700<br>23px</div><div class="ds-type-sample" style="font-family:var(--font-head);font-weight:700;font-size:23px;">Kadriorg Park viewpoint</div></div>
+        <div class="ds-type-row"><div class="ds-type-spec">Card title H3<br>Space Grotesk 700<br>15–16px</div><div class="ds-type-sample" style="font-family:var(--font-head);font-weight:700;font-size:16px;">Pirita Beach courts</div></div>
+        <div class="ds-type-row"><div class="ds-type-spec">Body<br>Hanken Grotesk 400–600<br>13.5–18 / 1.5</div><div class="ds-type-sample" style="font-size:15px;line-height:1.5;color:var(--ink-soft);">A quiet table-tennis spot tucked behind the old town wall — free, lit until late, rarely crowded on weekday evenings.</div></div>
+        <div class="ds-type-row"><div class="ds-type-spec">Meta / caption<br>Hanken Grotesk 600–700<br>11–12.5px</div><div class="ds-type-sample" style="font-size:12.5px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.04em;">Kalamaja · 600 m away</div></div>
+        <div class="ds-type-row"><div class="ds-type-spec">Stat number<br>Space Grotesk 700<br>26–30px</div><div class="ds-type-sample" style="font-family:var(--font-head);font-weight:700;font-size:30px;letter-spacing:-0.02em;">128</div></div>
+      </div>
+    </section>
+
+    <!-- ============ SPACING ============ -->
+    <section class="ds-section" id="spacing">
+      <div class="ds-kicker">04 — Foundations</div>
+      <h2>Spacing</h2>
+      <p>A 4px base. Use steps from this scale only — don’t invent in-between values. Rail padding 14–18px; section padding 46px desktop / 34px mobile.</p>
+      <div class="ds-spacing" id="spaceScale"></div>
+    </section>
+
+    <!-- ============ RADIUS / BORDERS / SHADOWS ============ -->
+    <section class="ds-section" id="shape">
+      <div class="ds-kicker">05 — Foundations</div>
+      <h2>Radius · borders · shadows</h2>
+      <p>One radius scale, picked by component class. A 1px <code>--line</code> border is the default separator — prefer a border or a <code>--surface2</code> fill over a shadow for flat groupings. Shadows are tinted to ink, never pure black, and reserved for genuinely floating surfaces.</p>
+
+      <h4>Radius scale</h4>
+      <div class="ds-tiles">
+        <div><div class="ds-radius-tile" style="border-radius:7px;"><span class="ds-tile-label">tag · 7</span></div></div>
+        <div><div class="ds-radius-tile" style="border-radius:10px;"><span class="ds-tile-label">chip · 10</span></div></div>
+        <div><div class="ds-radius-tile" style="border-radius:12px;"><span class="ds-tile-label">button · 12</span></div></div>
+        <div><div class="ds-radius-tile" style="border-radius:16px;"><span class="ds-tile-label">card · 16</span></div></div>
+        <div><div class="ds-radius-tile" style="border-radius:22px;"><span class="ds-tile-label">sheet/modal · 22</span></div></div>
+        <div><div class="ds-radius-tile" style="border-radius:100px;"><span class="ds-tile-label">pill · 100</span></div></div>
+      </div>
+
+      <h4>Elevation — tinted to ink (rgba(20,26,40,…))</h4>
+      <div class="ds-tiles">
+        <div><div class="ds-shadow-tile" style="box-shadow:0 3px 10px rgba(20,26,40,0.12);"><span class="ds-tile-label">map control</span></div></div>
+        <div><div class="ds-shadow-tile" style="box-shadow:0 10px 26px rgba(20,26,40,0.10);"><span class="ds-tile-label">card hover</span></div></div>
+        <div><div class="ds-shadow-tile" style="box-shadow:8px 0 30px rgba(20,26,40,0.10);"><span class="ds-tile-label">panel / drawer</span></div></div>
+        <div><div class="ds-shadow-tile" style="box-shadow:0 12px 34px rgba(20,26,40,0.16);"><span class="ds-tile-label">popover / menu</span></div></div>
+      </div>
+    </section>
+
+    <!-- ============ COMPONENT INVENTORY ============ -->
+    <section class="ds-section" id="inventory">
+      <div class="ds-kicker">06 — Components</div>
+      <h2>Component inventory</h2>
+      <p>The full MVP set, mapped from prototype to a production React component and its FSD-ish layer. This is the build surface — nothing outside it is in scope for v1.</p>
+      <div class="ds-table-wrap">
+        <table class="ds-table">
+          <thead><tr><th>Component</th><th>Layer</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><b>Button</b> / <b>SaveButton</b></td><td>shared/ui</td><td>primary · secondary · ghost; circular bookmark toggle</td></tr>
+            <tr><td><b>CategoryChip</b> / <b>Tag</b> / <b>CatBadge</b></td><td>shared/ui · entities</td><td>filter pill, utility tag, glyph badge</td></tr>
+            <tr><td><b>SpotListItem</b> / <b>SpotCardLarge</b></td><td>entities/place</td><td>compact rail row + featured card</td></tr>
+            <tr><td><b>SpotMap</b> · <b>SpotMarker</b> · <b>ClusterMarker</b></td><td>widgets/map · entities</td><td>map, branded pins, count clusters</td></tr>
+            <tr><td><b>SpotDetail</b></td><td>features/place-detail</td><td>panel + full-page variants, own URL</td></tr>
+            <tr><td><b>CategoryFilter</b></td><td>features/explore</td><td>chip row + “All” reset</td></tr>
+            <tr><td><b>AddSpotFlow</b></td><td>features/submission</td><td>4-step stepper → pending</td></tr>
+            <tr><td><b>AuthDialog</b> · <b>LocationPermission</b></td><td>features/auth · geo</td><td>social + email; gates queue &amp; resume</td></tr>
+            <tr><td><b>EmptyState</b> · <b>Toaster</b> · <b>PlacePhoto</b></td><td>shared/ui</td><td>filter/saved/search empties; tinted photo fallback</td></tr>
+            <tr><td><b>AppHeader</b> · <b>MobileTabBar</b> · <b>BottomSheet</b></td><td>widgets</td><td>top bar, bottom nav, draggable sheet</td></tr>
+            <tr><td><b>AdminModeration</b> (table + drawer + stats)</td><td>pages/admin</td><td>role-gated, utilitarian surface</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ BUTTONS ============ -->
+    <section class="ds-section" id="buttons">
+      <div class="ds-kicker">07 — Components</div>
+      <h2>Buttons &amp; CTA hierarchy</h2>
+      <p>Three tiers, one per intent. There is exactly one primary action visible at a time in any view. All pressables press to <code>scale(0.97)</code> at 140ms for tactile feedback.</p>
+      <div class="ds-stage">
+        <div class="ds-spec"><button class="gs-btn gs-btn-primary">Save spot</button><span class="ds-label">Primary</span></div>
+        <div class="ds-spec"><button class="gs-btn gs-btn-ghost">Directions</button><span class="ds-label">Secondary</span></div>
+        <div class="ds-spec"><button class="gs-link">View details</button><span class="ds-label">Ghost / text</span></div>
+        <div class="ds-spec"><button class="gs-btn gs-btn-primary gs-btn-lg">Open the map</button><span class="ds-label">Primary · lg</span></div>
+        <div class="ds-spec"><button class="gs-btn gs-btn-primary" data-dim="true">Next</button><span class="ds-label">Disabled</span></div>
+      </div>
+      <div class="ds-stage plain surface" style="flex-direction:column;align-items:stretch;max-width:300px;">
+        <button class="gs-btn gs-btn-primary gs-btn-block">Submit for review</button>
+        <span class="ds-caption" style="text-align:center;">Block — full-width, for sheet &amp; modal footers</span>
+      </div>
+
+      <h3>CTA hierarchy</h3>
+      <div class="ds-table-wrap">
+        <table class="ds-table">
+          <thead><tr><th>Tier</th><th>Treatment</th><th>Use for</th></tr></thead>
+          <tbody>
+            <tr><td><b>Primary</b></td><td>Accent fill, white text, soft accent shadow</td><td>The one action that moves the flow forward — Save, Submit, Open map, Next</td></tr>
+            <tr><td><b>Secondary</b></td><td>Surface + 1.5px <code>--line</code> border</td><td>The alternative — Directions, Cancel, Skip, Back</td></tr>
+            <tr><td><b>Ghost / text</b></td><td>Accent text, no fill, underline on hover</td><td>Low-weight or repeated inline actions — View details, Clear, Edit</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ds-note warn"><span class="ds-note-ic">!</span><div><b>Naming to standardize:</b> the prototype class for the bordered alternative is <code>.gs-btn-ghost</code>, but in the hierarchy it is the <i>secondary</i> button. Rename to <code>variant="secondary"</code> in React and reserve <code>ghost</code> for the text-only tier — see <a href="#standardize">Standardize first</a>.</div></div>
+    </section>
+
+    <!-- ============ CHIPS ============ -->
+    <section class="ds-section" id="chips">
+      <div class="ds-kicker">08 — Components</div>
+      <h2>Chips &amp; category pills</h2>
+      <p>Category chips are the <b>only</b> filter in MVP. A leading <b>All</b> chip resets. This is the single place a category colour touches a control: an active chip fills with its category hue (with a matching soft shadow); inactive chips are neutral surface + line.</p>
+      <div class="ds-stage col">
+        <div class="gs-filterbar" id="chipRow" style="padding-bottom:0;"></div>
+        <span class="ds-caption">34px pill · glyph circle + label · <code>[data-on]</code> fills with <code>--cc</code> (the category colour)</span>
+      </div>
+
+      <h4>Utility tags — neutral, max 2–3 per card</h4>
+      <div class="ds-stage">
+        <span class="gs-tag">Free</span>
+        <span class="gs-tag">Lights</span>
+        <span class="gs-tag">Outdoor</span>
+        <span class="gs-tag">Seasonal</span>
+        <span class="gs-tag">Quiet</span>
+      </div>
+    </section>
+
+    <!-- ============ CARDS ============ -->
+    <section class="ds-section" id="cards">
+      <div class="ds-kicker">09 — Components</div>
+      <h2>Cards</h2>
+      <p>Two card densities for two jobs. Both lead with a visual, then name, category, neighbourhood, utility tags, save. Cards never become mini-pages — long descriptions stay on the detail view.</p>
+
+      <h3>Compact rail item — the explore default</h3>
+      <p>Utility-first. Used in the desktop rail and mobile sheet where scan-speed and density matter. Distance is shown (the product sells proximity).</p>
+      <div class="ds-stage surface" id="railCardStage"></div>
+
+      <h3>Featured card — landing &amp; collections</h3>
+      <p>Image-forward. Used where discovery and browse are the goal rather than triage.</p>
+      <div class="ds-stage" id="featCardStage"></div>
+      <div class="ds-note"><span class="ds-note-ic">i</span><div>The tinted-gradient <code>PlacePhoto</code> shown here is the loading/empty fallback. Production swaps in real images and keeps this exact tint as the placeholder so layout never shifts.</div></div>
+    </section>
+
+    <!-- ============ STATES ============ -->
+    <section class="ds-section" id="states">
+      <div class="ds-kicker">10 — Components</div>
+      <h2>Component states</h2>
+      <p>Three selection-style states recur across the product. They must look and behave identically everywhere they appear.</p>
+
+      <h3>Saved state</h3>
+      <p>One metaphor: <b>bookmark</b>. The toggle fills with the accent when saved; over photos it gains a translucent white backplate so it stays tappable. The same control sits on cards, detail, and (as a corner pip) on markers.</p>
+      <div class="ds-states">
+        <div class="ds-state"><div class="ds-state-h"><b>Default</b><span class="ds-state-tag">unsaved</span></div><div class="ds-state-demo"><button class="gs-savebtn" style="width:40px;height:40px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5c6675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg></button></div><p>Surface + line border, ink-soft glyph.</p></div>
+        <div class="ds-state"><div class="ds-state-h"><b>Saved</b><span class="ds-state-tag">active</span></div><div class="ds-state-demo"><button class="gs-savebtn" data-saved="true" style="width:40px;height:40px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg></button></div><p>Accent fill, white glyph. Removing elsewhere shows an undo toast.</p></div>
+        <div class="ds-state"><div class="ds-state-h"><b>Over photo</b><span class="ds-state-tag">light</span></div><div class="ds-state-demo" style="background:linear-gradient(135deg,#3b7ddd,#2f6fe0);border-radius:11px;"><button class="gs-savebtn" data-light="true" style="width:40px;height:40px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5c6675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg></button></div><p>Translucent white backplate + soft shadow for contrast.</p></div>
+      </div>
+
+      <h3>Selected state</h3>
+      <p>Selection ties a list row, a card, and a map pin together. The selected rail row gets an accent-tint background + accent hairline; the matching marker scales up with a colour halo and a name label (see <a href="#map">Map UI</a>).</p>
+      <div class="ds-stage surface col" id="selectedStage"></div>
+
+      <h3>Active filter state</h3>
+      <p>An active category chip fills with its hue; a <b>Clear</b> affordance appears so the filtered state is always escapable. The rail header reflects the active count.</p>
+      <div class="ds-stage col">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div class="gs-chip" data-on="true" style="--cc:#3b7ddd;"><span class="gs-chip-ic" style="background:rgba(255,255,255,0.22);"><svg width="14" height="14" viewBox="0 0 24 24" style="color:#fff"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="16.5" cy="7.5" r="2.1" fill="currentColor" stroke="none"/><path d="M3.5 18.5l4.4-6 3 3.6 3-4.4 6.6 6.8z" fill="currentColor" stroke="none"/></g></svg></span>Scenic spots</div>
+          <button class="gs-clear"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg> Clear</button>
+        </div>
+        <span class="ds-caption">Filtered: chip filled with <code>--cc</code> + visible <b>Clear</b> reset. Always provide the escape.</span>
+      </div>
+    </section>
+
+    <!-- ============ LIST ITEM ============ -->
+    <section class="ds-section" id="listitem">
+      <div class="ds-kicker">11 — Components</div>
+      <h2>List item structure</h2>
+      <p>The rail/sheet row is the workhorse of the explore experience. A fixed left-to-right anatomy keeps hundreds of rows scannable.</p>
+      <div class="ds-stage surface col" id="anatomyStage"></div>
+      <div class="ds-table-wrap">
+        <table class="ds-table">
+          <thead><tr><th>Slot</th><th>Content</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td><b>1 · Thumb</b></td><td>72px photo + category pip (top-left)</td><td>Always present; tinted fallback if no image</td></tr>
+            <tr><td><b>2 · Body</b></td><td>Name → category · neighbourhood · distance → tags</td><td>Name truncates to one line; meta is a single ellipsised row</td></tr>
+            <tr><td><b>3 · Save</b></td><td>Bookmark toggle</td><td>Fixed right; never scrolls out of reach</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ FORMS ============ -->
+    <section class="ds-section" id="forms">
+      <div class="ds-kicker">12 — Components</div>
+      <h2>Form controls &amp; selection</h2>
+      <p>Label <b>above</b> the input, optional hint inline with the label, error <b>below</b> in the danger colour. No placeholder-as-label — placeholders are examples only. Every field is ≥46px tall (touch). Focus = accent border + 3px accent ring at 12%.</p>
+      <div class="ds-stage surface col" style="max-width:420px;">
+        <div class="gs-field">
+          <label>Spot name</label>
+          <input type="text" placeholder="e.g. Kalamaja ping-pong table" />
+        </div>
+        <div class="gs-field">
+          <label>Short note <span class="gs-opt">· optional</span></label>
+          <textarea rows="3" placeholder="What makes it worth the trip?"></textarea>
+        </div>
+        <span class="ds-caption">Focus the name field to see the accent ring. Hint sits with the label; error would sit below.</span>
+      </div>
+
+      <h3>Selection patterns</h3>
+      <h4>Single-select category (Add a spot, step 2)</h4>
+      <div class="ds-stage surface"><div class="gs-add-cats" id="addCats" style="max-width:420px;width:100%;"></div></div>
+
+      <h4>Photo upload</h4>
+      <div class="ds-stage surface" style="max-width:420px;">
+        <label class="gs-upload" style="width:100%;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M12 4v12M8 8l4-4 4 4"/></svg>
+          Add 1–3 photos
+        </label>
+      </div>
+    </section>
+
+    <!-- ============ MAP UI ============ -->
+    <section class="ds-section" id="map">
+      <div class="ds-kicker">13 — Map &amp; navigation</div>
+      <h2>Map-specific UI</h2>
+      <p>The marker is the most brand-defining element in the product. Every marker is a filled circle in its category hue, a 2.5px white ring, a soft tinted shadow, and a centred white glyph (~62% of the marker). The white ring is what guarantees contrast over <i>any</i> map surface.</p>
+
+      <h4>Pin states</h4>
+      <div class="ds-stage center" style="gap:46px;padding-top:46px;padding-bottom:46px;" id="pinStates"></div>
+
+      <h4>Selected pin behaviour</h4>
+      <p>On select the marker scales to ~1.32×, gains a translucent colour halo and a white name-label, and the map gently recenters toward it — reinforcing “this pin = this card”. Only one marker is selected at a time.</p>
+
+      <h4>Clusters &amp; map controls</h4>
+      <div class="ds-stage center" style="gap:34px;" id="mapBits"></div>
+      <div class="ds-note lock"><span class="ds-note-ic">!</span><div><b>Clustering is required, not optional.</b> At city zoom, nearby pins collapse into a count pill (up to 3 colour dots + count). In production a cluster click <b>zooms to bounds</b>; the popover list is only the max-zoom fallback. Without this, Old Town scenic pins pile into an unreadable stack.</div></div>
+      <div class="ds-note warn"><span class="ds-note-ic">!</span><div><b>Normalize the saved pip:</b> the prototype marker still uses a heart pip — the locked metaphor is <b>bookmark everywhere</b>. The pin above shows the corrected bookmark pip; carry that into production.</div></div>
+    </section>
+
+    <!-- ============ BOTTOM SHEET & NAV ============ -->
+    <section class="ds-section" id="sheet">
+      <div class="ds-kicker">14 — Map &amp; navigation</div>
+      <h2>Bottom sheet &amp; navigation</h2>
+      <p>On mobile the map is the stage and a bottom sheet carries results &amp; previews. On desktop the same content lives in a persistent left rail. Navigation is a small, fixed set of destinations — bottom tab bar on mobile, top nav on desktop.</p>
+
+      <div class="ds-stage center" style="gap:40px;align-items:flex-start;">
+        <div>
+          <div class="ds-phone">
+            <div class="ds-phone-map"></div>
+            <!-- floating filter -->
+            <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;gap:7px;overflow:hidden;">
+              <div class="gs-chip" data-on="true" style="--cc:#2f9e5b;box-shadow:0 2px 8px rgba(20,26,40,0.12);"><span class="gs-chip-ic" style="background:rgba(255,255,255,0.22);"><svg width="13" height="13" viewBox="0 0 24 24" style="color:#fff"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="7.4"/><path d="M12 8.2l3.3 2.4-1.3 3.9h-4l-1.3-3.9z" fill="currentColor" stroke="none"/></g></svg></span>Football</div>
+              <div class="gs-chip" style="box-shadow:0 2px 8px rgba(20,26,40,0.12);">Scenic</div>
+            </div>
+            <!-- sheet -->
+            <div style="position:absolute;left:0;right:0;bottom:54px;height:230px;background:var(--surface);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(20,26,40,0.14);display:flex;flex-direction:column;">
+              <div style="padding:9px 0 4px;display:flex;justify-content:center;"><span style="width:38px;height:5px;border-radius:3px;background:var(--line);"></span></div>
+              <div style="padding:6px 16px 4px;display:flex;align-items:center;justify-content:space-between;"><strong style="font-family:var(--font-head);font-size:14px;">8 spots nearby</strong><span style="font-size:11px;color:var(--ink-faint);font-weight:600;">Sorted by distance</span></div>
+              <div style="flex:1;overflow:hidden;padding:2px 12px;" id="sheetList"></div>
+            </div>
+            <!-- bottom nav -->
+            <div style="position:absolute;left:0;right:0;bottom:0;height:54px;display:flex;align-items:center;justify-content:space-around;background:var(--surface);border-top:1px solid var(--line);">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--accent);font-size:9px;font-weight:700;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Explore</div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink-faint);font-size:9px;font-weight:700;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>Saved</div>
+              <div style="width:42px;height:42px;border-radius:14px;background:var(--accent);display:flex;align-items:center;justify-content:center;box-shadow:0 5px 16px rgba(47,111,224,0.4);margin-top:-12px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink-faint);font-size:9px;font-weight:700;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20v-1a4 4 0 0 1 4-4h0M16 15a4 4 0 0 1 4 4v1"/><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/></svg>Profile</div>
+            </div>
+          </div>
+          <div class="ds-caption" style="text-align:center;">Mobile · map + bottom sheet + tab bar with centre FAB</div>
+        </div>
+
+        <div style="flex:1;min-width:260px;">
+          <h4 style="margin-top:0;">Sheet behaviour</h4>
+          <ul style="margin-top:6px;">
+            <li><b>Two snap heights</b> — <code>half</code> (46%) for preview, <code>full</code> (88%) for the list. A grab handle signals draggability.</li>
+            <li><b>Drag-interactive in production</b> — spring + velocity dismissal (<code>v &gt; 0.11</code>), not just a tap-to-toggle CSS height change. Use motion values, not per-frame state.</li>
+            <li><b>The map never disappears</b> behind the sheet; selecting a row in the sheet still drives the pin.</li>
+            <li><b>Sheets are for contextual, short content</b> — place preview &amp; results. Long flows (Add a spot) get a dedicated screen, not a sheet.</li>
+          </ul>
+          <h4>Navigation set</h4>
+          <ul style="margin-top:6px;">
+            <li><b>Explore · Saved · Add · Profile</b> — four destinations, no more. Add is the centre FAB on mobile.</li>
+            <li><b>Active = accent</b>; inactive = ink-faint. Saved shows a count dot when populated.</li>
+            <li><b>Admin is not in this nav</b> — it’s a separate, role-gated desktop surface.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TOKENS ============ -->
+    <section class="ds-section" id="tokens">
+      <div class="ds-kicker">15 — For engineering</div>
+      <h2>MVP design tokens</h2>
+      <p>Ported verbatim from the prototype. Drop into a CSS variable file (or a TS token export) — don’t re-pick values. The <code>:root</code> below is the source of truth the whole app reads from.</p>
+      <div class="ds-code"><pre style="margin:0;font-family:inherit;"><span class="c">/* tokens.css — GemSpot Direction C */</span>
+<span class="k">:root</span> {
+  <span class="c">/* neutrals + accent */</span>
+  --bg: <span class="n">#f1f4f8</span>;      --surface: <span class="n">#ffffff</span>;   --surface-2: <span class="n">#e9eef5</span>;
+  --ink: <span class="n">#19202b</span>;     --ink-soft: <span class="n">#5c6675</span>;  --ink-faint: <span class="n">#94a0b0</span>;
+  --line: <span class="n">#e4e9f0</span>;    --accent: <span class="n">#2f6fe0</span>;   --accent-2: <span class="n">#1ba0a0</span>;
+
+  <span class="c">/* status (add — used in proto, not yet in :root) */</span>
+  --success: <span class="n">#2f9e5b</span>;  --warning: <span class="n">#e0a32e</span>;  --danger: <span class="n">#d4504e</span>;
+
+  <span class="c">/* radius */</span>
+  --r-tag: <span class="n">7px</span>; --r-chip: <span class="n">10px</span>; --r-btn: <span class="n">12px</span>;
+  --r-card: <span class="n">16px</span>; --r-sheet: <span class="n">22px</span>; --r-pill: <span class="n">100px</span>;
+
+  <span class="c">/* type */</span>
+  --font-head: <span class="s">"Space Grotesk"</span>, system-ui, sans-serif;
+  --font-body: <span class="s">"Hanken Grotesk"</span>, system-ui, sans-serif;
+
+  <span class="c">/* motion */</span>
+  --ease-out: <span class="n">cubic-bezier(.23,1,.32,1)</span>;
+  --ease-drawer: <span class="n">cubic-bezier(.32,.72,0,1)</span>;
+  --ease-marker: <span class="n">cubic-bezier(.2,.7,.3,1)</span>;
+}</pre></div>
+      <h4>Dark theme override</h4>
+      <p>Same token names, swapped values. Apply on a <code>[data-theme="dark"]</code> attribute (or under <code>@media (prefers-color-scheme: dark)</code>). Components don’t change — they already read the roles.</p>
+      <div class="ds-code"><pre style="margin:0;font-family:inherit;"><span class="c">/* dark ramp — neutrals swap, accent brightens for AA */</span>
+<span class="k">[data-theme="dark"]</span> {
+  --bg: <span class="n">#0d1219</span>;      --surface: <span class="n">#151c27</span>;   --surface-2: <span class="n">#1e2735</span>;
+  --ink: <span class="n">#eaf0f8</span>;     --ink-soft: <span class="n">#9fabbb</span>;  --ink-faint: <span class="n">#66717f</span>;
+  --line: <span class="n">#2b3543</span>;    --accent: <span class="n">#4d8bf2</span>;   --accent-2: <span class="n">#29b3b3</span>;
+  color-scheme: dark;
+  <span class="c">/* status + radius + type + category hues: unchanged */</span>
+}</pre></div>
+    </section>
+
+    <!-- ============ STANDARDIZE ============ -->
+    <section class="ds-section" id="standardize">
+      <div class="ds-kicker">16 — For engineering</div>
+      <h2>What to standardize before development</h2>
+      <p>The concept is consistent enough to build, but a handful of inconsistencies should be resolved <i>once</i>, up front — fixing them later means touching every component that uses them.</p>
+      <div class="ds-table-wrap">
+        <table class="ds-table">
+          <thead><tr><th>Tighten</th><th>Today</th><th>Decision to lock</th></tr></thead>
+          <tbody>
+            <tr><td><b>Button naming</b></td><td><code>.gs-btn-ghost</code> is actually the <i>secondary</i> button</td><td>Rename: <code>primary</code> / <code>secondary</code> / <code>ghost</code> (text). One <code>&lt;Button variant&gt;</code> API.</td></tr>
+            <tr><td><b>Saved pip on markers</b></td><td>Marker uses a heart pip; rest of app uses bookmark</td><td>Bookmark everywhere — kill the heart (locked decision #2).</td></tr>
+            <tr><td><b>Status tokens</b></td><td>Success/warning/danger hex are hard-coded inline</td><td>Promote to <code>--success / --warning / --danger</code> tokens.</td></tr>
+            <tr><td><b>Category count</b></td><td>Prototype ships 7; brief says 3–5</td><td>Pick the launch subset; keep data-driven so the rest are config, not code.</td></tr>
+            <tr><td><b>Photo component</b></td><td>Tinted gradient placeholder only</td><td>One <code>&lt;PlacePhoto&gt;</code> — real image + the tint as loading/empty fallback (no layout shift).</td></tr>
+            <tr><td><b>Popover origin</b></td><td>Cluster/directions menus scale from centre</td><td>Scale from the trigger edge; modals stay centre-origin.</td></tr>
+            <tr><td><b>Spacing scale</b></td><td>A few one-off pixel values exist</td><td>Lock the 4px step scale; lint against off-scale values.</td></tr>
+            <tr><td><b>Icon set</b></td><td>Curated custom stroke set</td><td>Keep it <i>or</i> adopt one library (e.g. Phosphor) at the same stroke weight — one family only. Category glyphs stay as brand assets.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ CHECKLIST ============ -->
+    <section class="ds-section" id="checklist">
+      <div class="ds-kicker">17 — For engineering</div>
+      <h2>MVP component checklist</h2>
+      <p>The build surface for v1 — group by layer. Each ships its happy path <b>and</b> its required states.</p>
+      <div class="ds-checklist" id="checklist"></div>
+    </section>
+
+    <!-- ============ NAMING ============ -->
+    <section class="ds-section" id="naming">
+      <div class="ds-kicker">18 — For engineering</div>
+      <h2>Suggested token naming for React</h2>
+      <p>Semantic, role-based names — not raw colour names. Components reference roles (<code>surface</code>, <code>ink-soft</code>, <code>accent</code>), so a future dark mode or rebrand swaps values without touching component code. Two-level dot/dash scale, kebab-case CSS vars mirrored by a typed TS object.</p>
+      <div class="ds-code"><pre style="margin:0;font-family:inherit;"><span class="c">// tokens.ts — typed mirror of tokens.css</span>
+<span class="k">export const</span> token = {
+  color: {
+    bg: <span class="s">'var(--bg)'</span>,
+    surface: <span class="s">'var(--surface)'</span>,
+    surfaceMuted: <span class="s">'var(--surface-2)'</span>,
+    ink: <span class="s">'var(--ink)'</span>,
+    inkSoft: <span class="s">'var(--ink-soft)'</span>,
+    inkFaint: <span class="s">'var(--ink-faint)'</span>,
+    line: <span class="s">'var(--line)'</span>,
+    accent: <span class="s">'var(--accent)'</span>,
+    status: { success, warning, danger },   <span class="c">// semantic, not raw</span>
+  },
+  radius: { tag, chip, btn, card, sheet, pill },
+  space: { 1: <span class="n">4</span>, 2: <span class="n">8</span>, 3: <span class="n">12</span>, 4: <span class="n">16</span>, 5: <span class="n">24</span>, 6: <span class="n">32</span> },
+  font: { head, body },
+  ease: { out, drawer, marker },
+} <span class="k">as const</span>;
+
+<span class="c">// category hue is DATA, kept out of the theme:</span>
+<span class="k">export const</span> categoryColor: Record&lt;CategoryId, string&gt; = {
+  tabletennis: <span class="s">'#e0a32e'</span>, basketball: <span class="s">'#ee7733'</span>, football: <span class="s">'#2f9e5b'</span>,
+  tennis: <span class="s">'#74b13a'</span>, padel: <span class="s">'#1ba0a0'</span>, scenic: <span class="s">'#3b7ddd'</span>, sakura: <span class="s">'#e85f9c'</span>,
+};</pre></div>
+      <ul>
+        <li><b>Roles over hues.</b> A component asks for <code>ink-soft</code>, never <code>#5c6675</code>. Theme owns the mapping.</li>
+        <li><b>Category colour is data, not theme.</b> It comes from the API (<code>GET /categories</code>), keyed by id — never a hard-coded button colour.</li>
+        <li><b>One scale, two formats.</b> kebab-case CSS variables for styles; a typed <code>token</code> object for TS/props. They mirror 1:1.</li>
+        <li><b>Component variants are enums</b> — <code>&lt;Button variant="primary|secondary|ghost"&gt;</code>, <code>&lt;Sheet snap="half|full"&gt;</code>, <code>&lt;Marker state="default|selected"&gt;</code>.</li>
+      </ul>
+    </section>
+
+    <!-- ============ NEXT ============ -->
+    <section class="ds-section" id="next">
+      <div class="ds-kicker">19 — For engineering</div>
+      <h2>What to design next</h2>
+      <p>Three things will define usability and uniqueness most, and aren’t fully resolved yet. Tackle in this order.</p>
+      <div class="ds-next">
+        <div class="ds-next-card"><div class="ds-next-num">1</div><h4>Real map style &amp; live markers</h4><p>The hand-drawn SVG map is a stand-in. Build the MapLibre/Mapbox custom style matching the palette, and render the four marker states as real map symbols — including cluster zoom-to-bounds. This is the make-or-break of the product.</p></div>
+        <div class="ds-next-card"><div class="ds-next-num">2</div><h4>The full state set, drawn</h4><p>Loading skeletons (rail rows, detail hero), empty (filter / saved / search), location denied &amp; out-of-region, submit→pending, report-sent, tiles-failed. For a map + UGC app these <i>are</i> the product, not edge cases.</p></div>
+        <div class="ds-next-card"><div class="ds-next-num">3</div><h4>Accessibility &amp; dark-mode polish</h4><p>The dark ramp now ships in tokens — next is the audit: marker / chip / CTA contrast over <i>every</i> map surface in both themes, full keyboard + visible-focus coverage, ≥44px targets, and reduced-motion fallbacks. Hold WCAG AA throughout.</p></div>
+      </div>
+      <div class="ds-note"><span class="ds-note-ic">i</span><div>Lower priority but reserved in schema: <b>collections / curated guides</b>, the <b>advanced filter panel</b>, and <b>ratings</b> — each is a deliberate scope expansion to discuss, not a default add.</div></div>
+    </section>
+
+  </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  // ---- category data (DIR_C) ----
+  var CATS = [
+    {id:'tabletennis',label:'Table tennis',color:'#e0a32e'},
+    {id:'basketball',label:'Basketball',color:'#ee7733'},
+    {id:'football',label:'Football',color:'#2f9e5b'},
+    {id:'tennis',label:'Tennis',color:'#74b13a'},
+    {id:'padel',label:'Padel',color:'#1ba0a0'},
+    {id:'scenic',label:'Scenic spot',color:'#3b7ddd'},
+    {id:'sakura',label:'Sakura spot',color:'#e85f9c'},
+  ];
+  // ---- glyphs (verbatim from lib/markers.jsx) ----
+  var GLYPHS = {
+    tabletennis:'<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="9" r="5.4" fill="currentColor" stroke="none"/><path d="M13.4 12.6l4 4.2"/><circle cx="17.6" cy="17" r="1.5" fill="currentColor" stroke="none"/></g>',
+    basketball:'<g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="7.4"/><path d="M12 4.6v14.8M4.6 12h14.8"/><path d="M6.7 6.7C9 9 9 15 6.7 17.3M17.3 6.7C15 9 15 15 17.3 17.3"/></g>',
+    football:'<g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.4"/><path d="M12 8.2l3.3 2.4-1.3 3.9h-4l-1.3-3.9z" fill="currentColor" stroke="none"/><path d="M12 4.6v3.6M15.3 10.6l3.1-1M13.7 14.5l2 3M10.3 14.5l-2 3M8.7 10.6l-3.1-1"/></g>',
+    tennis:'<g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="7.4"/><path d="M6.3 7.2C9.5 9 9.5 15 6.3 16.8"/><path d="M17.7 7.2C14.5 9 14.5 15 17.7 16.8"/></g>',
+    padel:'<g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4c-3.7 0-6.4 2.7-6.4 6.1 0 3.2 2.5 5.6 6.4 5.6s6.4-2.4 6.4-5.6c0-3.4-2.7-6.1-6.4-6.1z"/><path d="M12 15.1v5.5"/><circle cx="9.6" cy="8.4" r="1" fill="currentColor" stroke="none"/><circle cx="14.4" cy="8.4" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.2" r="1" fill="currentColor" stroke="none"/></g>',
+    scenic:'<g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="16.5" cy="7.5" r="2.1" fill="currentColor" stroke="none"/><path d="M3.5 18.5l4.4-6 3 3.6 3-4.4 6.6 6.8z" fill="currentColor" stroke="none"/></g>',
+    sakura:'<g fill="currentColor" stroke="none"><ellipse cx="12" cy="6.4" rx="2.5" ry="3.7" transform="rotate(0 12 12)"/><ellipse cx="12" cy="6.4" rx="2.5" ry="3.7" transform="rotate(72 12 12)"/><ellipse cx="12" cy="6.4" rx="2.5" ry="3.7" transform="rotate(144 12 12)"/><ellipse cx="12" cy="6.4" rx="2.5" ry="3.7" transform="rotate(216 12 12)"/><ellipse cx="12" cy="6.4" rx="2.5" ry="3.7" transform="rotate(288 12 12)"/><circle cx="12" cy="12" r="1.9" fill="#fff" opacity="0.9"/></g>',
+  };
+  function glyphSvg(id, size, color){
+    return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" style="color:'+(color||'#fff')+';display:block">'+GLYPHS[id]+'</svg>';
+  }
+  function bookmarkPip(){
+    return '<svg width="9" height="9" viewBox="0 0 24 24" fill="#2f6fe0"><path d="M6 3h12v18l-6-4.2L6 21z"/></svg>';
+  }
+  var CAT = {}; CATS.forEach(function(c){CAT[c.id]=c;});
+
+  // ---- neutrals + accent swatches ----
+  var NEUTRAL = [
+    ['--bg','#f1f4f8','App background, map letterbox','on-light'],
+    ['--surface','#ffffff','Cards, rail, sheets, top bar','on-light'],
+    ['--surface-2','#e9eef5','Inset chips, facts, hovers','on-light'],
+    ['--line','#e4e9f0','All borders & dividers','on-light'],
+    ['--ink','#19202b','Primary text, headings',''],
+    ['--ink-soft','#5c6675','Secondary text, body',''],
+    ['--ink-faint','#94a0b0','Meta, captions, disabled',''],
+    ['--accent','#2f6fe0','THE action colour',''],
+    ['--accent-2','#1ba0a0','Rare secondary accent',''],
+  ];
+  var STATUS = [
+    ['--success','#2f9e5b','Approved, verified, done',''],
+    ['--warning','#e0a32e','Pending, duplicate flag',''],
+    ['--danger','#d4504e','Reject, error, remove',''],
+  ];
+  function swatch(t){
+    var dark = ['--ink','--ink-soft','--ink-faint','--accent','--accent-2','--success','--warning','--danger'].indexOf(t[0])>=0;
+    var hexClass = t[3]==='on-light' ? 'ds-sw-hex on-light' : 'ds-sw-hex';
+    return '<div class="ds-sw"><div class="ds-sw-chip" style="background:'+t[1]+';'+(t[3]==='on-light'?'border-bottom:1px solid var(--line);':'')+'"><span class="'+hexClass+'">'+t[1]+'</span></div>'+
+      '<div class="ds-sw-meta"><b>'+t[0]+'</b><span>'+t[2]+'</span></div></div>';
+  }
+  document.getElementById('swNeutral').innerHTML = NEUTRAL.map(swatch).join('');
+  document.getElementById('swStatus').innerHTML = STATUS.map(swatch).join('');
+
+  // ---- dark ramp swatches (literal dark values) ----
+  var DARK = [
+    ['--bg','#0d1219','App background, map letterbox',''],
+    ['--surface','#151c27','Cards, rail, sheets, top bar',''],
+    ['--surface-2','#1e2735','Inset chips, facts, hovers',''],
+    ['--line','#2b3543','All borders & dividers',''],
+    ['--ink','#eaf0f8','Primary text, headings','on-light'],
+    ['--ink-soft','#9fabbb','Secondary text, body','on-light'],
+    ['--ink-faint','#66717f','Meta, captions, disabled',''],
+    ['--accent','#4d8bf2','Brightened — AA on dark',''],
+    ['--accent-2','#29b3b3','Rare secondary accent',''],
+  ];
+  function darkSwatch(t){
+    var hexClass = t[3]==='on-light' ? 'ds-sw-hex on-light' : 'ds-sw-hex';
+    return '<div class="ds-sw"><div class="ds-sw-chip" style="background:'+t[1]+';border-bottom:1px solid rgba(255,255,255,0.08);"><span class="'+hexClass+'">'+t[1]+'</span></div>'+
+      '<div class="ds-sw-meta"><b>'+t[0]+'</b><span>'+t[2]+'</span></div></div>';
+  }
+  document.getElementById('swDark').innerHTML = DARK.map(darkSwatch).join('');
+
+  // ---- theme toggle (persisted) ----
+  var MOON = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"/></svg>';
+  var SUN = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M4.5 4.5l1.7 1.7M17.8 17.8l1.7 1.7M2 12h2.4M19.6 12H22M4.5 19.5l1.7-1.7M17.8 6.2l1.7-1.7"/></svg>';
+  var toggle = document.getElementById('themeToggle');
+  function applyTheme(t){
+    if(t==='dark'){ document.documentElement.setAttribute('data-theme','dark'); toggle.innerHTML = SUN; }
+    else { document.documentElement.removeAttribute('data-theme'); toggle.innerHTML = MOON; }
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('gs-ds-theme'); } catch(e){}
+  applyTheme(saved || 'light');
+  toggle.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+    applyTheme(next);
+    try { localStorage.setItem('gs-ds-theme', next); } catch(e){}
+  });
+
+  // ---- category palette ----
+  document.getElementById('catPalette').innerHTML = CATS.map(function(c){
+    return '<div class="ds-cat"><div class="ds-cat-glyph" style="background:'+c.color+'">'+glyphSvg(c.id,26,'#fff')+'</div>'+
+      '<span class="ds-cat-name">'+c.label+'</span><span class="ds-cat-hex">'+c.color+'</span></div>';
+  }).join('');
+
+  // ---- spacing scale ----
+  var SPACE = [4,6,8,10,14,18,22,26,40];
+  document.getElementById('spaceScale').innerHTML = SPACE.map(function(s){
+    return '<div class="ds-space-row"><div class="ds-space-bar" style="width:'+s+'px"></div>'+
+      '<span class="ds-space-meta"><b>'+s+'px</b></span></div>';
+  }).join('');
+
+  // ---- filter chip row ----
+  function chip(c, on){
+    var icBg = on ? 'rgba(255,255,255,0.22)' : c.color;
+    var icColor = on ? '#fff' : '#fff';
+    return '<div class="gs-chip"'+(on?' data-on="true"':'')+' style="--cc:'+c.color+'">'+
+      '<span class="gs-chip-ic" style="background:'+icBg+'">'+glyphSvg(c.id,13,icColor)+'</span>'+c.label+'</div>';
+  }
+  var chipRow = '<div class="gs-chip" data-on="false" style="--cc:var(--accent)"><span class="gs-chip-ic" style="background:var(--accent)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></span>All</div>';
+  chipRow += chip(CAT.scenic, true);
+  chipRow += chip(CAT.basketball, false);
+  chipRow += chip(CAT.football, false);
+  chipRow += chip(CAT.sakura, false);
+  document.getElementById('chipRow').innerHTML = chipRow;
+
+  // ---- photo placeholder ----
+  function photo(catId, w, h, label){
+    var c = CAT[catId];
+    return '<div class="gs-photo" style="--pc:'+c.color+';width:'+w+';height:'+h+'px;border-radius:inherit;">'+
+      '<div class="gs-photo-wm">'+glyphSvg(catId, Math.round(h*0.4), 'rgba(255,255,255,0.85)')+'</div>'+
+      (label?'<span class="gs-photo-label">'+label+'</span>':'')+'</div>';
+  }
+
+  // ---- rail card ----
+  function railCard(catId, name, meta, tags, opts){
+    opts = opts||{};
+    var c = CAT[catId];
+    return '<button class="gs-card-rail"'+(opts.active?' style="background:rgba(47,111,224,0.07);border-color:rgba(47,111,224,0.3);"':'')+'>'+
+      '<div class="gs-card-rail-img"><div class="gs-photo" style="--pc:'+c.color+';width:72px;height:72px;border-radius:12px;"><div class="gs-photo-wm">'+glyphSvg(catId,30,'rgba(255,255,255,0.85)')+'</div></div>'+
+        '<div class="gs-card-rail-cat" style="background:'+c.color+'">'+glyphSvg(catId,12,'#fff')+'</div></div>'+
+      '<div class="gs-card-rail-body"><h3>'+name+'</h3>'+
+        '<div class="gs-card-meta"><span>'+meta+'</span><i></i><span class="gs-meta-saves"><svg width="11" height="11" viewBox="0 0 24 24" fill="#94a0b0"><path d="M6 3h12v18l-6-4.2L6 21z"/></svg> '+(opts.saves||'42')+'</span></div>'+
+        '<div class="gs-tagrow">'+tags.map(function(t){return '<span class="gs-tag">'+t+'</span>';}).join('')+'</div></div>'+
+      '<div class="gs-card-rail-save"><span class="gs-savebtn"'+(opts.saved?' data-saved="true"':'')+' style="width:36px;height:36px;">'+
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="'+(opts.saved?'#fff':'none')+'" stroke="'+(opts.saved?'#fff':'#5c6675')+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg></span></div>'+
+      '</button>';
+  }
+  var railStage = document.getElementById('railCardStage');
+  railStage.style.maxWidth='420px';
+  railStage.innerHTML = '<div style="width:100%;">'+railCard('scenic','Patarei sunset deck','Kalamaja · 600 m',['Free','Outdoor','Views'],{saved:true,saves:88})+'</div>';
+
+  // ---- featured card ----
+  function featCard(catId, name, meta, tags){
+    var c = CAT[catId];
+    return '<div class="gs-card-feat" style="width:230px;">'+
+      '<div class="gs-card-feat-img">'+photo(catId,'100%',128,'photo')+
+        '<div class="gs-card-feat-cat" style="background:'+c.color+'">'+glyphSvg(catId,15,'#fff')+'</div>'+
+        '<div class="gs-card-feat-save"><span class="gs-savebtn" data-light="true" style="width:34px;height:34px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5c6675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg></span></div></div>'+
+      '<div class="gs-card-feat-body"><h3>'+name+'</h3>'+
+        '<div class="gs-card-meta"><span>'+meta+'</span></div>'+
+        '<div class="gs-tagrow">'+tags.map(function(t){return '<span class="gs-tag">'+t+'</span>';}).join('')+'</div></div></div>';
+  }
+  document.getElementById('featCardStage').innerHTML =
+    featCard('sakura','Kadriorg blossoms','Kesklinn · seasonal',['Spring','Quiet']) +
+    featCard('basketball','Pelgulinna court','Põhja-Tallinn',['Free','Lights']);
+
+  // ---- selected state demo (row + marker pair) ----
+  document.getElementById('selectedStage').innerHTML =
+    '<div style="width:100%;max-width:420px;">'+railCard('scenic','Patarei sunset deck','Kalamaja · 600 m',['Free','Views'],{active:true,saves:88})+
+    '<span class="ds-caption">Selected rail row — accent-tint fill + accent hairline; its marker (right) scales up with halo + label.</span></div>';
+
+  // ---- list item anatomy ----
+  document.getElementById('anatomyStage').innerHTML =
+    '<div style="display:flex;justify-content:space-between;width:100%;max-width:420px;font-family:var(--ds-mono,monospace);font-size:11px;font-weight:700;color:var(--accent);margin-bottom:2px;"><span>1 · THUMB+PIP</span><span>2 · BODY</span><span>3 · SAVE</span></div>'+
+    '<div style="width:100%;max-width:420px;">'+railCard('football','Löwenruh pitch','Mustamäe · 1.2 km',['Free','Lights','Outdoor'],{saves:51})+'</div>';
+
+  // ---- add-a-spot single select ----
+  var addCats = '';
+  CATS.slice(0,6).forEach(function(c,i){
+    var on = i===2;
+    addCats += '<button class="gs-add-cat"'+(on?' data-on="true"':'')+' style="--cc:'+c.color+'">'+
+      '<span style="background:'+(on?'rgba(255,255,255,0.22)':c.color)+'">'+glyphSvg(c.id,16,'#fff')+'</span>'+c.label+'</button>';
+  });
+  document.getElementById('addCats').innerHTML = addCats;
+
+  // ---- marker builder ----
+  function marker(catId, opts){
+    opts = opts||{};
+    var c = CAT[catId];
+    var base = opts.size||30;
+    var s = opts.selected ? Math.round(base*1.32) : base;
+    var glyph = Math.round(s*0.62);
+    var shadow = opts.selected ? '0 8px 22px rgba(20,26,40,0.34),0 2px 6px rgba(20,26,40,0.22)' : '0 3px 9px rgba(20,26,40,0.26)';
+    var html = '<div class="ds-marker">';
+    if(opts.selected){ html += '<div class="ds-marker-halo" style="width:'+(s+14)+'px;height:'+(s+14)+'px;top:-7px;background:'+c.color+';opacity:0.16;"></div>'; }
+    html += '<div class="ds-marker-body" style="width:'+s+'px;height:'+s+'px;background:'+c.color+';box-shadow:'+shadow+';">'+glyphSvg(catId,glyph,'#fff');
+    if(opts.saved){ html += '<div class="ds-marker-pip">'+bookmarkPip()+'</div>'; }
+    html += '</div>';
+    if(opts.selected && opts.label){ html += '<div class="ds-marker-label">'+opts.label+'</div>'; }
+    html += '</div>';
+    return html;
+  }
+  function pinSpec(inner, label){
+    return '<div class="ds-spec">'+inner+'<span class="ds-label">'+label+'</span></div>';
+  }
+  document.getElementById('pinStates').innerHTML =
+    pinSpec(marker('basketball',{size:27}),'Default · 27') +
+    pinSpec(marker('basketball',{size:30}),'Hover · 30') +
+    pinSpec(marker('scenic',{selected:true,label:'Patarei deck'}),'Selected · halo + label') +
+    pinSpec(marker('football',{size:30,saved:true}),'Saved · bookmark pip');
+
+  // ---- cluster + me dot + map control ----
+  var cluster = '<div class="gs-cluster"><div class="gs-cluster-dots">'+
+    '<i style="background:#3b7ddd"></i><i style="background:#e0a32e"></i><i style="background:#2f9e5b"></i></div>7</div>';
+  var clusterActive = '<div class="gs-cluster" data-active="true"><div class="gs-cluster-dots">'+
+    '<i style="background:#e85f9c"></i><i style="background:#3b7ddd"></i></div>4</div>';
+  var meDot = '<div style="position:relative;width:18px;height:18px;"><span style="position:absolute;inset:0;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 6px rgba(47,111,224,0.18);"></span></div>';
+  var ctl = '<div style="display:flex;flex-direction:column;gap:8px;">'+
+    '<button style="width:42px;height:42px;border-radius:11px;background:var(--surface);border:1px solid var(--line);box-shadow:0 3px 10px rgba(20,26,40,0.12);display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#19202b" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>'+
+    '<button style="width:42px;height:42px;border-radius:11px;background:var(--surface);border:1px solid var(--line);box-shadow:0 3px 10px rgba(20,26,40,0.12);display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#19202b" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg></button></div>';
+  document.getElementById('mapBits').innerHTML =
+    pinSpec(cluster,'Cluster · count pill') +
+    pinSpec(clusterActive,'Cluster · contains selection') +
+    pinSpec(meDot,'My location') +
+    pinSpec(ctl,'Zoom controls');
+
+  // ---- sheet mini list ----
+  function sheetRow(catId, name, meta){
+    var c = CAT[catId];
+    return '<div style="display:flex;align-items:center;gap:9px;padding:7px 4px;border-bottom:1px solid var(--line);">'+
+      '<div style="position:relative;width:38px;height:38px;border-radius:9px;flex:0 0 auto;background:linear-gradient(135deg,'+c.color+',color-mix(in srgb,'+c.color+' 80%,#000));display:flex;align-items:center;justify-content:center;">'+glyphSvg(catId,16,'#fff')+'</div>'+
+      '<div style="flex:1;min-width:0;"><div style="font-family:var(--font-head);font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+name+'</div>'+
+      '<div style="font-size:11px;color:var(--ink-faint);font-weight:600;">'+meta+'</div></div>'+
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a0b0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg></div>';
+  }
+  document.getElementById('sheetList').innerHTML =
+    sheetRow('football','Löwenruh pitch','Mustamäe · 1.2 km') +
+    sheetRow('football','Kalevi staadion','Kesklinn · 1.8 km') +
+    sheetRow('football','Sõle väljak','Põhja-Tallinn · 2.1 km');
+
+  // ---- checklist ----
+  var CHECK = {
+    'shared/ui':['Button (primary·secondary·ghost)','SaveButton (bookmark)','CategoryChip','Tag','CatBadge','PlacePhoto','EmptyState','Toaster','Avatar'],
+    'entities / features':['SpotListItem','SpotCardLarge','SpotMarker','ClusterMarker','SpotDetail (panel+page)','CategoryFilter','AddSpotFlow','AuthDialog','LocationPermission'],
+    'widgets / pages':['AppHeader','MobileTabBar','BottomSheet','SpotMap','SavedPage','AdminModeration (table+drawer+stats)'],
+  };
+  var tick = '<span class="ds-tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>';
+  var checkHtml = '';
+  Object.keys(CHECK).forEach(function(group){
+    checkHtml += '<div class="ds-check-col"><h5>'+group+'</h5><ul>'+
+      CHECK[group].map(function(item){return '<li>'+tick+item+'</li>';}).join('')+'</ul></div>';
+  });
+  document.getElementById('checklist').innerHTML = checkHtml;
+
+  // ---- mobile nav drawer ----
+  var navToggle = document.getElementById('navToggle');
+  var navScrim = document.getElementById('navScrim');
+  function setNav(open){
+    document.body.classList.toggle('nav-open', open);
+    navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  navToggle.addEventListener('click', function(){ setNav(!document.body.classList.contains('nav-open')); });
+  navScrim.addEventListener('click', function(){ setNav(false); });
+  document.querySelectorAll('.ds-nav a').forEach(function(a){
+    a.addEventListener('click', function(){ setNav(false); });
+  });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ setNav(false); } });
+
+  // ---- scroll-spy ----
+  var links = Array.prototype.slice.call(document.querySelectorAll('.ds-nav a'));
+  var map = {};
+  links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        links.forEach(function(a){a.classList.remove('is-active');});
+        var a = map[e.target.id];
+        if(a){ a.classList.add('is-active'); }
+      }
+    });
+  }, {rootMargin:'-72px 0px -72% 0px', threshold:0});
+  document.querySelectorAll('.ds-section').forEach(function(s){obs.observe(s);});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GemSpot — UI Specification (React MVP)</title>
+<meta name="description" content="Developer-ready, screen-by-screen UI specification for the GemSpot React MVP — Direction C. Components, variants, states, interaction rules, and responsive behavior for mobile and desktop." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="lib/web.css" />
+<link rel="stylesheet" href="design-system/ds.css?v=4" />
+<link rel="stylesheet" href="design-system/spec.css?v=1" />
+<style>
+  /* map-tint vars for blueprints (DIR_C config) */
+  :root{ --park:#d3e7ca; --water:#cfe0f2; --map-land:#eef1f6; --success:#2f9e5b; --warning:#e0a32e; --danger:#d4504e; }
+</style>
+</head>
+<body>
+<div class="ds-wrap">
+
+  <!-- ===== top bar ===== -->
+  <header class="ds-top">
+    <button class="ds-nav-toggle" id="navToggle" aria-label="Open navigation" aria-expanded="false">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="ds-logo">
+      <span class="ds-logo-mark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 21c4.5-4.2 7-7.4 7-11a7 7 0 1 0-14 0c0 3.6 2.5 6.8 7 11z" fill="#fff"/><circle cx="12" cy="10" r="2.6" fill="#2f6fe0"/></svg>
+      </span>
+      GemSpot
+    </div>
+    <span class="ds-top-tag">UI Specification · React MVP</span>
+    <div class="ds-top-dir"><span class="ds-dot"></span> Direction&nbsp;<b>C</b> — handoff build</div>
+    <button class="ds-theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
+  </header>
+
+  <!-- ===== sidebar ===== -->
+  <div class="ds-scrim" id="navScrim"></div>
+  <nav class="ds-nav" id="dsNav">
+    <div class="ds-nav-group">Orientation</div>
+    <a href="#overview">Product UI overview</a>
+    <a href="#screens-list">Core screens (MVP)</a>
+    <a href="#visual">Visual rules recap</a>
+    <div class="ds-nav-group">Component system</div>
+    <a href="#components">Reusable components</a>
+    <a href="#variants">Variants &amp; states</a>
+    <div class="ds-nav-group">Screen-by-screen</div>
+    <a href="#explore">Explore</a>
+    <a href="#filter">Category / filter</a>
+    <a href="#detail">Place details</a>
+    <a href="#saved">Saved places</a>
+    <a href="#add">Add a place</a>
+    <div class="ds-nav-group">Behavior</div>
+    <a href="#interaction">Interaction rules</a>
+    <a href="#sheet-panel">Sheet ↔ side panel</a>
+    <a href="#responsive">Responsive behavior</a>
+    <div class="ds-nav-group">Handoff</div>
+    <a href="#gaps">Gaps &amp; open questions</a>
+    <a href="#react">React breakdown</a>
+    <a href="#order">Implementation order</a>
+    <a href="#edge">Edge cases</a>
+  </nav>
+
+  <!-- ===== main ===== -->
+  <main class="ds-main">
+  <div class="ds-inner">
+
+    <div class="ds-hero">
+      <h1>GemSpot UI Specification</h1>
+      <p>A developer-ready, screen-by-screen implementation spec for the GemSpot React MVP. It does <b>not</b> redesign anything — it converts the approved <b>Direction&nbsp;C</b> concept and the <a href="GemSpot Design System.html">design system</a> into concrete layout, component, state, and responsive rules a frontend engineer can build directly against.</p>
+      <div class="ds-hero-meta">
+        <span class="ds-pill"><b>5 flows</b> · browse · filter · detail · save · add</span>
+        <span class="ds-pill"><b>900px</b> breakpoint</span>
+        <span class="ds-pill"><b>Mobile-first</b> · desktop split-view</span>
+        <span class="ds-pill"><b>React + TS</b> · MapLibre / Mapbox</span>
+      </div>
+      <div class="sp-readline">Reading this as: <b>a map-first local-discovery web app</b> for technical handoff. The map is the stage; chrome stays calm; one accent blue carries every action; category colour lives only on markers, chips, and badges. Every list, detail, and map ships loading / empty / error states — those <i>are</i> the product for a map + UGC app, not polish.</div>
+    </div>
+
+    <!-- ============ PRODUCT UI OVERVIEW ============ -->
+    <section class="ds-section anchor-offset" id="overview">
+      <div class="ds-kicker">01 — Orientation</div>
+      <h2>Product UI overview</h2>
+      <p class="ds-lead">GemSpot is one persistent app shell, not a set of separate pages. The map never unmounts; screens are states layered over it.</p>
+      <ul>
+        <li><b>One shell, layered states.</b> <code>AppHeader</code> + a route outlet + (mobile) <code>MobileTabBar</code> + global <code>AuthDialog</code> &amp; <code>Toaster</code>. Explore, Saved, and Spot detail all share the same map instance — detail is an overlay/panel, never a fresh page that unmounts the map.</li>
+        <li><b>Desktop = split view.</b> A persistent left rail (416px) of result cards beside a map that fills the rest. Spot detail slides over the rail; the map stays put and recenters on the selected pin.</li>
+        <li><b>Mobile = map + bottom sheet.</b> Full-bleed map, a draggable bottom sheet for results &amp; previews, a floating filter chip row up top, and a 4-item bottom tab bar (Explore · Saved · <span style="color:var(--accent);font-weight:700">+</span> · Profile) with the centre <b>Add</b> FAB.</li>
+        <li><b>Public to view, account to act.</b> Browse / filter / open spots / per-spot pages are public and SEO-indexable. Login gates only <b>Save</b>, <b>Add</b>, <code>/saved</code>, <code>/admin</code>. Gated actions queue and resume after login (<code>requireAuth</code>).</li>
+        <li><b>UGC is moderated.</b> Submissions go to a <b>PENDING</b> queue and are reviewed in a separate, utilitarian desktop admin surface before they ever appear on the map. (Admin is out of scope for this consumer spec — see the design system inventory.)</li>
+      </ul>
+      <div class="ds-note lock"><span class="ds-note-ic">!</span><div><b>13 UX decisions are locked</b> (<code>docs/07</code>) and constrain this spec — don't silently revert them: bookmark is the only save metaphor (no hearts); category chips are the only filter; no ratings/stars in MVP; distance is shown and is the default sort; Directions hands off to Apple/Google Maps; Tallinn only at launch.</div></div>
+    </section>
+
+    <!-- ============ CORE SCREENS ============ -->
+    <section class="ds-section anchor-offset" id="screens-list">
+      <div class="ds-kicker">02 — Orientation</div>
+      <h2>Core screens in the MVP</h2>
+      <p>The consumer build surface. Each public route is server-renderable for SEO; authed routes are <code>noindex</code>. Filters and the selected spot live in the URL so back/forward and sharing work.</p>
+      <div class="ds-table-wrap">
+        <table class="ds-table">
+          <thead><tr><th>Screen</th><th>Route</th><th>Auth</th><th>Desktop form</th><th>Mobile form</th></tr></thead>
+          <tbody>
+            <tr><td><b>Landing</b></td><td><code>/</code></td><td>public</td><td colspan="2">Marketing/SEO entry → "Open the map". (Reuses system styles; not detailed here.)</td></tr>
+            <tr><td><b>Explore</b></td><td><code>/explore</code></td><td>public</td><td>Rail + persistent map</td><td>Map + bottom sheet + chip row</td></tr>
+            <tr><td><b>Category / filter</b></td><td><code>/explore?cat=</code></td><td>public</td><td>Chip row over rail; map fitBounds</td><td>Floating chip row; sheet re-sorts</td></tr>
+            <tr><td><b>Place details</b></td><td><code>/spot/:slug</code></td><td>public</td><td>Slide-in panel over rail</td><td>Full-screen (cold) / sheet-to-full</td></tr>
+            <tr><td><b>Saved places</b></td><td><code>/saved</code></td><td>authed</td><td>Same split, saved-only set</td><td>Map + sheet, saved-only</td></tr>
+            <tr><td><b>Add a place</b></td><td><code>/add</code></td><td>authed</td><td>Side panel + map (click to pin)</td><td>Map (top ~38%) + panel sheet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ VISUAL RULES RECAP ============ -->
+    <section class="ds-section anchor-offset" id="visual">
+      <div class="ds-kicker">03 — Orientation</div>
+      <h2>Visual rules recap</h2>
+      <p>The full style board lives in the <a href="GemSpot Design System.html">design system</a>. The values an engineer needs while reading this spec, in one place:</p>
+      <div class="two-col">
+        <div>
+          <h4>Tokens that matter here</h4>
+          <div class="ds-table-wrap">
+            <table class="ds-table">
+              <tbody>
+                <tr><td><b>Accent</b></td><td><code>#2f6fe0</code> — the only action colour</td></tr>
+                <tr><td><b>Surfaces</b></td><td><code>--bg #f1f4f8</code> · <code>--surface #fff</code> · <code>--surface-2 #e9eef5</code></td></tr>
+                <tr><td><b>Ink</b></td><td><code>#19202b</code> / soft <code>#5c6675</code> / faint <code>#94a0b0</code></td></tr>
+                <tr><td><b>Status</b></td><td><code>--success #2f9e5b</code> · <code>--warning #e0a32e</code> · <code>--danger #d4504e</code></td></tr>
+                <tr><td><b>Radius</b></td><td>chip 10 · btn 12 · card 16 · sheet 22 · pill ∞</td></tr>
+                <tr><td><b>Type</b></td><td>Space Grotesk (head) + Hanken Grotesk (body/UI)</td></tr>
+                <tr><td><b>Spacing</b></td><td>4px base; rail pad 14–18; section 46/34</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <h4>Breakpoints (matches <code>web.css</code>)</h4>
+          <div class="ruler">
+            <div class="br-m"><b>&lt; 900</b>Mobile<small>map + sheet + tab bar</small></div>
+            <div class="br-t"><b>768–899</b>Tablet<small>resolves to mobile (MVP)</small></div>
+            <div class="br-d"><b>≥ 900</b>Desktop<small>rail + persistent map</small></div>
+          </div>
+          <div class="ds-note"><span class="ds-note-ic">i</span><div>One real breakpoint at <b>900px</b> with a minor 560px tweak. Tablet (768–899) deliberately uses the mobile layout for MVP; a landscape-tablet "narrow desktop" split is a v2 nicety. Mobile heights use <code>100dvh</code> so the bottom nav clears browser chrome.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ REUSABLE COMPONENTS ============ -->
+    <section class="ds-section anchor-offset" id="components">
+      <div class="ds-kicker">04 — Component system</div>
+      <h2>Reusable components</h2>
+      <p>The components every screen is assembled from. Each row gives the production name, its layer (FSD-ish), what it's made of, and — critically — <b>how it behaves on mobile vs desktop</b>. Live specimens below the table.</p>
+      <div class="ds-table-wrap">
+        <table class="ds-table">
+          <thead><tr><th>Component</th><th>Layer</th><th>Purpose · content</th><th>Mobile vs desktop</th></tr></thead>
+          <tbody>
+            <tr><td><b>Button</b></td><td>shared/ui</td><td><code>variant="primary|secondary|ghost"</code>, <code>size</code>, <code>block</code>, <code>busy</code>, <code>disabled</code>. One primary visible per view.</td><td>Same; in sheet/modal footers use <code>block</code> (full-width, ≥46px).</td></tr>
+            <tr><td><b>SaveButton</b></td><td>shared/ui</td><td>Circular bookmark toggle. <code>saved</code>, <code>light</code> (over photo). The only save metaphor.</td><td>≥40px both; on cards stays pinned right and never scrolls out of reach.</td></tr>
+            <tr><td><b>CategoryChip</b></td><td>features/explore</td><td>Filter pill: glyph circle + label. <code>active</code> fills with category hue. Leading <b>All</b> resets.</td><td><b>Desktop:</b> row in rail header. <b>Mobile:</b> floats over the map, horizontally scrollable.</td></tr>
+            <tr><td><b>Tag</b> / <b>CatBadge</b></td><td>shared/ui · entities</td><td>Neutral utility tag (Free, Lights…), max 2–3 per card. CatBadge = hue + glyph identity.</td><td>Identical; tags may wrap to 1 line and ellipsise on narrow cards.</td></tr>
+            <tr><td><b>SpotListItem</b></td><td>entities/place</td><td>Compact rail/sheet row: 72px thumb + pip → name → meta (cat · hood · distance) → tags → save.</td><td>Same anatomy; the workhorse of both rail (desktop) and sheet (mobile).</td></tr>
+            <tr><td><b>SpotCardLarge</b></td><td>entities/place</td><td>Image-forward featured card for landing / collections.</td><td>Grid on desktop; full-width stack on mobile.</td></tr>
+            <tr><td><b>SpotMap</b></td><td>widgets/map</td><td>The map widget: places, clustering, selection, pin-placement mode for Add.</td><td><b>Desktop:</b> fills area right of rail. <b>Mobile:</b> full-bleed under sheet + chips.</td></tr>
+            <tr><td><b>SpotMarker</b> / <b>ClusterMarker</b></td><td>entities/place</td><td>Branded pin (hue + white ring + glyph; bookmark pip when saved) / count pill (≤3 dots + N).</td><td>Same symbols; tap target ≥44px on touch. Cluster click zooms to bounds.</td></tr>
+            <tr><td><b>SpotDetail</b></td><td>features/place-detail</td><td>Hero photos, badge, name, contributor, note, quick facts, photo strip, Save + Directions. Own URL.</td><td><b>Desktop:</b> <code>variant="panel"</code> over rail. <b>Mobile:</b> <code>variant="page"</code> full-screen.</td></tr>
+            <tr><td><b>BottomSheet</b> / <b>SidePanel</b></td><td>widgets</td><td>The same content container in two shells: draggable sheet (mobile) vs persistent rail/panel (desktop).</td><td>See <a href="#sheet-panel">Sheet ↔ side panel</a> — this is the core responsive swap.</td></tr>
+            <tr><td><b>CategoryFilter</b></td><td>features/explore</td><td>Owns the chip row + URL <code>?cat=</code> sync + the Clear affordance.</td><td>Renders the chip row in its breakpoint-correct slot.</td></tr>
+            <tr><td><b>AddSpotFlow</b></td><td>features/submission</td><td>Linear 4-step stepper → pending confirmation. Dedicated screen, never a sheet.</td><td><b>Desktop:</b> panel beside map. <b>Mobile:</b> map on top, step panel below.</td></tr>
+            <tr><td><b>AppHeader</b> / <b>MobileTabBar</b></td><td>widgets</td><td>Top bar (logo · nav · search · Add · You) / 4-item bottom nav with centre FAB.</td><td>Header collapses to a minimal top bar &lt;900; tab bar appears &lt;900 only.</td></tr>
+            <tr><td><b>EmptyState</b> · <b>Toaster</b> · <b>PlacePhoto</b></td><td>shared/ui</td><td>Filter/saved/search empties; undo &amp; status toasts; image w/ category-tint fallback (no layout shift).</td><td>Identical; toasts dock bottom-centre (mobile) / bottom-right (desktop).</td></tr>
+            <tr><td><b>AuthDialog</b> · <b>LocationPermission</b></td><td>features/auth · geo</td><td>Social + email; centred modal. Permission prompt + denied / out-of-region states.</td><td>Modal full-width sheet-style on mobile; centred dialog on desktop.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Live specimens</h3>
+      <div class="kit">
+        <div class="kit-card"><div class="kc-demo" style="gap:8px;"><button class="gs-btn gs-btn-primary" style="height:34px;font-size:12.5px;">Save spot</button></div><div class="kc-name">Button · primary</div><div class="kc-sub">The one forward action</div></div>
+        <div class="kit-card"><div class="kc-demo"><button class="gs-btn gs-btn-ghost" style="height:34px;font-size:12.5px;">Directions</button></div><div class="kc-name">Button · secondary</div><div class="kc-sub">Bordered alternative</div></div>
+        <div class="kit-card"><div class="kc-demo" style="gap:10px;"><button class="gs-savebtn" style="width:36px;height:36px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5c6675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg></button><button class="gs-savebtn" data-saved="true" style="width:36px;height:36px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg></button></div><div class="kc-name">SaveButton</div><div class="kc-sub">unsaved · saved</div></div>
+        <div class="kit-card"><div class="kc-demo"><div class="gs-chip" data-on="true" style="--cc:#3b7ddd;height:30px;"><span class="gs-chip-ic" style="background:rgba(255,255,255,0.22);"><svg width="13" height="13" viewBox="0 0 24 24" style="color:#fff"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="16.5" cy="7.5" r="2.1" fill="currentColor" stroke="none"/><path d="M3.5 18.5l4.4-6 3 3.6 3-4.4 6.6 6.8z" fill="currentColor" stroke="none"/></g></svg></span>Scenic</div></div><div class="kc-name">CategoryChip · active</div><div class="kc-sub">Fills with category hue</div></div>
+        <div class="kit-card"><div class="kc-demo" style="gap:5px;"><span class="gs-tag">Free</span><span class="gs-tag">Lights</span></div><div class="kc-name">Tag</div><div class="kc-sub">Neutral utility · max 2–3</div></div>
+        <div class="kit-card"><div class="kc-demo"><div class="mk" style="--cc:#2f9e5b;position:relative;transform:none;"><span class="mk-glyph"></span></div></div><div class="kc-name">SpotMarker</div><div class="kc-sub">hue + ring + glyph</div></div>
+      </div>
+    </section>
+
+    <!-- ============ VARIANTS & STATES ============ -->
+    <section class="ds-section anchor-offset" id="variants">
+      <div class="ds-kicker">05 — Component system</div>
+      <h2>Component variants &amp; states</h2>
+      <p>Variants are the design-time enums; states are the runtime conditions. Both must look identical everywhere the component appears. For a map + UGC product the empty / permission / pending / error states are MVP scope, not extras.</p>
+
+      <h3>Variant enums</h3>
+      <div class="ds-table-wrap">
+        <table class="ds-table">
+          <thead><tr><th>Component</th><th>Variants</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><b>Button</b></td><td><code>primary</code> · <code>secondary</code> · <code>ghost</code>; sizes <code>md|lg</code>; <code>block</code></td><td>Rename the prototype's <code>.gs-btn-ghost</code> → <code>secondary</code>; reserve <code>ghost</code> for text-only. One <code>&lt;Button&gt;</code> API.</td></tr>
+            <tr><td><b>SaveButton</b></td><td><code>default</code> · <code>light</code> (over photo) · <code>pip</code> (on marker)</td><td>Same toggle, three placements. <code>light</code> adds a translucent white backplate.</td></tr>
+            <tr><td><b>CategoryChip</b></td><td><code>all</code> (reset) · <code>category</code>; ×<code>active</code></td><td>Active category chip is the <i>only</i> place a category hue touches a control.</td></tr>
+            <tr><td><b>SpotMarker</b></td><td><code>default</code> · <code>hover</code> · <code>selected</code> · <code>saved</code></td><td>Selected ≈1.32× + colour halo + name label; saved adds bookmark pip.</td></tr>
+            <tr><td><b>SpotDetail</b></td><td><code>panel</code> (desktop) · <code>page</code> (mobile / cold load)</td><td>Same content, two shells; both bound to <code>/spot/:slug</code>.</td></tr>
+            <tr><td><b>EmptyState</b></td><td><code>filter</code> · <code>saved</code> · <code>search</code></td><td>Each pairs a line of copy with a relevant CTA (widen area / add a spot / explore).</td></tr>
+            <tr><td><b>BottomSheet</b></td><td>snap <code>half</code> (46%) · <code>full</code> (88%)</td><td>Mobile only; on desktop the same content is the static rail/panel.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>State matrix (MVP-required)</h3>
+      <div class="ds-table-wrap">
+        <table class="ds-table">
+          <thead><tr><th>Component</th><th>loading</th><th>ready / populated</th><th>empty</th><th>error / denied</th></tr></thead>
+          <tbody>
+            <tr><td><b>SpotMap</b></td><td>Skeleton/blur over map while tiles + places load</td><td>Markers + clusters; clustering at city zoom</td><td>Filter yields none → map stays, rail shows EmptyState</td><td>Tiles fail/offline → retry, keep last good view</td></tr>
+            <tr><td><b>Rail / Sheet list</b></td><td>4–6 row skeletons in <code>SpotListItem</code> shape (not a spinner)</td><td>Sorted by distance (or curation if denied)</td><td>filter: "widen area / add a {cat}"; search: no-match + clear</td><td>—</td></tr>
+            <tr><td><b>SpotDetail</b></td><td>Hero skeleton + text lines</td><td>Hero, badge, name, note, facts, photo strip, CTAs</td><td>—</td><td>photo fails → category-tint PlacePhoto; archived → "no longer available"</td></tr>
+            <tr><td><b>Location</b></td><td>unasked → prompt on first Explore</td><td>granted → "my location" dot + distance sort</td><td>—</td><td>denied → hide dot, curation sort, subtle re-enable; out-of-region → city default + note</td></tr>
+            <tr><td><b>AddSpotFlow</b></td><td>submitting → button busy</td><td>4 valid steps → Review</td><td>—</td><td>submit error → inline retry; signed out → auth gate</td></tr>
+            <tr><td><b>SavedPage</b></td><td>row skeletons</td><td>Saved-only split; inline remove + undo toast</td><td>"Nothing saved yet" + Explore CTA</td><td>signed out → auth gate</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ds-note"><span class="ds-note-ic">i</span><div>The <b>saved</b>, <b>selected</b>, and <b>active-filter</b> selection states are fully drawn in the <a href="GemSpot Design System.html#states">design system → Component states</a>. Don't re-invent them per screen — import the same component.</div></div>
+    </section>
+
+    <!-- ============ EXPLORE ============ -->
+    <section class="ds-section anchor-offset" id="explore">
+      <div class="ds-kicker">06 — Screen-by-screen</div>
+      <h2>Explore</h2>
+      <p>The home of the product. Desktop is a rail + persistent map; mobile is a full map with a draggable bottom sheet. Selecting a row drives the matching pin and vice-versa — they are one selection.</p>
+
+      <div class="scene">
+        <!-- mobile -->
+        <div class="scene-stack">
+          <div class="ds-phone">
+            <div class="ds-phone-map"></div>
+            <!-- floating chips -->
+            <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;gap:7px;overflow:hidden;">
+              <div class="gs-chip" data-on="true" style="--cc:#2f6fe0;height:30px;box-shadow:0 2px 8px rgba(20,26,40,0.12);">All</div>
+              <div class="gs-chip" style="height:30px;box-shadow:0 2px 8px rgba(20,26,40,0.12);">Scenic</div>
+              <div class="gs-chip" style="height:30px;box-shadow:0 2px 8px rgba(20,26,40,0.12);">Football</div>
+            </div>
+            <span class="cnum" style="top:27px;left:34px;">1</span>
+            <!-- markers -->
+            <div class="mk" style="--cc:#3b7ddd;top:140px;left:78px;"><span class="mk-glyph"></span></div>
+            <div class="mk sel" style="--cc:#2f9e5b;top:200px;left:170px;"><span class="mk-glyph"></span></div>
+            <div class="mk-cluster" style="top:120px;left:200px;"><span class="dots"><b style="background:#3b7ddd"></b><b style="background:#e85f9c"></b></span>2</div>
+            <span class="cnum" style="top:200px;left:170px;">2</span>
+            <!-- sheet -->
+            <div style="position:absolute;left:0;right:0;bottom:54px;height:236px;background:var(--surface);border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(20,26,40,0.14);display:flex;flex-direction:column;">
+              <div style="padding:9px 0 4px;display:flex;justify-content:center;"><span style="width:38px;height:5px;border-radius:3px;background:var(--line);"></span></div>
+              <span class="cnum" style="top:8px;left:150px;">3</span>
+              <div style="padding:4px 15px;display:flex;align-items:center;justify-content:space-between;"><strong style="font-family:var(--font-head);font-size:13px;">10 spots nearby</strong><span style="font-size:10px;color:var(--ink-faint);font-weight:700;">By distance</span></div>
+              <div style="flex:1;overflow:hidden;padding:2px 12px;display:flex;flex-direction:column;gap:8px;">
+                <div class="mrow" style="--cc:#e0a32e;"><div class="mrow-thumb"><span class="pip"></span></div><div class="mrow-b"><strong>Politseiaia ping-pong</strong><em>Kesklinn · 0.4 km</em><div class="mtags"><span>Free</span><span>Concrete</span></div></div><div class="mrow-save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 4h12v16l-6-4-6 4z"/></svg></div></div>
+                <div class="mrow sel" style="--cc:#2f9e5b;"><div class="mrow-thumb"><span class="pip"></span></div><div class="mrow-b"><strong>Kalamaja pitch</strong><em>Põhja-Tallinn · 0.6 km</em><div class="mtags"><span>Lights</span></div></div><div class="mrow-save on"><svg viewBox="0 0 24 24" fill="#fff" stroke="#fff" stroke-width="2"><path d="M6 4h12v16l-6-4-6 4z"/></svg></div></div>
+              </div>
+            </div>
+            <span class="cnum" style="bottom:120px;left:30px;">4</span>
+            <!-- bottom nav -->
+            <div style="position:absolute;left:0;right:0;bottom:0;height:54px;display:flex;align-items:center;justify-content:space-around;background:var(--surface);border-top:1px solid var(--line);">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--accent);font-size:9px;font-weight:700;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Explore</div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink-faint);font-size:9px;font-weight:700;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>Saved</div>
+              <div style="width:40px;height:40px;border-radius:13px;background:var(--accent);display:flex;align-items:center;justify-content:center;box-shadow:0 5px 16px rgba(47,111,224,0.4);margin-top:-12px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink-faint);font-size:9px;font-weight:700;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20a7 7 0 0 1 14 0z"/></svg>Profile</div>
+            </div>
+            <span class="cnum" style="bottom:14px;left:150px;">5</span>
+          </div>
+          <span class="scene-cap">Mobile &lt; 900px</span>
+        </div>
+
+        <!-- desktop -->
+        <div class="scene-stack">
+          <div class="frame" style="position:relative;">
+            <div class="frame-top">
+              <div class="frame-logo"><i></i>GemSpot</div>
+              <div class="frame-nav"><b>Explore</b><span>Saved</span></div>
+              <div class="frame-search"></div>
+              <div class="frame-cta"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add a spot</div>
+              <div class="frame-av"></div>
+            </div>
+            <span class="cnum" style="top:20px;left:300px;">A</span>
+            <div class="frame-body">
+              <div class="frame-rail">
+                <div class="frame-chips">
+                  <div class="fchip on">All</div>
+                  <div class="fchip"><i style="background:#3b7ddd"></i>Scenic</div>
+                  <div class="fchip"><i style="background:#2f9e5b"></i>Football</div>
+                  <div class="fchip"><i style="background:#e0a32e"></i>Table tennis</div>
+                </div>
+                <span class="cnum" style="top:52px;left:30px;">B</span>
+                <div class="frame-railhead"><b>10 spots</b><span>By distance</span></div>
+                <div class="frame-list">
+                  <div class="mrow" style="--cc:#e0a32e;"><div class="mrow-thumb"><span class="pip"></span></div><div class="mrow-b"><strong>Politseiaia ping-pong</strong><em>Kesklinn · 0.4 km · 38 saved</em><div class="mtags"><span>Free</span><span>Concrete</span></div></div><div class="mrow-save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 4h12v16l-6-4-6 4z"/></svg></div></div>
+                  <div class="mrow sel" style="--cc:#2f9e5b;"><div class="mrow-thumb"><span class="pip"></span></div><div class="mrow-b"><strong>Kalamaja pitch</strong><em>Põhja-Tallinn · 0.6 km · 21 saved</em><div class="mtags"><span>Lights</span><span>Outdoor</span></div></div><div class="mrow-save on"><svg viewBox="0 0 24 24" fill="#fff" stroke="#fff" stroke-width="2"><path d="M6 4h12v16l-6-4-6 4z"/></svg></div></div>
+                  <div class="mrow" style="--cc:#3b7ddd;"><div class="mrow-thumb"><span class="pip"></span></div><div class="mrow-b"><strong>Patkuli viewpoint</strong><em>Toompea · 0.7 km · 142 saved</em><div class="mtags"><span>Free</span><span>Sunset</span></div></div><div class="mrow-save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 4h12v16l-6-4-6 4z"/></svg></div></div>
+                </div>
+                <span class="cnum" style="top:150px;left:30px;">C</span>
+              </div>
+              <div class="frame-map">
+                <div class="mk" style="--cc:#e0a32e;top:62px;left:62%;"><span class="mk-glyph"></span></div>
+                <div class="mk sel" style="--cc:#2f9e5b;top:48%;left:54%;"><span class="mk-glyph"></span></div>
+                <div class="mk-label" style="top:48%;left:54%;">Kalamaja pitch</div>
+                <div class="mk" style="--cc:#e85f9c;top:74%;left:78%;"><span class="mk-glyph"></span></div>
+                <div class="mk-cluster" style="top:30%;left:34%;"><span class="dots"><b style="background:#3b7ddd"></b><b style="background:#e85f9c"></b><b style="background:#e0a32e"></b></span>5</div>
+                <span class="cnum" style="top:48%;left:54%;">D</span>
+                <span class="cnum" style="top:30%;left:34%;">E</span>
+                <div class="frame-mapctl"><b><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 4.5-9 4.5-9-4.5z"/><path d="M3 12l9 4.5 9-4.5M3 17l9 4.5 9-4.5"/></svg></b><b><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21c4-4 7-7 7-11a7 7 0 1 0-14 0c0 4 3 7 7 11z"/></svg></b></div>
+              </div>
+            </div>
+          </div>
+          <span class="scene-cap">Desktop ≥ 900px</span>
+        </div>
+      </div>
+
+      <ol class="bp-legend">
+        <li><span class="ln">1</span><div><b>Floating chip row</b> — horizontally scrollable, over the map; sticky to top edge with a soft shadow.</div></li>
+        <li><span class="ln">2</span><div><b>Selected pin</b> — scales ~1.32×, colour halo, name label; map gently recenters.</div></li>
+        <li><span class="ln">3</span><div><b>Grab handle + sheet header</b> — count + sort; drag between <code>half</code> / <code>full</code> snaps.</div></li>
+        <li><span class="ln">4</span><div><b>SpotListItem rows</b> — distance-sorted; tapping one selects its pin.</div></li>
+        <li><span class="ln">5</span><div><b>Bottom tab bar</b> — Explore · Saved · <b>Add FAB</b> · Profile; active = accent.</div></li>
+        <li><span class="ln">A</span><div><b>AppHeader</b> — logo · nav · search · Add CTA · avatar, single line.</div></li>
+        <li><span class="ln">B</span><div><b>Chip row in rail header</b> — same CategoryFilter, desktop slot.</div></li>
+        <li><span class="ln">C</span><div><b>Rail list</b> — 416px, independent scroll; selected row gets accent tint + hairline.</div></li>
+        <li><span class="ln">D</span><div><b>Selected marker ↔ row</b> — one shared selection across rail + map.</div></li>
+        <li><span class="ln">E</span><div><b>Cluster pill</b> — ≤3 hue dots + count; click zooms to bounds.</div></li>
+      </ol>
+
+      <div class="spec-sheet split">
+        <div class="spec-col">
+          <div class="spec-colhead">Explore — Desktop <span class="tag">≥ 900</span></div>
+          <div class="spec-row"><dt>Layout</dt><dd>Top bar + two-pane: <b>rail 416px</b> (fixed) | <b>map</b> (flex, fills rest). Map never unmounts.</dd></div>
+          <div class="spec-row"><dt>Main blocks</dt><dd>AppHeader · CategoryFilter (rail head) · rail head (count + sort) · SpotListItem list · SpotMap + controls</dd></div>
+          <div class="spec-row"><dt>Components</dt><dd>AppHeader, CategoryFilter, SpotListItem, SpotMap, SpotMarker, ClusterMarker, SaveButton</dd></div>
+          <div class="spec-row"><dt>Primary CTA</dt><dd><span class="pill-cta">Add a spot</span> in header; row tap = select &amp; preview</dd></div>
+          <div class="spec-row"><dt>Secondary</dt><dd>Save (per row), Clear filter, map layer/locate controls, search</dd></div>
+          <div class="spec-row"><dt>States</dt><dd>loading skeleton rows · ready · empty (filter) · tiles error · location granted/denied</dd></div>
+          <div class="spec-row"><dt>Hierarchy</dt><dd>Map dominant by area; rail is the index. Only one selection at a time, mirrored both sides.</dd></div>
+        </div>
+        <div class="spec-col">
+          <div class="spec-colhead">Explore — Mobile <span class="tag">&lt; 900</span></div>
+          <div class="spec-row"><dt>Layout</dt><dd>Full-bleed <b>map</b> + floating chip row (top) + <b>bottom sheet</b> + <b>tab bar</b>. <code>100dvh</code>.</dd></div>
+          <div class="spec-row"><dt>Main blocks</dt><dd>Minimal top bar · floating CategoryFilter · SpotMap · BottomSheet(list) · MobileTabBar</dd></div>
+          <div class="spec-row"><dt>Components</dt><dd>Same set; rail content moves into BottomSheet; Add becomes the centre FAB</dd></div>
+          <div class="spec-row"><dt>Primary CTA</dt><dd><span class="pill-cta">+ Add FAB</span> (centre tab); sheet row tap = select</dd></div>
+          <div class="spec-row"><dt>Secondary</dt><dd>Save per row, Clear chip, drag sheet handle, recenter/locate</dd></div>
+          <div class="spec-row"><dt>States</dt><dd>Same matrix; empty shows in the sheet; sheet keeps the map visible behind it</dd></div>
+          <div class="spec-row"><dt>Hierarchy</dt><dd>Map is the stage; sheet at <code>half</code> by default, drag to <code>full</code> for the list</dd></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FILTER ============ -->
+    <section class="ds-section anchor-offset" id="filter">
+      <div class="ds-kicker">07 — Screen-by-screen</div>
+      <h2>Category / filter</h2>
+      <p>Not a separate screen — a <b>state of Explore</b> driven by the URL. Category chips are the only filter in MVP (advanced filters are deferred to v2). A leading <b>All</b> chip resets; an active chip fills with its category hue and a <b>Clear</b> affordance appears so the filtered state is always escapable.</p>
+
+      <div class="ds-stage col">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div class="gs-chip" data-on="true" style="--cc:#3b7ddd;"><span class="gs-chip-ic" style="background:rgba(255,255,255,0.22);"><svg width="14" height="14" viewBox="0 0 24 24" style="color:#fff"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="16.5" cy="7.5" r="2.1" fill="currentColor" stroke="none"/><path d="M3.5 18.5l4.4-6 3 3.6 3-4.4 6.6 6.8z" fill="currentColor" stroke="none"/></g></svg></span>Scenic spots</div>
+          <button class="gs-clear"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg> Clear</button>
+        </div>
+        <span class="ds-caption">Active chip filled with <code>--cc</code> + visible <b>Clear</b>. URL becomes <code>/explore?cat=scenic</code>.</span>
+      </div>
+
+      <div class="spec-sheet split">
+        <div class="spec-col">
+          <div class="spec-colhead">Filter behavior <span class="tag">shared</span></div>
+          <div class="spec-row"><dt>Source of truth</dt><dd>URL query <code>?cat=</code>. CategoryFilter reads/writes it; back-button &amp; share work.</dd></div>
+          <div class="spec-row"><dt>Selection</dt><dd>Single category at a time in MVP (radio-like). <b>All</b> resets to no filter.</dd></div>
+          <div class="spec-row"><dt>Effect</dt><dd>Rail/sheet list re-queries &amp; re-sorts; map filters markers and <code>fitBounds</code> to the result set.</dd></div>
+          <div class="spec-row"><dt>Empty result</dt><dd>EmptyState <code>kind="filter"</code> in rail/sheet: "No {cat} spots nearby — widen area / add one".</dd></div>
+        </div>
+        <div class="spec-col">
+          <div class="spec-colhead">Mobile vs desktop <span class="tag">layout</span></div>
+          <div class="spec-row"><dt>Desktop</dt><dd>Chip row sits in the rail header; full labels; wraps/scrolls if many categories.</dd></div>
+          <div class="spec-row"><dt>Mobile</dt><dd>Chip row floats over the top of the map, horizontally scroll-snapped; soft shadow for contrast.</dd></div>
+          <div class="spec-row"><dt>Tap target</dt><dd>Chip ≥34px tall; ≥44px touch area on mobile.</dd></div>
+          <div class="spec-row"><dt>SEO</dt><dd><code>/explore?cat=scenic</code> doubles as an indexable category landing ("Best sunset spots in Tallinn").</dd></div>
+        </div>
+      </div>
+      <div class="ds-note warn"><span class="ds-note-ic">!</span><div><b>Locked:</b> category chips are the <i>only</i> filter for MVP. The "advanced filters / sliders" panel (Free, Outdoor, Quiet, Lit, etc.) is a deliberate v2 scope expansion — design it before turning it on. The tag vocabulary exists on cards but is not yet a filter control.</div></div>
+    </section>
+
+    <!-- ============ PLACE DETAILS ============ -->
+    <section class="ds-section anchor-offset" id="detail">
+      <div class="ds-kicker">08 — Screen-by-screen</div>
+      <h2>Place details</h2>
+      <p>Opens as a slide-in <b>panel</b> over the rail on desktop (map stays, recenters on the pin) and as a <b>full screen</b> on mobile / cold load. It always has a canonical URL — <code>/spot/:slug</code> — for sharing and local SEO. No ratings; social proof is save-count + distance + the "Approved" badge.</p>
+
+      <div class="scene">
+        <!-- mobile full screen detail -->
+        <div class="scene-stack">
+          <div class="ds-phone">
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;background:var(--surface);">
+              <div style="height:188px;position:relative;background:linear-gradient(135deg,#5b97e6,#3b7ddd);flex:0 0 auto;">
+                <div class="fp-back" style="width:30px;height:30px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div>
+                <div class="fp-save" style="width:30px;height:30px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5c6675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg></div>
+                <div style="position:absolute;bottom:8px;left:12px;display:flex;gap:5px;">
+                  <span style="width:22px;height:5px;border-radius:3px;background:#fff;"></span><span style="width:6px;height:5px;border-radius:3px;background:rgba(255,255,255,0.5);"></span><span style="width:6px;height:5px;border-radius:3px;background:rgba(255,255,255,0.5);"></span>
+                </div>
+              </div>
+              <span class="cnum" style="top:24px;left:150px;">1</span>
+              <div style="padding:13px 15px;display:flex;flex-direction:column;gap:9px;flex:1;overflow:hidden;">
+                <span style="align-self:flex-start;display:flex;align-items:center;gap:5px;font-size:9px;font-weight:800;color:#2f9e5b;background:rgba(47,158,91,0.12);padding:3px 9px;border-radius:100px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg>Approved · checked Apr</span>
+                <h5 style="font-family:var(--font-head);font-size:17px;margin:0;">Patkuli viewpoint</h5>
+                <div style="font-size:10.5px;font-weight:700;color:var(--ink-faint);">Scenic spot · Toompea · 0.7 km · 142 saved</div>
+                <p style="font-size:11px;line-height:1.5;color:var(--ink-soft);margin:0;">Panoramic deck over the rooftops of the old town — best an hour before sunset, rarely crowded on weekday evenings.</p>
+                <span class="cnum" style="top:268px;left:30px;">2</span>
+                <div class="fp-facts"><span>🟢 Free</span><span>Sunset</span><span>Outdoor</span><span>Open 24h</span></div>
+                <div style="margin-top:auto;display:flex;gap:7px;">
+                  <b style="flex:1;height:34px;border-radius:10px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;">Save</b>
+                  <b style="flex:1;height:34px;border-radius:10px;background:var(--surface);border:1.5px solid var(--line);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;">Directions</b>
+                </div>
+                <span class="cnum" style="bottom:18px;left:150px;">3</span>
+              </div>
+            </div>
+          </div>
+          <span class="scene-cap">Mobile — full screen (variant="page")</span>
+        </div>
+
+        <!-- desktop panel over rail -->
+        <div class="scene-stack">
+          <div class="frame" style="position:relative;">
+            <div class="frame-top">
+              <div class="frame-logo"><i></i>GemSpot</div>
+              <div class="frame-nav"><b>Explore</b><span>Saved</span></div>
+              <div class="frame-search"></div>
+              <div class="frame-cta">+ Add a spot</div>
+              <div class="frame-av"></div>
+            </div>
+            <div class="frame-body">
+              <!-- dim rail behind -->
+              <div class="frame-rail" style="opacity:.5;">
+                <div class="frame-chips"><div class="fchip on">All</div><div class="fchip"><i style="background:#3b7ddd"></i>Scenic</div></div>
+                <div class="frame-railhead"><b>10 spots</b><span>By distance</span></div>
+                <div class="frame-list"><div class="mrow" style="--cc:#e0a32e;"><div class="mrow-thumb"></div><div class="mrow-b"><strong>Politseiaia ping-pong</strong><em>Kesklinn · 0.4 km</em></div></div></div>
+              </div>
+              <!-- slide-in panel -->
+              <div class="frame-panel" style="--cc:#3b7ddd;">
+                <div class="fp-hero">
+                  <div class="fp-back"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div>
+                  <div class="fp-save"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5c6675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg></div>
+                </div>
+                <div class="fp-body">
+                  <span class="badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg>Approved</span>
+                  <h5>Patkuli viewpoint</h5>
+                  <div class="meta">Scenic spot · Toompea · 0.7 km · 142 saved</div>
+                  <div class="fp-facts"><span>Free</span><span>Sunset</span><span>Outdoor</span><span>Open 24h</span></div>
+                  <div class="fp-cta"><b class="pri">Save</b><b class="sec">Directions</b></div>
+                </div>
+              </div>
+              <span class="cnum" style="top:130px;left:24%;">P</span>
+              <!-- map with selected pin -->
+              <div class="frame-map">
+                <div class="mk sel" style="--cc:#3b7ddd;top:42%;left:60%;"><span class="mk-glyph"></span></div>
+                <div class="mk-label" style="top:42%;left:60%;">Patkuli viewpoint</div>
+                <span class="cnum" style="top:42%;left:60%;">M</span>
+              </div>
+            </div>
+          </div>
+          <span class="scene-cap">Desktop — panel over rail (variant="panel")</span>
+        </div>
+      </div>
+
+      <ol class="bp-legend">
+        <li><span class="ln">1</span><div><b>Hero photo strip</b> — swipeable on mobile; dots show count. Back + Save float over it (<code>light</code> variant).</div></li>
+        <li><span class="ln">2</span><div><b>Quick facts grid</b> — Free / best time / lit / surface etc., from place flags. No ratings.</div></li>
+        <li><span class="ln">3</span><div><b>Sticky CTA footer</b> — <b>Save</b> (primary) + <b>Directions</b> (secondary → provider menu).</div></li>
+        <li><span class="ln">P</span><div><b>Slide-in panel</b> — overlays the rail at ~50% width; rail dims behind; Esc / back closes &amp; pops URL.</div></li>
+        <li><span class="ln">M</span><div><b>Map persists</b> — recenters on the spot's pin (selected state) so panel = pin stays obvious.</div></li>
+      </ol>
+
+      <div class="spec-sheet split">
+        <div class="spec-col">
+          <div class="spec-colhead">Place details — Desktop <span class="tag">≥ 900</span></div>
+          <div class="spec-row"><dt>Layout</dt><dd>Panel slides in over the rail (~50% / max 480px); map stays right and recenters.</dd></div>
+          <div class="spec-row"><dt>Main blocks</dt><dd>Hero photo strip · badge + title + meta · note · quick facts · photo strip · sticky CTA footer</dd></div>
+          <div class="spec-row"><dt>Components</dt><dd>SpotDetail(panel), PlacePhoto, CatBadge, Tag, SaveButton, Button, DirectionsMenu</dd></div>
+          <div class="spec-row"><dt>Primary CTA</dt><dd><span class="pill-cta">Save</span> (gates auth if guest)</dd></div>
+          <div class="spec-row"><dt>Secondary</dt><dd>Directions (provider menu), Share, Report, Back/close (Esc)</dd></div>
+          <div class="spec-row"><dt>States</dt><dd>loading (hero+text skeleton) · loaded · photo-error → tint · archived → "no longer available"</dd></div>
+          <div class="spec-row"><dt>Hierarchy</dt><dd>Photo → name → category/meta → note → facts → actions. Note is secondary, never a wall of text.</dd></div>
+        </div>
+        <div class="spec-col">
+          <div class="spec-colhead">Place details — Mobile <span class="tag">&lt; 900</span></div>
+          <div class="spec-row"><dt>Layout</dt><dd>Full screen, scrollable; hero photo strip on top; CTA footer sticky to bottom.</dd></div>
+          <div class="spec-row"><dt>Main blocks</dt><dd>Same blocks stacked vertically; back arrow top-left; save top-right over hero.</dd></div>
+          <div class="spec-row"><dt>Components</dt><dd>SpotDetail(page) — identical content, full-screen shell</dd></div>
+          <div class="spec-row"><dt>Primary CTA</dt><dd><span class="pill-cta">Save</span> in sticky footer (full-width pair w/ Directions)</dd></div>
+          <div class="spec-row"><dt>Secondary</dt><dd>Directions, Share (native sheet), Report; back returns to sheet position</dd></div>
+          <div class="spec-row"><dt>States</dt><dd>Same matrix; cold-load renders the full page directly (SSR/prerender for SEO)</dd></div>
+          <div class="spec-row"><dt>Hierarchy</dt><dd>Same; hero gets more vertical room; facts wrap to 2 cols</dd></div>
+        </div>
+      </div>
+      <div class="ds-note"><span class="ds-note-ic">i</span><div><b>Directions never routes in-app.</b> The button opens a small provider menu (Apple Maps / Google Maps) with deep links — GemSpot is a discovery layer, not a nav app (locked decision #7). Make that popover scale from the trigger, not centre.</div></div>
+    </section>
+
+    <!-- ============ SAVED ============ -->
+    <section class="ds-section anchor-offset" id="saved">
+      <div class="ds-kicker">09 — Screen-by-screen</div>
+      <h2>Saved places</h2>
+      <p>Reuses the Explore split, scoped to the user's saved set. One flat, distance-sorted list (no collections in MVP). Requires login — a guest hitting <code>/saved</code> sees the auth gate; an empty list shows a friendly prompt back to Explore.</p>
+
+      <div class="two-col">
+        <div>
+          <h4>Empty &amp; gated states</h4>
+          <div class="ds-stage surface col" style="gap:14px;">
+            <div style="text-align:center;padding:14px 0;">
+              <div style="width:48px;height:48px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:var(--ink-faint);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg></div>
+              <strong style="font-family:var(--font-head);font-size:15px;display:block;margin-bottom:4px;">Nothing saved yet</strong>
+              <p style="font-size:13px;color:var(--ink-soft);max-width:34ch;margin:0 auto 14px;">Bookmark a spot from the map and it'll show up here, sorted by distance.</p>
+              <button class="gs-btn gs-btn-primary" style="height:38px;">Explore the map</button>
+            </div>
+          </div>
+          <span class="ds-caption">EmptyState <code>kind="saved"</code> — also the shape of the signed-out gate (swap CTA for "Log in to see saved").</span>
+        </div>
+        <div>
+          <h4>Populated behavior</h4>
+          <div class="spec-sheet">
+            <div class="spec-row"><dt>Layout</dt><dd><b>Desktop:</b> same rail + map split, but the map shows <b>only saved</b> pins. <b>Mobile:</b> map + sheet, saved-only.</dd></div>
+            <div class="spec-row"><dt>Sort</dt><dd>Distance (granted) → curation fallback (denied). No filter chips here.</dd></div>
+            <div class="spec-row"><dt>Remove</dt><dd>Inline bookmark toggle removes optimistically + shows an <b>undo</b> toast (4s).</dd></div>
+            <div class="spec-row"><dt>Auth</dt><dd>Route is authed + <code>noindex</code>; cold-load while guest → AuthDialog, resume after login.</dd></div>
+            <div class="spec-row"><dt>Tap</dt><dd>Row → opens SpotDetail (panel/page), same as Explore.</dd></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ADD A PLACE ============ -->
+    <section class="ds-section anchor-offset" id="add">
+      <div class="ds-kicker">10 — Screen-by-screen</div>
+      <h2>Add a place</h2>
+      <p>A linear <b>4-step flow</b> on a dedicated screen (never squeezed into a sheet). One concern per step; <b>Next is disabled until the step is valid</b>. The pin is placed by <i>clicking the map</i>, not dragging the map under a fixed pin. Submissions go to a moderation queue and land on a <b>Pending review</b> confirmation — never instantly live.</p>
+
+      <div class="scene">
+        <!-- mobile add -->
+        <div class="scene-stack">
+          <div class="ds-phone">
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;background:var(--surface);">
+              <!-- map top ~38% -->
+              <div style="height:38%;position:relative;background:radial-gradient(circle at 30% 40%,var(--park) 0 50px,transparent 51px),radial-gradient(circle at 75% 60%,var(--water) 0 60px,transparent 61px),var(--map-land);">
+                <div class="mk sel" style="--cc:#2f6fe0;top:52%;left:50%;"><span class="mk-glyph"></span></div>
+                <span class="cnum" style="top:52%;left:50%;">1</span>
+                <div style="position:absolute;top:10px;left:12px;font-size:10px;font-weight:700;color:var(--ink-soft);background:var(--surface);padding:4px 9px;border-radius:100px;box-shadow:0 2px 8px rgba(20,26,40,0.12);">Tap the map to drop a pin</div>
+              </div>
+              <!-- step panel -->
+              <div style="flex:1;padding:13px 15px;display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;gap:5px;">
+                  <span style="flex:1;height:4px;border-radius:3px;background:var(--accent);"></span><span style="flex:1;height:4px;border-radius:3px;background:var(--accent);"></span><span style="flex:1;height:4px;border-radius:3px;background:var(--line);"></span><span style="flex:1;height:4px;border-radius:3px;background:var(--line);"></span>
+                </div>
+                <span class="cnum" style="top:42%;left:30px;">2</span>
+                <div style="font-size:10px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink-faint);">Step 2 of 4 · Category</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  <div style="display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:12px;border:1.5px solid var(--accent);background:rgba(47,111,224,0.06);font-size:10.5px;font-weight:700;color:var(--accent);"><span style="width:22px;height:22px;border-radius:50%;background:#3b7ddd;"></span>Scenic</div>
+                  <div style="display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:12px;border:1.5px solid var(--line);font-size:10.5px;font-weight:700;color:var(--ink-soft);"><span style="width:22px;height:22px;border-radius:50%;background:#2f9e5b;"></span>Football</div>
+                </div>
+                <div style="margin-top:auto;display:flex;gap:7px;">
+                  <b style="width:64px;height:34px;border-radius:10px;background:var(--surface);border:1.5px solid var(--line);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">Back</b>
+                  <b style="flex:1;height:34px;border-radius:10px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;">Next</b>
+                </div>
+                <span class="cnum" style="bottom:20px;left:160px;">3</span>
+              </div>
+            </div>
+          </div>
+          <span class="scene-cap">Mobile — map on top, step panel below</span>
+        </div>
+
+        <!-- desktop add -->
+        <div class="scene-stack">
+          <div class="frame" style="position:relative;">
+            <div class="frame-top"><div class="frame-logo"><i></i>GemSpot</div><div class="frame-nav"><span>Explore</span><span>Saved</span></div><div class="frame-search"></div><div class="frame-cta">+ Add a spot</div><div class="frame-av"></div></div>
+            <div class="frame-body">
+              <div class="frame-rail" style="width:46%;">
+                <div style="padding:14px 16px;display:flex;flex-direction:column;gap:11px;height:100%;">
+                  <div style="display:flex;gap:5px;"><span style="flex:1;height:4px;border-radius:3px;background:var(--accent);"></span><span style="flex:1;height:4px;border-radius:3px;background:var(--line);"></span><span style="flex:1;height:4px;border-radius:3px;background:var(--line);"></span><span style="flex:1;height:4px;border-radius:3px;background:var(--line);"></span></div>
+                  <div style="font-size:10px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink-faint);">Step 1 of 4 · Location</div>
+                  <div style="font-family:var(--font-head);font-size:15px;color:var(--ink);">Where is it?</div>
+                  <p style="font-size:11.5px;color:var(--ink-soft);line-height:1.5;margin:0;">Click the spot on the map to drop a pin. Drag to fine-tune.</p>
+                  <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:#2f9e5b;margin-top:2px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg>Pin placed · Toompea</div>
+                  <div style="margin-top:auto;display:flex;gap:8px;"><b style="flex:1;height:34px;border-radius:10px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">Next</b></div>
+                </div>
+                <span class="cnum" style="top:34px;left:30px;">S</span>
+              </div>
+              <div class="frame-map">
+                <div class="mk sel" style="--cc:#2f6fe0;top:46%;left:52%;"><span class="mk-glyph"></span></div>
+                <span class="cnum" style="top:46%;left:52%;">X</span>
+                <div style="position:absolute;top:12px;left:12px;font-size:11px;font-weight:700;color:var(--ink-soft);background:var(--surface);padding:5px 11px;border-radius:100px;box-shadow:0 2px 8px rgba(20,26,40,0.12);">Click the map to place the pin</div>
+              </div>
+            </div>
+          </div>
+          <span class="scene-cap">Desktop — panel + map (click to place pin)</span>
+        </div>
+      </div>
+
+      <ol class="bp-legend">
+        <li><span class="ln">1</span><div><b>Click-to-place pin</b> — map click drops the pin; drag to fine-tune. Use-current-location is the alt.</div></li>
+        <li><span class="ln">2</span><div><b>Step progress + one concern</b> — Location → Category → Details → Review.</div></li>
+        <li><span class="ln">3</span><div><b>Next disabled until valid</b> — Back always available; Next greys out until the step's requirement is met.</div></li>
+        <li><span class="ln">S</span><div><b>Step panel</b> — replaces the rail; map stays interactive for pin placement.</div></li>
+        <li><span class="ln">X</span><div><b>Live pin</b> — confirms placement; step 1 can't advance without it.</div></li>
+      </ol>
+
+      <div class="ds-table-wrap">
+        <table class="ds-table">
+          <thead><tr><th>Step</th><th>Required</th><th>Controls</th><th>Validation gate</th></tr></thead>
+          <tbody>
+            <tr><td><b>1 · Location</b></td><td>A pin</td><td>Map click to drop / drag to adjust; "use my location"</td><td>Next disabled until a pin exists</td></tr>
+            <tr><td><b>2 · Category</b></td><td>One category</td><td>Single-select category grid (glyph + label)</td><td>Next disabled until one is chosen</td></tr>
+            <tr><td><b>3 · Details</b></td><td>Name</td><td>Name (required), short note (optional), 1–3 photos w/ upload progress + retry, optional tags</td><td>Next disabled until name present; photo failures retry inline</td></tr>
+            <tr><td><b>4 · Review</b></td><td>—</td><td>Read-only summary + moderation notice; <b>Submit for review</b> (block button, busy state)</td><td>Submit → success "Pending review"; error → inline retry</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="spec-sheet split">
+        <div class="spec-col">
+          <div class="spec-colhead">Add — Desktop <span class="tag">≥ 900</span></div>
+          <div class="spec-row"><dt>Layout</dt><dd>Step panel replaces the rail (~46%); map fills the rest and stays interactive for pin placement.</dd></div>
+          <div class="spec-row"><dt>Primary CTA</dt><dd><span class="pill-cta">Next</span> → final step <span class="pill-cta">Submit for review</span></dd></div>
+          <div class="spec-row"><dt>Secondary</dt><dd>Back, Cancel (confirm if dirty), use-current-location</dd></div>
+          <div class="spec-row"><dt>States</dt><dd>per-step validation · upload progress/fail · submitting · submit-error · success(pending) · signed-out gate</dd></div>
+        </div>
+        <div class="spec-col">
+          <div class="spec-colhead">Add — Mobile <span class="tag">&lt; 900</span></div>
+          <div class="spec-row"><dt>Layout</dt><dd>Map fixed to the top ~38%; step panel scrolls below; CTA row pinned to bottom. <code>100dvh</code>.</dd></div>
+          <div class="spec-row"><dt>Primary CTA</dt><dd>Full-width <span class="pill-cta">Next</span> / <span class="pill-cta">Submit for review</span> (block)</dd></div>
+          <div class="spec-row"><dt>Secondary</dt><dd>Back, close (X) top-left; keyboard pushes CTA above the fold</dd></div>
+          <div class="spec-row"><dt>States</dt><dd>Same matrix; ensure the map's pin-tap target survives the small map height</dd></div>
+        </div>
+      </div>
+      <div class="ds-note lock"><span class="ds-note-ic">!</span><div><b>Locked:</b> submissions never go instantly live (#6). The success screen reads <b>"Sent for review · Pending"</b> and explains a local reviewer checks it. Approval happens later in the admin moderation queue. Set this expectation in the copy — don't imply the spot is on the map yet.</div></div>
+    </section>
+
+    <!-- ============ INTERACTION RULES ============ -->
+    <section class="ds-section anchor-offset" id="interaction">
+      <div class="ds-kicker">11 — Behavior</div>
+      <h2>Interaction rules</h2>
+      <p>Motion exists to preserve spatial continuity on a map, never to decorate. Keep UI transitions under 300ms, use a strong custom <code>ease-out</code>, and honour <code>prefers-reduced-motion</code>. Press feedback (<code>scale(0.97)</code>) on every pressable.</p>
+      <div class="ds-table-wrap">
+        <table class="ds-table">
+          <thead><tr><th>Interaction</th><th>Rule</th><th>Motion</th></tr></thead>
+          <tbody>
+            <tr><td><b>Select pin ↔ row</b></td><td>One selection shared across map + list. Selecting either highlights both; map gently recenters on the pin.</td><td>Marker scale to ~1.32× + halo + label, ~180ms <code>ease-marker</code>; map ease-pan.</td></tr>
+            <tr><td><b>Open detail</b></td><td>Desktop: panel slides over rail + pushes <code>/spot/:slug</code>. Mobile: navigates to full page. Esc / back closes &amp; pops URL.</td><td>Panel slide 220–260ms <code>ease-drawer</code>; never animate from <code>scale(0)</code>.</td></tr>
+            <tr><td><b>Bottom sheet drag</b></td><td>Spring + velocity dismissal (<code>v &gt; 0.11</code>), not a CSS height toggle. Damping past the top edge. Two snaps: half / full.</td><td>Spring (Apple-style <code>duration .5, bounce .2</code>); update <code>transform</code>, not per-frame React state.</td></tr>
+            <tr><td><b>Save toggle</b></td><td>Optimistic; over-photo uses the <code>light</code> backplate. Removing from Saved shows an undo toast.</td><td>Fill cross-fade ≤160ms; bookmark fills with accent.</td></tr>
+            <tr><td><b>Filter chip</b></td><td>Sets <code>?cat=</code>, re-queries list, map <code>fitBounds</code>. Clear restores All.</td><td>Chip fill ≤150ms; map fitBounds ease-pan.</td></tr>
+            <tr><td><b>Cluster click</b></td><td><b>Zooms to bounds</b> (primary); popover list only at max zoom.</td><td>Map zoom ease; popover scales from the cluster, not centre.</td></tr>
+            <tr><td><b>Directions</b></td><td>Opens provider menu (Apple/Google deep links). No in-app routing.</td><td>Popover scales from trigger edge; modals stay centre-origin.</td></tr>
+            <tr><td><b>Gated action (guest)</b></td><td><code>requireAuth(fn)</code>: open AuthDialog, queue the action, resume on success. No dead-end "please log in".</td><td>Modal fade + scale from 0.95; centre origin.</td></tr>
+            <tr><td><b>Keyboard / a11y</b></td><td>Markers + rows focusable; visible focus rings; Esc closes panel/modal/drawer; every gesture has a visible control alternative.</td><td>Reduced-motion collapses pan/scale to instant; keep opacity fades.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ SHEET vs PANEL ============ -->
+    <section class="ds-section anchor-offset" id="sheet-panel">
+      <div class="ds-kicker">12 — Behavior</div>
+      <h2>Bottom sheet ↔ side panel</h2>
+      <p>This is the central responsive swap: the <b>same content container</b> renders as a draggable bottom sheet on mobile and a persistent rail/panel on desktop. Build the content once; the shell is what changes at the breakpoint.</p>
+      <div class="bpscale">
+        <div class="bpscale-head"><div>Concern</div><div>Mobile &lt; 900 — Bottom sheet</div><div>Desktop ≥ 900 — Side panel / rail</div></div>
+        <div class="bpscale-row"><div class="rk">Shell</div><div>Draggable sheet pinned to bottom, over the map</div><div>Static rail (416px) beside the map; detail = slide-in panel over it</div></div>
+        <div class="bpscale-row"><div class="rk">Snap / size</div><div><b>half</b> 46% (preview) ↔ <b>full</b> 88% (list); grab handle</div><div>Fixed width; content scrolls internally; no snapping</div></div>
+        <div class="bpscale-row"><div class="rk">Interaction</div><div>Drag (spring + velocity), tap handle to toggle</div><div>Scroll; resize is not user-controlled</div></div>
+        <div class="bpscale-row"><div class="rk">Map relationship</div><div>Map always visible behind; sheet never full-covers it</div><div>Map always visible beside; panel overlays rail only, not map</div></div>
+        <div class="bpscale-row"><div class="rk">Use for</div><div>Results list, place preview — short contextual content only</div><div>Results list + detail; both persistent</div></div>
+        <div class="bpscale-row"><div class="rk">Not for</div><div>Long flows — <b>Add</b> is a dedicated screen, never a sheet</div><div>—</div></div>
+      </div>
+      <div class="ds-note"><span class="ds-note-ic">i</span><div>Per NN/g: bottom sheets suit temporary contextual content, not long complex tasks. Place preview + results = sheet; the full Add flow gets its own screen. The map is the stage in both shells and must never disappear behind the sheet.</div></div>
+    </section>
+
+    <!-- ============ RESPONSIVE BEHAVIOR ============ -->
+    <section class="ds-section anchor-offset" id="responsive">
+      <div class="ds-kicker">13 — Behavior</div>
+      <h2>Responsive behavior (mobile ↔ tablet ↔ desktop)</h2>
+      <p>One real breakpoint at <b>900px</b> (a minor 560px tweak for very small phones). Tablet resolves to the mobile layout in MVP. Build mobile-first; the desktop split is the enhancement.</p>
+      <div class="ruler">
+        <div class="br-m"><b>≤ 559</b>Small phone<small>tighter padding, 560 tweak</small></div>
+        <div class="br-m"><b>560–899</b>Phone / tablet<small>map + sheet + tab bar</small></div>
+        <div class="br-d"><b>≥ 900</b>Desktop<small>rail + persistent map</small></div>
+      </div>
+      <div class="bpscale">
+        <div class="bpscale-head"><div>Surface</div><div>Mobile &lt; 900</div><div>Tablet 768–899</div><div>Desktop ≥ 900</div></div>
+        <div class="bpscale-row"><div class="rk">Navigation</div><div>Minimal top bar + bottom tab bar (4) + Add FAB</div><div>= mobile (MVP)</div><div>Top bar: logo · nav · search · Add CTA · You</div></div>
+        <div class="bpscale-row"><div class="rk">Explore</div><div>Full map + floating chips + bottom sheet</div><div>= mobile</div><div>Rail 416px + persistent map</div></div>
+        <div class="bpscale-row"><div class="rk">Detail</div><div>Full screen (page)</div><div>= mobile</div><div>Slide-in panel over rail (map stays)</div></div>
+        <div class="bpscale-row"><div class="rk">Saved</div><div>Map + sheet, saved-only</div><div>= mobile</div><div>Rail + map, saved-only</div></div>
+        <div class="bpscale-row"><div class="rk">Add</div><div>Map top ~38% + step panel below</div><div>= mobile</div><div>Step panel + map (click to pin)</div></div>
+        <div class="bpscale-row"><div class="rk">Filter chips</div><div>Float over map, horizontal scroll</div><div>= mobile</div><div>In rail header, full labels</div></div>
+        <div class="bpscale-row"><div class="rk">Height unit</div><div><code>100dvh</code> (clears browser chrome)</div><div><code>100dvh</code></div><div><code>100vh</code> ok; shell is fixed</div></div>
+        <div class="bpscale-row"><div class="rk">Toasts</div><div>Bottom-centre, above tab bar</div><div>Bottom-centre</div><div>Bottom-right</div></div>
+      </div>
+      <div class="ds-note warn"><span class="ds-note-ic">!</span><div><b>Tablet is the known compromise.</b> 768–899px currently gets the mobile layout — acceptable for MVP but worth flagging: a landscape-tablet "narrow desktop" split (rail ~320px + map) is the most likely responsive follow-up. Decide before a tablet-heavy audience appears.</div></div>
+    </section>
+
+    <!-- ============ GAPS ============ -->
+    <section class="ds-section anchor-offset" id="gaps">
+      <div class="ds-kicker">14 — Handoff</div>
+      <h2>Missing assets &amp; open design questions</h2>
+      <p>What must be resolved or produced <b>before</b> (or alongside) frontend implementation. None block starting the shell, but each blocks a specific surface from being "done".</p>
+      <div class="gaps">
+        <div class="gap"><h4>Real map style</h4><p>The hand-drawn SVG map is a stand-in. Need a MapLibre/Mapbox custom style matching the palette (land <code>#eef1f6</code>, water <code>#cfe0f2</code>, parks <code>#d3e7ca</code>, muted labels) + the 4 marker states as real map symbols.</p><span class="who">Design + FE · blocks Explore</span></div>
+        <div class="gap"><h4>Photography</h4><p>No real spot photos exist yet — every card/detail uses the category-tint <code>PlacePhoto</code> fallback. Need a sourcing pipeline + aspect ratios (hero 16:10, thumb 1:1) and an OG-image rule for SEO.</p><span class="who">Content · blocks Detail polish</span></div>
+        <div class="gap"><h4>Launch category subset</h4><p>Prototype ships 7 categories; brief says 3–5. Pick the launch set (and their glyphs/hues) — keep data-driven so the rest are config, not code.</p><span class="who">Product · blocks Filter</span></div>
+        <div class="gap"><h4>Full state art</h4><p>Loading skeletons (rail rows, detail hero), search no-match, tiles-failed, out-of-region, report-sent — listed but not all drawn. For a map+UGC app these are scope.</p><span class="who">Design · blocks state-complete</span></div>
+        <div class="gap"><h4>Auth screens</h4><p>AuthDialog content (social buttons, email form, error copy) and the deep-link page variants (<code>/login</code>, <code>/register</code>) need final layout + provider list confirmation.</p><span class="who">Design + FE · blocks Save/Add</span></div>
+        <div class="gap"><h4>Report flow</h4><p>"Report / no longer here" entry point, form fields, and the report-sent state are referenced but not fully specified.</p><span class="who">Product + Design</span></div>
+        <div class="gap"><h4>Search</h4><p>The top-bar search field exists visually; query behavior, results UI, and the no-match state need definition (or scope it out of v1 explicitly).</p><span class="who">Product · decide scope</span></div>
+        <div class="gap"><h4>Icon set decision</h4><p>Keep the curated custom stroke set or adopt one library (e.g. Phosphor) at a single stroke weight. Category glyphs stay as brand assets either way.</p><span class="who">Design · standardize once</span></div>
+      </div>
+    </section>
+
+    <!-- ============ REACT BREAKDOWN ============ -->
+    <section class="ds-section anchor-offset" id="react">
+      <div class="ds-kicker">15 — Handoff</div>
+      <h2>React component breakdown</h2>
+      <p>FSD-ish layers. Layout wrappers carry the responsive swap so feature components stay breakpoint-agnostic. State: thin global store (Zustand/Jotai) for cross-cutting UI; TanStack Query for server data; <b>URL is the source of truth</b> for route, filter, and selected spot.</p>
+      <div class="tree"><span class="cm">// app shell — the responsive frame everything mounts into</span>
+&lt;<span class="tg">AppShell</span>&gt;
+  &lt;<span class="tg">AppHeader</span>/&gt;            <span class="cm">// desktop top bar; collapses &lt;900</span>
+  &lt;<span class="tg">RouteOutlet</span>&gt;
+    &lt;<span class="tg">ExploreLayout</span>&gt;        <span class="cm">// ← the responsive wrapper: rail|sheet swap</span>
+      &lt;<span class="tg">CategoryFilter</span> <span class="at">value</span>=url <span class="at">onChange</span>=url /&gt;
+      &lt;<span class="tg">ResultsContainer</span>&gt;   <span class="cm">// renders into rail (desktop) or BottomSheet (mobile)</span>
+        &lt;<span class="tg">SpotListItem</span> .../&gt;  <span class="cm">// × n  (entities/place)</span>
+      &lt;/<span class="tg">ResultsContainer</span>&gt;
+      &lt;<span class="tg">SpotMap</span> <span class="at">places selectedId onSelect pinMode</span>&gt;
+        &lt;<span class="tg">SpotMarker</span>/&gt; &lt;<span class="tg">ClusterMarker</span>/&gt;
+      &lt;/<span class="tg">SpotMap</span>&gt;
+      &lt;<span class="tg">SpotDetail</span> <span class="at">variant</span>=<span class="lf">"panel|page"</span> /&gt;  <span class="cm">// /spot/:slug</span>
+    &lt;/<span class="tg">ExploreLayout</span>&gt;
+
+    &lt;<span class="tg">SavedPage</span>/&gt;            <span class="cm">// reuses ExploreLayout, saved-only set</span>
+    &lt;<span class="tg">AddSpotFlow</span>/&gt;          <span class="cm">// 4-step; FlowLayout (panel|stacked)</span>
+  &lt;/<span class="tg">RouteOutlet</span>&gt;
+  &lt;<span class="tg">MobileTabBar</span>/&gt;          <span class="cm">// &lt;900 only; Add = centre FAB</span>
+  &lt;<span class="tg">AuthDialog</span>/&gt; &lt;<span class="tg">Toaster</span>/&gt;  <span class="cm">// global</span>
+&lt;/<span class="tg">AppShell</span>&gt;</div>
+      <div class="two-col">
+        <div>
+          <h4>Responsive layout wrappers (build these first)</h4>
+          <ul style="margin-top:8px;">
+            <li><b>AppShell</b> — owns the breakpoint; decides header vs tab-bar, dvh handling.</li>
+            <li><b>ExploreLayout</b> — rail+map (desktop) ↔ map+sheet (mobile); hosts ResultsContainer + SpotMap + SpotDetail.</li>
+            <li><b>ResultsContainer / BottomSheet</b> — the sheet↔rail swap; one content tree, two shells.</li>
+            <li><b>FlowLayout</b> — Add's panel-beside-map (desktop) ↔ map-top + panel (mobile).</li>
+          </ul>
+        </div>
+        <div>
+          <h4>State homes</h4>
+          <ul style="margin-top:8px;">
+            <li><b>URL</b> — route, <code>?cat=</code>, selected <code>/spot/:slug</code>.</li>
+            <li><b>Auth store</b> — user, role, <code>requireAuth</code> + queued action.</li>
+            <li><b>TanStack Query</b> — places, categories, favorites (optimistic).</li>
+            <li><b>UI store</b> — sheet snap, toast, location permission.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ IMPLEMENTATION ORDER ============ -->
+    <section class="ds-section anchor-offset" id="order">
+      <div class="ds-kicker">16 — Handoff</div>
+      <h2>Recommended implementation order</h2>
+      <p>Build the shell and the map first — they de-risk everything downstream. Effort tags: <span class="effort e">easy</span> <span class="effort m">medium</span> <span class="effort h">hard</span>.</p>
+      <div class="steps">
+        <div class="step"><div class="step-n">1</div><div class="step-b"><h4>Tokens + primitives</h4><p>Port <code>web.css</code> <code>:root</code> verbatim → CSS vars + typed <code>tokens.ts</code>. Build Button, SaveButton, Tag, CategoryChip, PlacePhoto, Toaster, EmptyState.<br><span class="effort e">easy</span></p></div></div>
+        <div class="step"><div class="step-n">2</div><div class="step-b"><h4>App shell + routing + responsive wrappers</h4><p>AppShell, AppHeader, MobileTabBar, router with the public/authed scheme, ExploreLayout's rail↔sheet swap. Mock data layer.<br><span class="effort m">medium</span></p></div></div>
+        <div class="step"><div class="step-n">3</div><div class="step-b"><h4>SpotMap + markers + clustering</h4><p>MapLibre/Mapbox custom style, SpotMarker/ClusterMarker states, selection sync with the list, cluster zoom-to-bounds. The make-or-break.<br><span class="effort h">hard</span></p></div></div>
+        <div class="step"><div class="step-n">4</div><div class="step-b"><h4>Explore + filter</h4><p>SpotListItem list, CategoryFilter ↔ URL, the shared selection, loading/empty/error states.<br><span class="effort m">medium</span></p></div></div>
+        <div class="step"><div class="step-n">5</div><div class="step-b"><h4>Spot detail (panel + page)</h4><p>Both variants off one component + <code>/spot/:slug</code>, PlacePhoto strip, Directions provider menu, SSR/prerender for SEO.<br><span class="effort m">medium</span></p></div></div>
+        <div class="step"><div class="step-n">6</div><div class="step-b"><h4>Auth + Save + Saved</h4><p>AuthDialog, <code>requireAuth</code> queue/resume, favorites (optimistic), SavedPage with empty + gate.<br><span class="effort m">medium</span></p></div></div>
+        <div class="step"><div class="step-n">7</div><div class="step-b"><h4>Add-a-spot flow</h4><p>4-step stepper, click-to-place pin, photo upload w/ progress + retry, submit → Pending, all validation gates.<br><span class="effort h">hard</span></p></div></div>
+        <div class="step"><div class="step-n">8</div><div class="step-b"><h4>Location, polish &amp; a11y pass</h4><p>Permission states, motion (sheet spring, marker select), reduced-motion, keyboard + focus, dark-mode + contrast audit over every map surface.<br><span class="effort m">medium</span></p></div></div>
+      </div>
+    </section>
+
+    <!-- ============ EDGE CASES ============ -->
+    <section class="ds-section anchor-offset" id="edge">
+      <div class="ds-kicker">17 — Handoff</div>
+      <h2>Platform-specific edge cases</h2>
+      <p>Decisions that need an explicit answer for one platform before that surface ships.</p>
+      <div class="edge">
+        <div class="edge-card"><h5>Mobile-specific <span class="dv mob">mobile</span></h5><ul>
+          <li><b>Sheet vs keyboard:</b> when a field in a sheet/flow focuses, the on-screen keyboard must not bury the primary CTA — push the CTA above the fold or float it.</li>
+          <li><b>Map height in Add:</b> at ~38% map height the pin tap-target gets small; guarantee ≥44px and allow pinch-zoom before placing.</li>
+          <li><b>dvh / browser chrome:</b> bottom tab bar must clear the iOS Safari address bar — <code>100dvh</code>, test on device.</li>
+          <li><b>Sheet over FAB:</b> at <code>full</code> snap the sheet must not occlude the tab bar / Add FAB, or define how they coexist.</li>
+          <li><b>Native share:</b> Share uses the OS share sheet; Directions uses app deep links (Apple Maps default on iOS, Google on Android?) — confirm.</li>
+        </ul></div>
+        <div class="edge-card"><h5>Desktop-specific <span class="dv desk">desktop</span></h5><ul>
+          <li><b>Panel + map width:</b> when the detail panel is open over a 416px rail, define the minimum map width before the panel goes full-rail-width (small laptops).</li>
+          <li><b>Hover vs touch:</b> marker hover/preview is desktop-only — gate behind <code>(hover:hover)</code> so hybrid touchscreens don't fire false hovers.</li>
+          <li><b>Deep-link cold load:</b> <code>/spot/:slug</code> opened cold on desktop — does it render the panel over a default Explore, or a standalone page? (Spec says panel-over-explore.)</li>
+          <li><b>Keyboard map nav:</b> pan/zoom + marker focus order for keyboard-only users; Esc closes panel before leaving the map.</li>
+          <li><b>Very wide screens:</b> cap the map content / rail max-width so the layout doesn't stretch awkwardly past ~1800px.</li>
+        </ul></div>
+      </div>
+      <div class="ds-note"><span class="ds-note-ic">i</span><div>Everything above traces back to the prototype + <code>docs/</code> + the locked decisions in <code>docs/07</code>. Where this spec and the original briefs disagree, the prototype and locked decisions win — see <code>docs/README</code>.</div></div>
+    </section>
+
+  </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  // theme toggle (persisted)
+  var MOON='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"/></svg>';
+  var SUN='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M4.5 4.5l1.7 1.7M17.8 17.8l1.7 1.7M2 12h2.4M19.6 12H22M4.5 19.5l1.7-1.7M17.8 6.2l1.7-1.7"/></svg>';
+  var toggle=document.getElementById('themeToggle');
+  function applyTheme(t){
+    if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');toggle.innerHTML=SUN;}
+    else{document.documentElement.removeAttribute('data-theme');toggle.innerHTML=MOON;}
+  }
+  var saved=null;
+  try{saved=localStorage.getItem('gemspot-theme');}catch(e){}
+  applyTheme(saved||'light');
+  toggle.addEventListener('click',function(){
+    var dark=document.documentElement.getAttribute('data-theme')==='dark';
+    var next=dark?'light':'dark';applyTheme(next);
+    try{localStorage.setItem('gemspot-theme',next);}catch(e){}
+  });
+
+  // mobile nav drawer
+  var nav=document.getElementById('navToggle'),scrim=document.getElementById('navScrim');
+  function closeNav(){document.body.classList.remove('nav-open');nav.setAttribute('aria-expanded','false');}
+  nav.addEventListener('click',function(){
+    var open=document.body.classList.toggle('nav-open');
+    nav.setAttribute('aria-expanded',open?'true':'false');
+  });
+  scrim.addEventListener('click',closeNav);
+  document.querySelectorAll('.ds-nav a').forEach(function(a){a.addEventListener('click',closeNav);});
+
+  // active nav on scroll
+  var links=[].slice.call(document.querySelectorAll('.ds-nav a'));
+  var map={};links.forEach(function(a){var id=a.getAttribute('href').slice(1);var el=document.getElementById(id);if(el)map[id]=a;});
+  var obs=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        links.forEach(function(a){a.classList.remove('is-active');});
+        var a=map[en.target.id];if(a)a.classList.add('is-active');
+      }
+    });
+  },{rootMargin:'-72px 0px -70% 0px',threshold:0});
+  Object.keys(map).forEach(function(id){var el=document.getElementById(id);if(el)obs.observe(el);});
+})();
+</script>
+</body>
+</html>
