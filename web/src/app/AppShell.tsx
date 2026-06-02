@@ -36,7 +36,7 @@ export function AppShell({
           <div className="fg-logo" />
           <div>
             <div className="fg-wordmark">Gem<span>Spot</span></div>
-            <small>Tallinn · Field Guide</small>
+            <small>Tallinn · Field Guide · v{__APP_VERSION__}</small>
           </div>
         </button>
         <nav className="fg-nav">
