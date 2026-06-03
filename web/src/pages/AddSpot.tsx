@@ -4,6 +4,7 @@ import { AppShell } from '../app/AppShell'
 import { Legend } from '../features/explore/Legend'
 import { LocationPicker } from '../features/add-spot/LocationPicker'
 import { Button } from '../shared/ui/Button'
+import { Icon, Ic } from '../shared/ui/Icon'
 import type { CategoryId } from '../entities/place/categories'
 import { TALLINN_CENTER, type LatLng } from '../shared/lib/geo'
 import { placesApi } from '../shared/api/placesApi'
@@ -11,10 +12,12 @@ import { useSubmissionsStore } from '../shared/store/submissionsStore'
 import { useToastStore } from '../shared/store/toastStore'
 import { useAuthStore } from '../shared/store/authStore'
 
-/* Add-a-spot — client form → mock createSubmission (PENDING). Photo upload is
-   omitted in this build (no object storage yet); submission lands in
-   submissionsStore (visible in Account → My submissions) and survives the session. */
+/* Add-a-spot — client form → createSubmission (PENDING). Photos upload to object
+   storage via placesApi.uploadPhoto (returns a public URL); the URLs ride along
+   on the submission (photoUrls) and persist as SubmissionPhoto rows. The PENDING
+   submission survives reload (server-backed, hydrated into submissionsStore). */
 type Errors = { name?: string; category?: string; note?: string }
+const MAX_PHOTOS = 6
 
 export default function AddSpot() {
   const navigate = useNavigate()
@@ -34,8 +37,32 @@ export default function AddSpot() {
   const [category, setCategory] = useState<CategoryId | null>(null)
   const [coords, setCoords] = useState<LatLng>(TALLINN_CENTER)
   const [note, setNote] = useState('')
+  const [photos, setPhotos] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
   const [errors, setErrors] = useState<Errors>({})
   const [submitting, setSubmitting] = useState(false)
+
+  const onPickPhotos = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const room = MAX_PHOTOS - photos.length
+    const picked = Array.from(files).slice(0, Math.max(0, room))
+    if (picked.length === 0) return
+    setUploading(true)
+    try {
+      for (const file of picked) {
+        try {
+          const { url } = await placesApi.uploadPhoto(file)
+          setPhotos((prev) => [...prev, url])
+        } catch {
+          showToast('Photo upload failed — try a smaller image')
+        }
+      }
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removePhoto = (url: string) => setPhotos((prev) => prev.filter((u) => u !== url))
 
   const validate = (): Errors => {
     const e: Errors = {}
@@ -58,7 +85,8 @@ export default function AddSpot() {
         lat: coords.lat,
         lng: coords.lng,
         note: note.trim(),
-        photoCount: 0,
+        photoCount: photos.length,
+        photoUrls: photos,
       })
       addSubmission(sub)
       showToast('Spot submitted · pending moderation')
@@ -107,8 +135,30 @@ export default function AddSpot() {
               {errors.note && <div className="err">{errors.note}</div>}
             </div>
 
+            <div className="fg-field">
+              <label>Photos <span style={{ textTransform: 'none', letterSpacing: 0 }}>(optional · up to {MAX_PHOTOS})</span></label>
+              <div className="fg-photos">
+                {photos.map((url) => (
+                  <div key={url} className="fg-photo-up">
+                    <img className="fg-photo-thumb" src={url} alt="" />
+                    <button type="button" className="fg-photo-rm" aria-label="Remove photo" onClick={() => removePhoto(url)}>
+                      <Icon d={Ic.x} size={12} sw={2.5} />
+                    </button>
+                  </div>
+                ))}
+                {photos.length < MAX_PHOTOS && (
+                  <label className="fg-photo-add" data-busy={uploading}>
+                    <input type="file" accept="image/*" multiple hidden disabled={uploading}
+                      onChange={(e) => { void onPickPhotos(e.target.files); e.target.value = '' }} />
+                    <Icon d={Ic.plus} size={18} sw={2} />
+                    <span>{uploading ? 'Uploading…' : 'Add'}</span>
+                  </label>
+                )}
+              </div>
+            </div>
+
             <div className="fg-form-actions">
-              <Button variant="solid" onClick={submit} disabled={submitting}>
+              <Button variant="solid" onClick={submit} disabled={submitting || uploading}>
                 {submitting ? 'Submitting…' : 'Submit spot'}
               </Button>
               <Button onClick={() => navigate('/explore')} disabled={submitting}>Cancel</Button>

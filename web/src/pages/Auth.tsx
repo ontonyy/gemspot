@@ -6,6 +6,7 @@ import { useAuthStore } from '../shared/store/authStore'
 import { useSavedStore } from '../shared/store/savedStore'
 import { useToastStore } from '../shared/store/toastStore'
 import { authApi } from '../shared/api/authApi'
+import { hydrateMine } from '../shared/api/hydrateMine'
 
 /* Email + password sign-in / register screen. On success the guest's local
    saved set is merged into the server (saved_places) and the reconciled set
@@ -75,6 +76,7 @@ export default function Auth() {
           /* non-fatal — local saves stay intact */
         }
       }
+      void hydrateMine() // load server-backed PENDING submissions / reports
       showToast(mode === 'register' ? 'Account created — welcome' : 'Signed in')
       navigate(from)
     } catch (err) {

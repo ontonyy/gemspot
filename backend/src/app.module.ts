@@ -8,6 +8,7 @@ import { SubmissionsModule } from './api/submissions/submissions.module'
 import { ReportsModule } from './api/reports/reports.module'
 import { AuthModule } from './api/auth/auth.module'
 import { SavedModule } from './api/saved/saved.module'
+import { UploadsModule } from './api/uploads/uploads.module'
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { SavedModule } from './api/saved/saved.module'
     ReportsModule,
     AuthModule,
     SavedModule,
+    UploadsModule,
   ],
 })
 export class AppModule {}

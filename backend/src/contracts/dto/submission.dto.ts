@@ -1,4 +1,4 @@
-import { IsIn, IsInt, IsNumber, IsOptional, IsString, MinLength, Min } from 'class-validator'
+import { ArrayMaxSize, IsArray, IsIn, IsInt, IsNumber, IsOptional, IsString, MinLength, Min } from 'class-validator'
 import type { CategoryId } from './place.dto'
 
 const CATEGORY_IDS = ['tabletennis', 'basketball', 'football', 'tennis', 'padel', 'scenic', 'sakura']
@@ -25,6 +25,13 @@ export class SubmissionInputDto {
   @IsInt()
   @Min(0)
   photoCount?: number
+
+  // public URLs returned by POST /uploads; persisted as SubmissionPhoto rows
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(6)
+  @IsString({ each: true })
+  photoUrls?: string[]
 }
 
 export interface SubmissionDto {
@@ -34,6 +41,7 @@ export interface SubmissionDto {
   lng: number
   note: string
   photoCount?: number
+  photoUrls?: string[]
   id: string
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
   submittedAt: string

@@ -49,6 +49,8 @@ export interface SubmissionInput {
   lng: number
   note: string
   photoCount?: number
+  // public URLs from uploadPhoto(); additive + optional — existing call sites unaffected
+  photoUrls?: string[]
 }
 
 export interface SubmissionDto extends SubmissionInput {

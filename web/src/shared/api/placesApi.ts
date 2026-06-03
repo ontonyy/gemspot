@@ -120,6 +120,9 @@ export interface PlacesApi {
   getGuide(id: string): Promise<{ guide: GuideDto; spots: PlaceCardDto[] }>
   createSubmission(input: SubmissionInput): Promise<SubmissionDto>
   createReport(input: ReportInput): Promise<ReportDto>
+  uploadPhoto(file: File): Promise<{ url: string }>
+  getMySubmissions(): Promise<SubmissionDto[]>
+  getMyReports(): Promise<ReportDto[]>
 }
 
 // session-lived submissions store (mock). Real backend persists + moderates.
@@ -175,6 +178,17 @@ export const mockPlacesApi: PlacesApi = {
       reportedAt: 'just now',
     }
     return delay(report, 320)
+  },
+  // mock has no object storage — hand back a local object URL so the preview shows
+  uploadPhoto(file) {
+    return delay({ url: URL.createObjectURL(file) }, 240)
+  },
+  // mock is session-only (no server); the live PENDING list lives in submissionsStore
+  getMySubmissions() {
+    return delay([] as SubmissionDto[])
+  },
+  getMyReports() {
+    return delay([] as ReportDto[])
   },
 }
 

@@ -13,9 +13,16 @@ import { useAuthStore } from '../store/authStore'
 
 const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 
-async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`)
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${path}`)
+async function getJson<T>(path: string, auth = false): Promise<T> {
+  const token = auth ? useAuthStore.getState().accessToken : null
+  const res = await fetch(`${BASE}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
+  if (!res.ok) {
+    const err = new Error(`${res.status} ${res.statusText} for ${path}`) as Error & { status?: number }
+    err.status = res.status
+    throw err
+  }
   return res.json() as Promise<T>
 }
 
@@ -60,5 +67,27 @@ export const httpPlacesApi: PlacesApi = {
   },
   createReport(input: ReportInput) {
     return postJson<ReportDto>('/reports', input)
+  },
+  async uploadPhoto(file: File) {
+    const token = useAuthStore.getState().accessToken
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch(`${BASE}/uploads`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: form,
+    })
+    if (!res.ok) {
+      const err = new Error(`${res.status} ${res.statusText} for /uploads`) as Error & { status?: number }
+      err.status = res.status
+      throw err
+    }
+    return res.json() as Promise<{ url: string }>
+  },
+  getMySubmissions() {
+    return getJson<SubmissionDto[]>('/submissions/mine', true)
+  },
+  getMyReports() {
+    return getJson<ReportDto[]>('/reports/mine', true)
   },
 }

@@ -8,6 +8,7 @@ import { useSubmissionsStore } from '../../shared/store/submissionsStore'
 import { useReportsStore } from '../../shared/store/reportsStore'
 import { useAuthStore } from '../../shared/store/authStore'
 import { useToastStore } from '../../shared/store/toastStore'
+import { clearMine } from '../../shared/api/hydrateMine'
 import { FG_CAT } from '../../entities/place/categories'
 import type { CategoryId } from '../../entities/place/categories'
 import type { ReportReason } from '../../shared/api/types'
@@ -109,7 +110,7 @@ export function AccountMenu() {
         </button>
 
         {user ? (
-          <button className="fg-acct-item" onClick={() => { logout(); showToast('Signed out'); close() }}>
+          <button className="fg-acct-item" onClick={() => { logout(); clearMine(); showToast('Signed out'); close() }}>
             <Icon d={Ic.user} size={16} />
             Sign out
           </button>

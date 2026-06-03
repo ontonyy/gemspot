@@ -1,10 +1,15 @@
 import 'reflect-metadata'
 import { ValidationPipe } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
+import { NestExpressApplication } from '@nestjs/platform-express'
 import { AppModule } from './app.module'
+import { UPLOADS_PATH } from './infra/storage/storage.service'
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule)
+  const app = await NestFactory.create<NestExpressApplication>(AppModule)
+
+  // serve uploaded photos (local-disk storage backend) at /uploads/*
+  app.useStaticAssets(UPLOADS_PATH, { prefix: '/uploads/' })
 
   // CORS — comma-separated CORS_ORIGIN in prod (GitHub Pages origin);
   // reflect any origin in dev when unset.
