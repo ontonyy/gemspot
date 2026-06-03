@@ -6,8 +6,7 @@ import { SkeletonList } from '../features/explore/RailStates'
 import { useExploreList } from '../features/explore/useExploreList'
 import { useGuide } from '../shared/api/queries'
 import { Icon, Ic } from '../shared/ui/Icon'
-import { useSavedStore } from '../shared/store/savedStore'
-import { useToastStore } from '../shared/store/toastStore'
+import { useGatedSave } from '../shared/store/useGatedSave'
 import { useGeoStore } from '../shared/store/geoStore'
 
 /* GuideDetail — the spots in one curated collection. Reuses the Explore
@@ -21,8 +20,7 @@ export default function GuideDetail() {
 
   const { data, isLoading: guideLoading } = useGuide(id ?? null)
   const { items, isLoading: listLoading } = useExploreList()
-  const toggleSave = useSavedStore((s) => s.toggle)
-  const showToast = useToastStore((s) => s.show)
+  const save = useGatedSave()
 
   const spots = useMemo(() => {
     if (!data) return []
@@ -60,10 +58,7 @@ export default function GuideDetail() {
                   p={p}
                   no={p.id}
                   onOpen={() => navigate(`/spot/${p.slug}`)}
-                  onSave={() => {
-                    const nowSaved = toggleSave(p.id)
-                    showToast(nowSaved ? 'Saved to your collection' : 'Removed from collection')
-                  }}
+                  onSave={() => save(p.id, `/guides/${id}`)}
                 />
               ))}
             </div>

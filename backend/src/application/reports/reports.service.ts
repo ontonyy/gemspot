@@ -14,9 +14,10 @@ const REASON_TO_DB: Record<ReportReason, PrismaReportReason> = {
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(input: ReportInputDto): Promise<ReportDto> {
+  async create(input: ReportInputDto, userId: string): Promise<ReportDto> {
     const row = await this.prisma.report.create({
       data: {
+        userId,
         placeId: input.placeId,
         placeSlug: input.placeSlug,
         placeName: input.placeName,

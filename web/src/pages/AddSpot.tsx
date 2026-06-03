@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppShell } from '../app/AppShell'
 import { Legend } from '../features/explore/Legend'
@@ -9,6 +9,7 @@ import { TALLINN_CENTER, type LatLng } from '../shared/lib/geo'
 import { placesApi } from '../shared/api/placesApi'
 import { useSubmissionsStore } from '../shared/store/submissionsStore'
 import { useToastStore } from '../shared/store/toastStore'
+import { useAuthStore } from '../shared/store/authStore'
 
 /* Add-a-spot — client form → mock createSubmission (PENDING). Photo upload is
    omitted in this build (no object storage yet); submission lands in
@@ -19,6 +20,15 @@ export default function AddSpot() {
   const navigate = useNavigate()
   const addSubmission = useSubmissionsStore((s) => s.add)
   const showToast = useToastStore((s) => s.show)
+  const user = useAuthStore((s) => s.user)
+
+  // contributing requires an account — bounce guests to sign-in, return here after
+  useEffect(() => {
+    if (!user) {
+      showToast('Sign in to add a spot')
+      navigate('/auth', { replace: true, state: { from: '/add' } })
+    }
+  }, [user, navigate, showToast])
 
   const [name, setName] = useState('')
   const [category, setCategory] = useState<CategoryId | null>(null)

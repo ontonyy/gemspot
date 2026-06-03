@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { catColor, CategoryGlyph } from '../../entities/place/categories'
 import { Photo } from '../../entities/place/Photo'
 import { ReportModal } from './ReportModal'
@@ -8,6 +9,7 @@ import { haversineKm, roundKm } from '../../shared/lib/geo'
 import { useGeoStore } from '../../shared/store/geoStore'
 import { useSavedStore } from '../../shared/store/savedStore'
 import { useToastStore } from '../../shared/store/toastStore'
+import { useAuthStore } from '../../shared/store/authStore'
 
 /* Spot detail panel. Slides over the rail on desktop, full-screen on mobile.
    Driven by slug → usePlace. fg-app.jsx Detail + fg.css .fg-detail spec.
@@ -24,6 +26,16 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
   const isSaved = useSavedStore((s) => s.ids.includes(p?.id ?? ''))
   const toggleSave = useSavedStore((s) => s.toggle)
   const showToast = useToastStore((s) => s.show)
+  const user = useAuthStore((s) => s.user)
+  const navigate = useNavigate()
+
+  // save + report require an account; guests are bounced to sign-in, returned here
+  const requireAuth = (msg: string): boolean => {
+    if (user) return true
+    showToast(msg)
+    navigate('/auth', { state: { from: `/spot/${slug}` } })
+    return false
+  }
 
   const [shot, setShot] = useState(0)
   const [dirOpen, setDirOpen] = useState(false)
@@ -46,6 +58,7 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
   const photos = p.photos.filter((ph) => ph.url)
   const hasPhotos = photos.length > 0
   const onSave = () => {
+    if (!requireAuth('Sign in to save spots')) return
     const nowSaved = toggleSave(p.id)
     showToast(nowSaved ? 'Saved to your collection' : 'Removed from collection')
   }
@@ -123,7 +136,7 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
           </>
         )}
 
-        <button className="fg-report-link" onClick={() => setReportOpen(true)}>
+        <button className="fg-report-link" onClick={() => requireAuth('Sign in to report a problem') && setReportOpen(true)}>
           <Icon d={Ic.flag} size={13} />Report a problem · outdated
         </button>
       </div>

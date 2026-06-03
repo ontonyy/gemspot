@@ -6,9 +6,10 @@ import type { SubmissionDto, SubmissionInputDto } from '../../contracts/dto/subm
 export class SubmissionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(input: SubmissionInputDto): Promise<SubmissionDto> {
+  async create(input: SubmissionInputDto, userId: string): Promise<SubmissionDto> {
     const row = await this.prisma.submission.create({
       data: {
+        userId,
         name: input.name,
         categoryId: input.categoryId,
         lat: input.lat,

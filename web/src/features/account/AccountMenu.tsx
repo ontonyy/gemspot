@@ -6,6 +6,8 @@ import { useUiStore } from '../../shared/store/uiStore'
 import { useSavedStore } from '../../shared/store/savedStore'
 import { useSubmissionsStore } from '../../shared/store/submissionsStore'
 import { useReportsStore } from '../../shared/store/reportsStore'
+import { useAuthStore } from '../../shared/store/authStore'
+import { useToastStore } from '../../shared/store/toastStore'
 import { FG_CAT } from '../../entities/place/categories'
 import type { CategoryId } from '../../entities/place/categories'
 import type { ReportReason } from '../../shared/api/types'
@@ -29,6 +31,9 @@ export function AccountMenu() {
   const savedCount = useSavedStore((s) => s.ids.length)
   const subs = useSubmissionsStore((s) => s.items)
   const reports = useReportsStore((s) => s.items)
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const showToast = useToastStore((s) => s.show)
   const [showSubs, setShowSubs] = useState(false)
   const [showReports, setShowReports] = useState(false)
 
@@ -48,10 +53,10 @@ export function AccountMenu() {
       <div className="fg-acct-scrim" onClick={close} />
       <div className="fg-acct" role="menu" aria-label="Account">
         <div className="fg-acct-head">
-          <Avatar initials="M" />
+          <Avatar initials={(user?.name ?? user?.email ?? 'M').slice(0, 1).toUpperCase()} />
           <div>
-            <div className="n">You</div>
-            <div className="s">Local explorer</div>
+            <div className="n">{user ? (user.name ?? user.email) : 'You'}</div>
+            <div className="s">{user ? user.email : 'Guest · browsing'}</div>
           </div>
         </div>
 
@@ -103,11 +108,17 @@ export function AccountMenu() {
           <span className="c">{savedCount}</span>
         </button>
 
-        <button className="fg-acct-item" disabled>
-          <Icon d={Ic.user} size={16} />
-          Sign in
-          <span className="c">soon</span>
-        </button>
+        {user ? (
+          <button className="fg-acct-item" onClick={() => { logout(); showToast('Signed out'); close() }}>
+            <Icon d={Ic.user} size={16} />
+            Sign out
+          </button>
+        ) : (
+          <button className="fg-acct-item" onClick={() => go('/auth')}>
+            <Icon d={Ic.user} size={16} />
+            Sign in
+          </button>
+        )}
       </div>
     </>
   )

@@ -9,6 +9,7 @@ import type {
   ReportDto, ReportInput, SubmissionDto, SubmissionInput,
 } from './types'
 import type { PlacesApi } from './placesApi'
+import { useAuthStore } from '../store/authStore'
 
 const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 
@@ -19,12 +20,21 @@ async function getJson<T>(path: string): Promise<T> {
 }
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
+  // submissions/reports are auth-gated server-side; attach the bearer token.
+  const token = useAuthStore.getState().accessToken
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${path}`)
+  if (!res.ok) {
+    const err = new Error(`${res.status} ${res.statusText} for ${path}`) as Error & { status?: number }
+    err.status = res.status
+    throw err
+  }
   return res.json() as Promise<T>
 }
 

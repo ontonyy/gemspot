@@ -5,8 +5,7 @@ import { RailCard } from '../features/explore/RailCard'
 import { SkeletonList } from '../features/explore/RailStates'
 import { useExploreList } from '../features/explore/useExploreList'
 import { Icon, Ic } from '../shared/ui/Icon'
-import { useSavedStore } from '../shared/store/savedStore'
-import { useToastStore } from '../shared/store/toastStore'
+import { useGatedSave } from '../shared/store/useGatedSave'
 import { useGeoStore } from '../shared/store/geoStore'
 
 /* Saved specimens — everything bookmarked via savedStore (persisted to
@@ -17,8 +16,7 @@ export default function Saved() {
   useEffect(() => { requestGeo() }, [requestGeo])
 
   const { items, isLoading } = useExploreList()
-  const toggleSave = useSavedStore((s) => s.toggle)
-  const showToast = useToastStore((s) => s.show)
+  const save = useGatedSave()
 
   const saved = useMemo(() => items.filter((p) => p.isSaved), [items])
 
@@ -56,10 +54,7 @@ export default function Saved() {
                   p={p}
                   no={p.id}
                   onOpen={() => navigate(`/spot/${p.slug}`)}
-                  onSave={() => {
-                    const nowSaved = toggleSave(p.id)
-                    showToast(nowSaved ? 'Saved to your collection' : 'Removed from collection')
-                  }}
+                  onSave={() => save(p.id, '/saved')}
                 />
               ))}
             </div>
