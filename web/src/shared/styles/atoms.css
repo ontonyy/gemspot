@@ -352,3 +352,67 @@
 .fg-dir-item+.fg-dir-item{border-top:1px solid var(--line);}
 .fg-dir-item:hover{background:var(--paper-2);}
 .fg-detail-hero-skel{background:var(--paper-2);}
+
+/* ===== shared page scaffold (Saved / Guides / Add) — Block 8+ ===== */
+.fg-page{height:100%;overflow:auto;background:var(--paper);}
+.fg-page-in{max-width:1100px;margin:0 auto;padding:30px 26px 80px;}
+.fg-page-h{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+  padding-bottom:18px;margin-bottom:22px;border-bottom:1.25px solid var(--line-2);}
+.fg-page-h h1{font-size:30px;line-height:1.05;}
+.fg-page-h .sub{font-family:var(--font-ui);font-size:13px;color:var(--ink-2);margin-top:6px;}
+.fg-page-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;}
+.fg-page-grid .fg-card{border:1.25px solid var(--line-2);}
+.fg-page-grid .fg-card:hover{border-color:var(--ink-3);background:var(--paper-2);}
+@media (max-width:980px){.fg-page-in{padding:20px 16px 90px;}.fg-page-h h1{font-size:24px;}}
+
+/* ===== guides — collections derived from places (Block 9-10) ===== */
+.fg-guides{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.fg-guide{display:flex;flex-direction:column;text-align:left;background:var(--paper);
+  border:1.25px solid var(--line-2);padding:0;cursor:pointer;overflow:hidden;}
+.fg-guide:hover{border-color:var(--ink-3);background:var(--paper-2);}
+.fg-guide-cover{display:flex;align-items:center;justify-content:center;height:96px;
+  border-bottom:1.25px solid var(--line-2);}
+.fg-guide-body{padding:14px 16px 16px;}
+.fg-guide-body h3{font-size:18px;line-height:1.1;}
+.fg-guide-body .sub{font-family:var(--font-ui);font-size:12.5px;color:var(--ink-2);margin-top:5px;}
+.fg-guide-count{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-3);margin-top:10px;}
+.fg-backlink{display:inline-flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);padding:0;margin-bottom:14px;}
+.fg-backlink:hover{color:var(--ink);}
+
+/* ===== account menu (client-only) — Block 11 ===== */
+.fg-acct-scrim{position:fixed;inset:0;z-index:48;}
+.fg-acct{position:absolute;top:calc(var(--topbar) + 6px);right:18px;z-index:49;width:248px;
+  background:var(--paper);border:1.5px solid var(--ink);box-shadow:6px 6px 0 var(--ink);}
+.fg-acct-head{display:flex;align-items:center;gap:11px;padding:14px;border-bottom:1.25px solid var(--line-2);}
+.fg-acct-head .fg-avatar{cursor:default;}
+.fg-acct-head .n{font-family:var(--font-display);font-weight:700;font-size:15px;}
+.fg-acct-head .s{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;color:var(--ink-3);text-transform:uppercase;}
+.fg-acct-item{display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;background:none;border:none;
+  cursor:pointer;font-family:var(--font-ui);font-size:13.5px;color:var(--ink);text-align:left;}
+.fg-acct-item+.fg-acct-item{border-top:1px solid var(--line);}
+.fg-acct-item:hover{background:var(--paper-2);}
+.fg-acct-item[disabled]{color:var(--ink-3);cursor:default;}
+.fg-acct-item .c{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
+@media (max-width:980px){.fg-acct{right:10px;left:10px;width:auto;top:auto;bottom:70px;}}
+
+/* ===== add-a-spot form — Block 10 ===== */
+.fg-form{max-width:620px;}
+.fg-field{margin-bottom:20px;}
+.fg-field>label{display:block;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-2);margin-bottom:7px;}
+.fg-field input[type=text],.fg-field textarea{width:100%;font-family:var(--font-ui);font-size:14px;color:var(--ink);
+  background:var(--paper);border:1.5px solid var(--line-2);padding:11px 12px;outline:none;}
+.fg-field input[type=text]:focus,.fg-field textarea:focus{border-color:var(--ink);}
+.fg-field textarea{min-height:96px;resize:vertical;}
+.fg-field[data-err=true] input,.fg-field[data-err=true] textarea{border-color:var(--stamp);}
+.fg-field .err{margin-top:6px;font-family:var(--font-ui);font-size:12px;color:var(--stamp);}
+.fg-field .hint{margin-top:6px;font-family:var(--font-ui);font-size:12px;color:var(--ink-3);}
+.fg-pickmap{height:240px;border:1.5px solid var(--line-2);position:relative;overflow:hidden;}
+.fg-pickmap .fg-pick-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:5;
+  pointer-events:none;color:var(--ink);}
+.fg-form-actions{display:flex;gap:10px;align-items:center;margin-top:8px;}
+.fg-photos{display:flex;gap:10px;flex-wrap:wrap;}
+.fg-photo-thumb{width:72px;height:72px;border:1.5px solid var(--line-2);object-fit:cover;}

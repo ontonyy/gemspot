@@ -29,6 +29,34 @@ export interface PlaceCardDto {
   lng: number
 }
 
+/* A curated collection of spots. MVP = derived from existing places
+   (by category / by a cross-cut like "free to play"). No CMS. */
+export interface GuideDto {
+  id: string
+  title: string
+  subtitle: string
+  coverCategory: CategoryId // drives accent + glyph
+  count: number
+  spotSlugs: string[]
+}
+
+/* A user-added spot pending moderation. Never instantly live:
+   PENDING → admin approves → becomes a Place. Mirrors the backend Submission. */
+export interface SubmissionInput {
+  name: string
+  categoryId: CategoryId
+  lat: number
+  lng: number
+  note: string
+  photoCount?: number
+}
+
+export interface SubmissionDto extends SubmissionInput {
+  id: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  submittedAt: string // human-relative for mock ("just now")
+}
+
 export interface PlaceDetailDto extends PlaceCardDto {
   note: string
   photos: { url: string }[]

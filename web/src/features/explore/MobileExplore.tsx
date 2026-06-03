@@ -22,13 +22,6 @@ interface MobileExploreProps {
   onReset: () => void
 }
 
-const NAV: [string, import('react').ReactNode, string][] = [
-  ['explore', Ic.pin, 'Explore'],
-  ['saved', Ic.flag, 'Saved'],
-  ['guides', Ic.book, 'Guides'],
-  ['you', Ic.user, 'You'],
-]
-
 export function MobileExplore(s: MobileExploreProps) {
   const [sheet, setSheet] = useState<SheetState>('half')
   const [dragH, setDragH] = useState<number | null>(null)
@@ -114,24 +107,6 @@ export function MobileExplore(s: MobileExploreProps) {
           <SpotDetail slug={s.detailSlug} mobile onClose={s.onCloseDetail} />
         )}
       </div>
-
-      <nav className="fg-mobnav">
-        {NAV.slice(0, 2).map(([k, d, l]) => (
-          <button key={k} data-on={k === 'explore'}>
-            <span className="fg-mobnav-ic"><Icon d={d} size={19} /></span>{l}
-          </button>
-        ))}
-        <button>
-          <span className="fg-mobnav-ic fg-mobnav-fab" style={{ width: 38, height: 32, marginTop: -2 }}>
-            <Icon d={Ic.plus} size={18} sw={2} />
-          </span>Add
-        </button>
-        {NAV.slice(2).map(([k, d, l]) => (
-          <button key={k} data-on={false}>
-            <span className="fg-mobnav-ic"><Icon d={d} size={19} /></span>{l}
-          </button>
-        ))}
-      </nav>
     </div>
   )
 }

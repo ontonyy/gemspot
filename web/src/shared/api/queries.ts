@@ -16,6 +16,8 @@ export const placeKeys = {
   list: (cat?: CategoryId) => ['places', { cat: cat ?? null }] as const,
   detail: (slug: string) => ['place', slug] as const,
   categories: ['categories'] as const,
+  guides: ['guides'] as const,
+  guide: (id: string) => ['guide', id] as const,
 }
 
 export function usePlaces(cat?: CategoryId) {
@@ -38,5 +40,21 @@ export function useCategories() {
     queryKey: placeKeys.categories,
     queryFn: () => placesApi.getCategories(),
     staleTime: Infinity,
+  })
+}
+
+export function useGuides() {
+  return useQuery({
+    queryKey: placeKeys.guides,
+    queryFn: () => placesApi.getGuides(),
+    staleTime: Infinity,
+  })
+}
+
+export function useGuide(id: string | null) {
+  return useQuery({
+    queryKey: placeKeys.guide(id ?? ''),
+    queryFn: () => placesApi.getGuide(id as string),
+    enabled: !!id,
   })
 }

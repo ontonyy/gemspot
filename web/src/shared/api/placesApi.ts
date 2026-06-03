@@ -5,7 +5,8 @@
 
 import { FG_CAT } from '../../entities/place/categories'
 import type { CategoryId } from '../../entities/place/categories'
-import type { CategoryDto, PlaceCardDto, PlaceDetailDto } from './types'
+import type { CategoryDto, GuideDto, PlaceCardDto, PlaceDetailDto, SubmissionDto, SubmissionInput } from './types'
+import { FG_CATS } from '../../entities/place/categories'
 
 interface RawPlace {
   id: string
@@ -79,12 +80,49 @@ function toDetail(r: RawPlace): PlaceDetailDto {
   }
 }
 
+/* Guides = curated collections derived from the place set (no CMS). One guide
+   per category that has ≥2 spots, plus a "Free to play" cross-cut. */
+const FREE_GUIDE_ID = 'free-to-play'
+
+function buildGuides(): GuideDto[] {
+  const byCat: GuideDto[] = FG_CATS.map((c) => {
+    const slugs = RAW.filter((r) => r.cat === c.id).map((r) => r.slug)
+    return {
+      id: `cat-${c.id}`,
+      title: c.label,
+      subtitle: `Every ${c.short.toLowerCase()} spot in the field guide`,
+      coverCategory: c.id,
+      count: slugs.length,
+      spotSlugs: slugs,
+    }
+  }).filter((g) => g.count >= 2)
+
+  const freeSlugs = RAW.filter((r) => r.isFree).map((r) => r.slug)
+  const free: GuideDto = {
+    id: FREE_GUIDE_ID,
+    title: 'Free to play',
+    subtitle: 'No booking, no fee — just show up',
+    coverCategory: 'scenic',
+    count: freeSlugs.length,
+    spotSlugs: freeSlugs,
+  }
+  return [free, ...byCat]
+}
+
+const GUIDES = buildGuides()
+
 /** Contract a real backend client implements later (Node/Spring REST). */
 export interface PlacesApi {
   getPlaces(params?: { cat?: CategoryId }): Promise<PlaceCardDto[]>
   getPlace(slug: string): Promise<PlaceDetailDto>
   getCategories(): Promise<CategoryDto[]>
+  getGuides(): Promise<GuideDto[]>
+  getGuide(id: string): Promise<{ guide: GuideDto; spots: PlaceCardDto[] }>
+  createSubmission(input: SubmissionInput): Promise<SubmissionDto>
 }
+
+// session-lived submissions store (mock). Real backend persists + moderates.
+let submissionSeq = 0
 
 // simulate network latency so loading states are observable in dev
 const delay = <T>(value: T, ms = 180): Promise<T> =>
@@ -102,6 +140,29 @@ export const mockPlacesApi: PlacesApi = {
   },
   getCategories() {
     return delay(Object.values(FG_CAT).map((c) => toCategoryDto(c.id)))
+  },
+  getGuides() {
+    return delay(GUIDES)
+  },
+  getGuide(id) {
+    const guide = GUIDES.find((g) => g.id === id)
+    if (!guide) return Promise.reject(new Error(`guide not found: ${id}`))
+    const bySlug = new Map(RAW.map((r) => [r.slug, r]))
+    const spots = guide.spotSlugs
+      .map((s) => bySlug.get(s))
+      .filter((r): r is RawPlace => !!r)
+      .map(toCard)
+    return delay({ guide, spots })
+  },
+  createSubmission(input) {
+    submissionSeq += 1
+    const sub: SubmissionDto = {
+      ...input,
+      id: `sub-${submissionSeq}`,
+      status: 'PENDING',
+      submittedAt: 'just now',
+    }
+    return delay(sub, 320)
   },
 }
 

@@ -97,6 +97,12 @@ LOCKED: host repo = `ontonyy/gemspot` (project page) · base `/gemspot/` · URL 
   - Verify live URL: Explore + filter + detail + Directions; map tiles load (real HTTPS, no RAF throttle). Geolocation prompts (HTTPS ok).
 - **Stop:** live GH Pages URL shows working Explore slice; `v0.1.0` tagged.
 
+## Blocks 8–12 — finish stub features (`v0.2.0`, DONE 2026-06-03)
+- **Block 8 (nav)** — DONE. `AppShell` self-navigates via `useNavigate`/`useLocation` (active highlight); `MobileNav` gated by `useIsMobile`; `accountOpen` added to `uiStore`. Routes `/explore /spot/:slug /saved /guides /guides/:id /add` in `app/router.tsx`.
+- **Blocks 9–10 (guides)** — DONE. Guides derived from the place set (no CMS) in `placesApi.ts` — `buildGuides()` = one guide per category with ≥2 spots + a "Free to play" cross-cut. New API `getGuides()`/`getGuide(id)`; hooks `useGuides`/`useGuide`. `Guides.tsx` (card grid, cover glyph+accent from `coverCategory`) + `GuideDetail.tsx` (reuses Explore RailCard by annotating guide slugs against the live list, preserves curated order). Guide-card CSS in atoms.css (layout-only, existing tokens). Deleted stale Block-4 demo pages `MapDemo.tsx`/`ShellDemo.tsx`.
+- **Blocks 11–12 (account menu + submissions surface)** — DONE. `features/account/AccountMenu.tsx`, rendered by AppShell when `uiStore.accountOpen`. Items: profile head, **My submissions** (count badge; toggles inline list of session PENDING spots from `submissionsStore` — name + `FG_CAT[id].label` · status · submittedAt), **Saved** shortcut → `/saved` (count badge), disabled **Sign in** placeholder. Scrim + Esc close. Opened by desktop avatar (`toggleAccount`) + mobile "You" (`openAccount`). Round-trip confirmed: `AddSpot` → `submissionsStore.add` → AccountMenu reads `items`. `.fg-acct*` CSS already in atoms.css; only inline layout styles added. (Note: `Category.label`, not `name`; no `CATEGORIES` export.)
+- **Block 13 (search)** — works as designed, no code. Top bar writes `uiStore.searchQuery` → `Explore` reads it via `useExploreList({query})` → filters the Explore rail only (name/area/tags). No global search requested.
+- **Map base-path fix** — `SpotMap` style path changed `/map-style.json` → `` `${import.meta.env.BASE_URL}map-style.json` `` (leading-slash 404'd under `/gemspot/` on GH Pages = blank live map). Rule: any public-asset path must use `import.meta.env.BASE_URL`.
 
 Local-discovery map for Tallinn. Discovery product, not navigation. React frontend + Spring/Java backend.
 

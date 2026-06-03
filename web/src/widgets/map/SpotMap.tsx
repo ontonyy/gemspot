@@ -112,7 +112,7 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
     if (!hostRef.current) return
     const map = new maplibregl.Map({
       container: hostRef.current,
-      style: '/map-style.json',
+      style: `${import.meta.env.BASE_URL}map-style.json`,
       center: CENTER,
       zoom: 12.4,
       minZoom: 10,

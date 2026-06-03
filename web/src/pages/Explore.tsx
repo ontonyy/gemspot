@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../app/AppShell'
 import { DesktopExplore } from '../features/explore/DesktopExplore'
@@ -42,7 +42,6 @@ export default function Explore() {
 
   const [hover, setHover] = useState<string | null>(null)
 
-  const savedCount = useMemo(() => items.filter((p) => p.isSaved).length, [items])
   const searching = searchQuery.trim().length > 0
   const curated = isCurated && geoStatus !== 'locating'
 
@@ -64,14 +63,7 @@ export default function Explore() {
   }
 
   return (
-    <AppShell
-      route="explore"
-      savedCount={savedCount}
-      query={searchQuery}
-      onQuery={setSearchQuery}
-      onBrand={() => setCat(null)}
-      onNavigate={() => setCat(null)}
-    >
+    <AppShell>
       {isMobile ? (
         <MobileExplore
           items={items}
