@@ -27,11 +27,11 @@ export function RailList({
 
   return (
     <div>
-      {items.map((p, i) => (
+      {items.map((p) => (
         <RailCard
           key={p.slug}
           p={p}
-          no={String(i + 1).padStart(2, '0')}
+          no={p.id}
           active={p.slug === selected}
           onHover={onHover}
           onOpen={() => onSelect?.(p.slug)}

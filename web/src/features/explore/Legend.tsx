@@ -7,12 +7,14 @@ interface LegendProps {
   active: CategoryId | null
   onSelect: (cat: CategoryId | null) => void
   compact?: boolean
+  /** show the "All" clear-filter chip. Off in the add-spot form (category required). */
+  allowAll?: boolean
 }
 
-export function Legend({ active, onSelect, compact }: LegendProps) {
+export function Legend({ active, onSelect, compact, allowAll = true }: LegendProps) {
   return (
     <div className={compact ? 'fg-m-keys' : 'fg-keys'}>
-      <Chip label="All" on={active === null} onClick={() => onSelect(null)} />
+      {allowAll && <Chip label="All" on={active === null} onClick={() => onSelect(null)} />}
       {FG_CATS.map((c) => (
         <Chip
           key={c.id}

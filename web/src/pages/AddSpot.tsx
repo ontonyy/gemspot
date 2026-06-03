@@ -4,15 +4,14 @@ import { AppShell } from '../app/AppShell'
 import { Legend } from '../features/explore/Legend'
 import { LocationPicker } from '../features/add-spot/LocationPicker'
 import { Button } from '../shared/ui/Button'
-import { Icon, Ic } from '../shared/ui/Icon'
 import type { CategoryId } from '../entities/place/categories'
 import { TALLINN_CENTER, type LatLng } from '../shared/lib/geo'
 import { placesApi } from '../shared/api/placesApi'
 import { useSubmissionsStore } from '../shared/store/submissionsStore'
 import { useToastStore } from '../shared/store/toastStore'
 
-/* Add-a-spot — client form → mock createSubmission (PENDING). No real upload;
-   photos are local previews, only the count is submitted. Submission lands in
+/* Add-a-spot — client form → mock createSubmission (PENDING). Photo upload is
+   omitted in this build (no object storage yet); submission lands in
    submissionsStore (visible in Account → My submissions) and survives the session. */
 type Errors = { name?: string; category?: string; note?: string }
 
@@ -25,7 +24,6 @@ export default function AddSpot() {
   const [category, setCategory] = useState<CategoryId | null>(null)
   const [coords, setCoords] = useState<LatLng>(TALLINN_CENTER)
   const [note, setNote] = useState('')
-  const [photos, setPhotos] = useState<string[]>([])
   const [errors, setErrors] = useState<Errors>({})
   const [submitting, setSubmitting] = useState(false)
 
@@ -36,12 +34,6 @@ export default function AddSpot() {
     if (note.trim().length > 0 && note.trim().length < 10)
       e.note = 'A field note should be a little longer, or leave it empty.'
     return e
-  }
-
-  const onPhotos = (files: FileList | null) => {
-    if (!files) return
-    const urls = Array.from(files).slice(0, 4).map((f) => URL.createObjectURL(f))
-    setPhotos((prev) => [...prev, ...urls].slice(0, 4))
   }
 
   const submit = async () => {
@@ -56,7 +48,7 @@ export default function AddSpot() {
         lat: coords.lat,
         lng: coords.lng,
         note: note.trim(),
-        photoCount: photos.length,
+        photoCount: 0,
       })
       addSubmission(sub)
       showToast('Spot submitted · pending moderation')
@@ -88,7 +80,7 @@ export default function AddSpot() {
 
             <div className="fg-field" data-err={!!errors.category}>
               <label>Category</label>
-              <Legend active={category} onSelect={setCategory} />
+              <Legend active={category} onSelect={setCategory} allowAll={false} />
               {errors.category && <div className="err">{errors.category}</div>}
             </div>
 
@@ -103,20 +95,6 @@ export default function AddSpot() {
               <textarea id="add-note" value={note} placeholder="What makes this spot worth knowing? Access, surface, best time…"
                 onChange={(e) => setNote(e.target.value)} />
               {errors.note && <div className="err">{errors.note}</div>}
-            </div>
-
-            <div className="fg-field">
-              <label>Photos <span style={{ textTransform: 'none', letterSpacing: 0 }}>(optional · up to 4)</span></label>
-              <div className="fg-photos">
-                {photos.map((src, i) => <img key={i} className="fg-photo-thumb" src={src} alt="" />)}
-                {photos.length < 4 && (
-                  <label className="fg-photo-thumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink-3)' }}>
-                    <Icon d={Ic.plus} size={20} sw={2} />
-                    <input type="file" accept="image/*" multiple hidden onChange={(e) => onPhotos(e.target.files)} />
-                  </label>
-                )}
-              </div>
-              <div className="hint">Previews only — not uploaded in this build.</div>
             </div>
 
             <div className="fg-form-actions">

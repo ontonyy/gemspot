@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 import { catColor, CategoryGlyph } from '../../entities/place/categories'
 import { Photo } from '../../entities/place/Photo'
+import { ReportModal } from './ReportModal'
 import { Icon, Ic } from '../../shared/ui/Icon'
 import { usePlace } from '../../shared/api/queries'
 import { haversineKm, roundKm } from '../../shared/lib/geo'
@@ -26,6 +27,7 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
 
   const [shot, setShot] = useState(0)
   const [dirOpen, setDirOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
 
   const mobileStyle: CSSProperties = mobile
     ? { position: 'absolute', width: '100%', borderRight: 'none', boxShadow: 'none', zIndex: 45 }
@@ -41,25 +43,49 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
 
   const cat = p.category.id
   const km = roundKm(haversineKm(origin, { lat: p.lat, lng: p.lng }))
+  const photos = p.photos.filter((ph) => ph.url)
+  const hasPhotos = photos.length > 0
   const onSave = () => {
     const nowSaved = toggleSave(p.id)
     showToast(nowSaved ? 'Saved to your collection' : 'Removed from collection')
   }
 
+  const onShare = async () => {
+    const url = `${window.location.origin}${import.meta.env.BASE_URL}#/spot/${p.slug}`
+    const shareData = { title: p.name, text: `${p.name} · GemSpot Tallinn`, url }
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData)
+        return
+      } catch {
+        // user cancelled or share failed → fall through to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      showToast('Link copied')
+    } catch {
+      showToast('Could not copy link')
+    }
+  }
+
   return (
     <aside className="fg-detail" style={{ '--cc': catColor(cat), ...mobileStyle } as CSSProperties}>
       <div className="fg-detail-hero">
-        <Photo cat={cat} glyph={false} label={`PHOTO ${shot + 1}/3 — drop image`} />
+        <Photo cat={cat} glyph={!hasPhotos} url={hasPhotos ? photos[shot]?.url : undefined}
+          label={hasPhotos ? undefined : p.category.label} />
         <div className="fg-detail-top">
           <button className="fg-iconbtn" onClick={onClose} aria-label="Back"><Icon d={Ic.back} size={18} /></button>
-          <button className="fg-iconbtn" aria-label="Share"><Icon d={Ic.share} size={17} /></button>
+          <button className="fg-iconbtn" onClick={onShare} aria-label="Share"><Icon d={Ic.share} size={17} /></button>
         </div>
         <span className="fg-detail-cattag"><CategoryGlyph cat={cat} size={13} />{p.category.label}</span>
-        <div className="fg-detail-dots">
-          {[0, 1, 2].map((i) => (
-            <i key={i} data-on={i === shot} onClick={() => setShot(i)} />
-          ))}
-        </div>
+        {hasPhotos && photos.length > 1 && (
+          <div className="fg-detail-dots">
+            {photos.map((_, i) => (
+              <i key={i} data-on={i === shot} onClick={() => setShot(i)} />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="fg-detail-body">
@@ -88,12 +114,21 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
           <div className="fg-fact"><span className="k">Best</span><span className="v">{p.fieldNotes.best}</span></div>
         </div>
 
-        <div className="fg-notes-h">Sightings</div>
-        <div className="fg-strip">
-          <Photo cat={cat} glyph label="DROP" />
-          <Photo cat={cat} glyph label="DROP" />
-        </div>
+        {hasPhotos && (
+          <>
+            <div className="fg-notes-h">Sightings</div>
+            <div className="fg-strip">
+              {photos.map((ph, i) => <Photo key={i} cat={cat} url={ph.url} />)}
+            </div>
+          </>
+        )}
+
+        <button className="fg-report-link" onClick={() => setReportOpen(true)}>
+          <Icon d={Ic.flag} size={13} />Report a problem · outdated
+        </button>
       </div>
+
+      {reportOpen && <ReportModal place={p} onClose={() => setReportOpen(false)} />}
 
       <div className="fg-detail-bar">
         <button className="fg-btn fg-savebar" data-saved={isSaved} onClick={onSave}>

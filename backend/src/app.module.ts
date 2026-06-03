@@ -1,0 +1,21 @@
+import { Module } from '@nestjs/common'
+import { PrismaModule } from './infra/prisma/prisma.module'
+import { HealthModule } from './api/health/health.module'
+import { PlacesModule } from './api/places/places.module'
+import { CategoriesModule } from './api/categories/categories.module'
+import { GuidesModule } from './api/guides/guides.module'
+import { SubmissionsModule } from './api/submissions/submissions.module'
+import { ReportsModule } from './api/reports/reports.module'
+
+@Module({
+  imports: [
+    PrismaModule,
+    HealthModule,
+    PlacesModule,
+    CategoriesModule,
+    GuidesModule,
+    SubmissionsModule,
+    ReportsModule,
+  ],
+})
+export class AppModule {}

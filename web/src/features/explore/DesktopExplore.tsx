@@ -12,6 +12,8 @@ interface DesktopExploreProps {
   searching?: boolean
   cat: CategoryId | null
   onCat: (cat: CategoryId | null) => void
+  free: boolean
+  onFree: (next: boolean) => void
   curated?: boolean
   hover: string | null
   selected: string | null
@@ -20,6 +22,8 @@ interface DesktopExploreProps {
   detailSlug: string | null
   onCloseDetail: () => void
   onReset: () => void
+  onEnableLocation?: () => void
+  locating?: boolean
 }
 
 export function DesktopExplore(s: DesktopExploreProps) {
@@ -30,23 +34,31 @@ export function DesktopExplore(s: DesktopExploreProps) {
         <div className="fg-legend">
           <div className="fg-legend-h">
             <span className="kicker">Legend · filter</span>
-            {s.cat && <button className="fg-sort" onClick={() => s.onCat(null)}>Clear</button>}
+            {(s.cat || s.free) && <button className="fg-sort" onClick={s.onReset}>Clear</button>}
           </div>
           <Legend active={s.cat} onSelect={s.onCat} />
+          <button className="fg-freetoggle" data-on={s.free} onClick={() => s.onFree(!s.free)}
+            aria-pressed={s.free}>
+            <span className="fg-freetoggle-box"><Icon d={Ic.check} size={11} sw={3} /></span>
+            Free to play only
+          </button>
         </div>
 
         {s.curated && (
-          <div className="fg-geobanner">
+          <button className="fg-geobanner" onClick={s.onEnableLocation} disabled={s.locating}
+            aria-label="Use my location for distances">
             <Icon d={Ic.loc} size={13} />
-            Location off · distances from Tallinn centre
-          </div>
+            {s.locating
+              ? 'Locating…'
+              : <>Location off · distances from Tallinn centre<span className="fg-geobanner-cta">Use my location</span></>}
+          </button>
         )}
 
         <div className="fg-rail-head">
           <div>
             <div className="count"><b className="mono">{s.items.length}</b> spots nearby</div>
             <div className="sub">
-              {s.cat ? FG_CAT[s.cat].short : 'All categories'} · sorted by distance
+              {s.cat ? FG_CAT[s.cat].short : 'All categories'}{s.free ? ' · free only' : ''} · sorted by distance
             </div>
           </div>
           <button className="fg-sort"><Icon d={Ic.sort} size={13} />Near</button>

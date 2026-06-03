@@ -15,6 +15,8 @@ interface MobileExploreProps {
   searching?: boolean
   cat: CategoryId | null
   onCat: (cat: CategoryId | null) => void
+  free: boolean
+  onFree: (next: boolean) => void
   selected: string | null
   onSelect: (slug: string) => void
   detailSlug: string | null
@@ -64,6 +66,8 @@ export function MobileExplore(s: MobileExploreProps) {
         </div>
 
         <div className="fg-m-legend">
+          <button className="fg-key fg-key-all fg-freekey" data-on={s.free}
+            onClick={() => s.onFree(!s.free)} aria-pressed={s.free}>Free</button>
           <Legend active={s.cat} onSelect={s.onCat} compact />
         </div>
 

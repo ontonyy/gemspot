@@ -50,11 +50,11 @@ export default function Saved() {
             </div>
           ) : (
             <div className="fg-page-grid">
-              {saved.map((p, i) => (
+              {saved.map((p) => (
                 <RailCard
                   key={p.slug}
                   p={p}
-                  no={String(i + 1).padStart(2, '0')}
+                  no={p.id}
                   onOpen={() => navigate(`/spot/${p.slug}`)}
                   onSave={() => {
                     const nowSaved = toggleSave(p.id)

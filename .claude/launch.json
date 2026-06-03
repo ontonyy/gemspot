@@ -4,7 +4,7 @@
     {
       "name": "web",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd /Users/ontony/.claude/worktrees/gemspot-fe-explore-slice/web && npm run dev"],
+      "runtimeArgs": ["-c", "cd /Users/ontony/Desktop/archivarius/codes/gemspot/web && npm run dev"],
       "port": 5173
     }
   ]

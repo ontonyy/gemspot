@@ -54,11 +54,11 @@ export default function GuideDetail() {
             <SkeletonList />
           ) : (
             <div className="fg-page-grid">
-              {spots.map((p, i) => (
+              {spots.map((p) => (
                 <RailCard
                   key={p.slug}
                   p={p}
-                  no={String(i + 1).padStart(2, '0')}
+                  no={p.id}
                   onOpen={() => navigate(`/spot/${p.slug}`)}
                   onSave={() => {
                     const nowSaved = toggleSave(p.id)

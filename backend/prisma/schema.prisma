@@ -1,0 +1,203 @@
+// GemSpot MVP schema. Designed to serve the EXISTING frontend DTO contract
+// (web/src/shared/api/types.ts) byte-identical to the mock placesApi, while
+// staying faithful to docs/mvp-backend-plan-webapp-claude.md (layered tables).
+//
+// Place.id is a zero-padded string ("01".."10") to match the mock DTO ids.
+// Category.id is the CategoryId string ("tabletennis"...) — taxonomy is the
+// stable key; color = cssvar string, glyph = id (mapped in the contracts layer).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CLIENT
+  ADMIN
+}
+
+enum PlaceStatus {
+  ACTIVE
+  INACTIVE
+  DRAFT
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum ReportReason {
+  CLOSED
+  WRONG_LOCATION
+  NOT_FREE
+  OTHER
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(CLIENT)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  profile     Profile?
+  savedPlaces SavedPlace[]
+  submissions Submission[]
+  reports     Report[]
+
+  @@map("users")
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  name      String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Category {
+  id     String @id // CategoryId — "tabletennis" | "basketball" | ...
+  slug   String @unique
+  label  String
+  short  String
+  cssvar String // drives CategoryDto.color (e.g. "--c-tabletennis")
+  sort   Int    @default(0) // preserves FG_CATS taxonomy order
+
+  places PlaceCategory[]
+
+  @@map("categories")
+}
+
+model Place {
+  id              String      @id // zero-padded "01".."10" to match mock DTO ids
+  slug            String      @unique
+  name            String
+  neighborhood    String
+  lat             Float
+  lng             Float
+  status          PlaceStatus @default(ACTIVE)
+  savesCount      Int         @default(0)
+  viewsCount      Int         @default(0)
+  sharesCount     Int         @default(0)
+  isFree          Boolean     @default(true)
+  thumbUrl        String?
+  tags            String[]
+  note            String
+  contributorName String
+  verifiedLabel   String // human-relative string for the mock ("12 days ago")
+  accessNote      String // Field-notes: Free / Paid / Booking
+  litNote         String // Field-notes: Yes / No
+  bestNote        String // Field-notes: best time
+  sort            Int         @default(0) // preserves RAW order
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  categories  PlaceCategory[]
+  photos      PlacePhoto[]
+  savedBy     SavedPlace[]
+  reports     Report[]
+
+  @@map("places")
+}
+
+model PlaceCategory {
+  id         String @id @default(uuid())
+  placeId    String
+  categoryId String
+  primary    Boolean @default(false) // the one shown on PlaceCardDto.category
+
+  place    Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, categoryId])
+  @@map("place_categories")
+}
+
+model PlacePhoto {
+  id      String @id @default(uuid())
+  placeId String
+  url     String
+  sort    Int    @default(0)
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@map("place_photos")
+}
+
+model SavedPlace {
+  id        String   @id @default(uuid())
+  userId    String
+  placeId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, placeId])
+  @@map("saved_places")
+}
+
+model Submission {
+  id          String           @id @default(uuid())
+  userId      String?
+  name        String
+  categoryId  String
+  lat         Float
+  lng         Float
+  note        String
+  photoCount  Int              @default(0)
+  status      SubmissionStatus @default(PENDING)
+  submittedAt DateTime         @default(now())
+
+  user        User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  photos      SubmissionPhoto[]
+
+  @@map("submissions")
+}
+
+model SubmissionPhoto {
+  id           String @id @default(uuid())
+  submissionId String
+  url          String
+  sort         Int    @default(0)
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("submission_photos")
+}
+
+model Report {
+  id         String       @id @default(uuid())
+  userId     String?
+  placeId    String?
+  placeSlug  String
+  placeName  String
+  reason     ReportReason
+  note       String?
+  status     ReportStatus @default(OPEN)
+  reportedAt DateTime     @default(now())
+
+  user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  place Place? @relation(fields: [placeId], references: [id], onDelete: SetNull)
+
+  @@map("reports")
+}

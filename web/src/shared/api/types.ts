@@ -57,6 +57,24 @@ export interface SubmissionDto extends SubmissionInput {
   submittedAt: string // human-relative for mock ("just now")
 }
 
+/* A user flag on an existing place (closed / moved / no longer free / other).
+   Mirrors the backend Report. Session-lived in the mock; real backend moderates. */
+export type ReportReason = 'closed' | 'wrong-location' | 'not-free' | 'other'
+
+export interface ReportInput {
+  placeId: string
+  placeSlug: string
+  placeName: string
+  reason: ReportReason
+  note?: string
+}
+
+export interface ReportDto extends ReportInput {
+  id: string
+  status: 'OPEN'
+  reportedAt: string // human-relative for mock ("just now")
+}
+
 export interface PlaceDetailDto extends PlaceCardDto {
   note: string
   photos: { url: string }[]

@@ -5,8 +5,17 @@ import { Avatar } from '../../shared/ui/Avatar'
 import { useUiStore } from '../../shared/store/uiStore'
 import { useSavedStore } from '../../shared/store/savedStore'
 import { useSubmissionsStore } from '../../shared/store/submissionsStore'
+import { useReportsStore } from '../../shared/store/reportsStore'
 import { FG_CAT } from '../../entities/place/categories'
 import type { CategoryId } from '../../entities/place/categories'
+import type { ReportReason } from '../../shared/api/types'
+
+const REPORT_REASON: Record<ReportReason, string> = {
+  closed: 'Closed / gone',
+  'wrong-location': 'Wrong location',
+  'not-free': 'No longer free',
+  other: 'Something else',
+}
 
 /* Client-only account menu (no auth server). Opened from the desktop avatar
    and the mobile "You" tab via uiStore.accountOpen. Lists the user's session
@@ -19,7 +28,9 @@ export function AccountMenu() {
   const navigate = useNavigate()
   const savedCount = useSavedStore((s) => s.ids.length)
   const subs = useSubmissionsStore((s) => s.items)
+  const reports = useReportsStore((s) => s.items)
   const [showSubs, setShowSubs] = useState(false)
+  const [showReports, setShowReports] = useState(false)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close()
@@ -60,6 +71,27 @@ export function AccountMenu() {
                 <span style={{ fontWeight: 600 }}>{s.name}</span>
                 <span className="s" style={{ fontSize: 10 }}>
                   {catName(s.categoryId)} · {s.status} · {s.submittedAt}
+                </span>
+              </div>
+            ))
+          ))}
+
+        <button className="fg-acct-item" onClick={() => setShowReports((v) => !v)}>
+          <Icon d={Ic.flag} size={16} />
+          My reports
+          <span className="c">{reports.length}</span>
+        </button>
+        {showReports &&
+          (reports.length === 0 ? (
+            <div className="fg-acct-item" style={{ cursor: 'default', color: 'var(--ink-3)', fontSize: 12.5 }}>
+              No problems reported yet
+            </div>
+          ) : (
+            reports.map((r) => (
+              <div key={r.id} className="fg-acct-item" style={{ cursor: 'default', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                <span style={{ fontWeight: 600 }}>{r.placeName}</span>
+                <span className="s" style={{ fontSize: 10 }}>
+                  {REPORT_REASON[r.reason]} · {r.status} · {r.reportedAt}
                 </span>
               </div>
             ))

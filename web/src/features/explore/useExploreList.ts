@@ -19,11 +19,13 @@ export interface ExploreCard extends PlaceCardDto {
 export interface ExploreFilters {
   cat?: CategoryId | null
   query?: string
+  free?: boolean
 }
 
 export function useExploreList(filters: ExploreFilters = {}) {
   const cat = filters.cat ?? null
   const query = (filters.query ?? '').trim().toLowerCase()
+  const free = filters.free ?? false
 
   const places = usePlaces(cat ?? undefined)
   const origin = useGeoStore((s) => s.origin)
@@ -42,6 +44,7 @@ export function useExploreList(filters: ExploreFilters = {}) {
         }
       })
       .filter((p) => (cat ? p.category.id === cat : true))
+      .filter((p) => (free ? p.isFree : true))
       .filter((p) =>
         query
           ? p.name.toLowerCase().includes(query) ||
@@ -50,7 +53,7 @@ export function useExploreList(filters: ExploreFilters = {}) {
           : true,
       )
       .sort((a, b) => a.distanceKm - b.distanceKm)
-  }, [places.data, origin, savedIds, cat, query])
+  }, [places.data, origin, savedIds, cat, query, free])
 
   return { ...places, items }
 }

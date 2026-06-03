@@ -15,6 +15,7 @@ export default function Explore() {
   const [params, setParams] = useSearchParams()
   const rawCat = params.get('cat')
   const cat: CategoryId | null = rawCat && rawCat in FG_CAT ? (rawCat as CategoryId) : null
+  const free = params.get('free') === '1'
 
   // detail panel driven by /spot/:slug route param
   const navigate = useNavigate()
@@ -38,7 +39,7 @@ export default function Explore() {
   const geoStatus = useGeoStore((s) => s.status)
   useEffect(() => { requestGeo() }, [requestGeo])
 
-  const { items, isLoading } = useExploreList({ cat, query: searchQuery })
+  const { items, isLoading } = useExploreList({ cat, query: searchQuery, free })
 
   const [hover, setHover] = useState<string | null>(null)
 
@@ -57,9 +58,21 @@ export default function Explore() {
     )
   }
 
+  const setFree = (next: boolean) => {
+    setParams(
+      (prev) => {
+        const p = new URLSearchParams(prev)
+        if (next) p.set('free', '1')
+        else p.delete('free')
+        return p
+      },
+      { replace: true },
+    )
+  }
+
   const resetFilters = () => {
     if (searching) setSearchQuery('')
-    else setCat(null)
+    else { setCat(null); setFree(false) }
   }
 
   return (
@@ -71,6 +84,8 @@ export default function Explore() {
           searching={searching}
           cat={cat}
           onCat={setCat}
+          free={free}
+          onFree={setFree}
           selected={detailSlug ?? hover}
           onSelect={openSpot}
           detailSlug={detailSlug ?? null}
@@ -84,6 +99,8 @@ export default function Explore() {
           searching={searching}
           cat={cat}
           onCat={setCat}
+          free={free}
+          onFree={setFree}
           curated={curated}
           hover={hover}
           selected={detailSlug ?? hover}
@@ -92,6 +109,8 @@ export default function Explore() {
           detailSlug={detailSlug ?? null}
           onCloseDetail={closeSpot}
           onReset={resetFilters}
+          onEnableLocation={requestGeo}
+          locating={geoStatus === 'locating'}
         />
       )}
     </AppShell>

@@ -5,7 +5,7 @@
 
 import { FG_CAT } from '../../entities/place/categories'
 import type { CategoryId } from '../../entities/place/categories'
-import type { CategoryDto, GuideDto, PlaceCardDto, PlaceDetailDto, SubmissionDto, SubmissionInput } from './types'
+import type { CategoryDto, GuideDto, PlaceCardDto, PlaceDetailDto, ReportDto, ReportInput, SubmissionDto, SubmissionInput } from './types'
 import { FG_CATS } from '../../entities/place/categories'
 
 interface RawPlace {
@@ -119,10 +119,12 @@ export interface PlacesApi {
   getGuides(): Promise<GuideDto[]>
   getGuide(id: string): Promise<{ guide: GuideDto; spots: PlaceCardDto[] }>
   createSubmission(input: SubmissionInput): Promise<SubmissionDto>
+  createReport(input: ReportInput): Promise<ReportDto>
 }
 
 // session-lived submissions store (mock). Real backend persists + moderates.
 let submissionSeq = 0
+let reportSeq = 0
 
 // simulate network latency so loading states are observable in dev
 const delay = <T>(value: T, ms = 180): Promise<T> =>
@@ -164,7 +166,22 @@ export const mockPlacesApi: PlacesApi = {
     }
     return delay(sub, 320)
   },
+  createReport(input) {
+    reportSeq += 1
+    const report: ReportDto = {
+      ...input,
+      id: `rep-${reportSeq}`,
+      status: 'OPEN',
+      reportedAt: 'just now',
+    }
+    return delay(report, 320)
+  },
 }
 
-/** Swap point: later `export const placesApi = httpPlacesApi`. */
-export const placesApi: PlacesApi = mockPlacesApi
+/** Swap point: httpPlacesApi when VITE_API_URL is set, mock otherwise.
+   Same seam + identical DTO shapes → zero call-site changes either way. */
+import { httpPlacesApi } from './httpPlacesApi'
+
+export const placesApi: PlacesApi = import.meta.env.VITE_API_URL
+  ? httpPlacesApi
+  : mockPlacesApi

@@ -30,6 +30,10 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm run build
+        env:
+          # Set the VITE_API_URL repo secret to the deployed backend origin to
+          # build against the real API. Unset → falls back to the in-app mock.
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/dist
