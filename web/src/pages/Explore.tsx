@@ -8,6 +8,7 @@ import { FG_CAT, type CategoryId } from '../entities/place/categories'
 import { useIsMobile } from '../shared/lib/useViewport'
 import { useUiStore } from '../shared/store/uiStore'
 import { useGeoStore } from '../shared/store/geoStore'
+import { track } from '../shared/api/track'
 
 /* Explore screen — URL-driven (?cat= filter). Rail + map on desktop, full-bleed
    map + bottom sheet on mobile. Single source of list = useExploreList. */
@@ -47,6 +48,7 @@ export default function Explore() {
   const curated = isCurated && geoStatus !== 'locating'
 
   const setCat = (next: CategoryId | null) => {
+    if (next) track('filter', { axis: 'category', value: next })
     setParams(
       (prev) => {
         const p = new URLSearchParams(prev)
@@ -59,6 +61,7 @@ export default function Explore() {
   }
 
   const setFree = (next: boolean) => {
+    if (next) track('filter', { axis: 'free', value: true })
     setParams(
       (prev) => {
         const p = new URLSearchParams(prev)

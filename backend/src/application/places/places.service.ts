@@ -9,7 +9,12 @@ export class PlacesService {
 
   async list(cat?: CategoryId): Promise<PlaceCardDto[]> {
     const rows = await this.prisma.place.findMany({
-      where: cat ? { categories: { some: { categoryId: cat } } } : undefined,
+      // public map shows ACTIVE places only — moderation INACTIVE/DRAFT hidden;
+      // approving a submission publishes a new ACTIVE place that appears here.
+      where: {
+        status: 'ACTIVE',
+        ...(cat ? { categories: { some: { categoryId: cat } } } : {}),
+      },
       include: PLACE_INCLUDE,
       orderBy: { sort: 'asc' },
     })

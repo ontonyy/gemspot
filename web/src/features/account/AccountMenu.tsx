@@ -109,6 +109,13 @@ export function AccountMenu() {
           <span className="c">{savedCount}</span>
         </button>
 
+        {user?.role === 'ADMIN' && (
+          <button className="fg-acct-item" onClick={() => go('/admin')}>
+            <Icon d={Ic.pin} size={16} />
+            Admin panel
+          </button>
+        )}
+
         {user ? (
           <button className="fg-acct-item" onClick={() => { logout(); clearMine(); showToast('Signed out'); close() }}>
             <Icon d={Ic.user} size={16} />

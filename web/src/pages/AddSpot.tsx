@@ -11,6 +11,7 @@ import { placesApi } from '../shared/api/placesApi'
 import { useSubmissionsStore } from '../shared/store/submissionsStore'
 import { useToastStore } from '../shared/store/toastStore'
 import { useAuthStore } from '../shared/store/authStore'
+import { track } from '../shared/api/track'
 
 /* Add-a-spot — client form → createSubmission (PENDING). Photos upload to object
    storage via placesApi.uploadPhoto (returns a public URL); the URLs ride along
@@ -89,6 +90,7 @@ export default function AddSpot() {
         photoUrls: photos,
       })
       addSubmission(sub)
+      track('submission', { categoryId: category })
       showToast('Spot submitted · pending moderation')
       navigate('/explore')
     } finally {

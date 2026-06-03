@@ -14,6 +14,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { createRoot, type Root } from 'react-dom/client'
 import { CategoryGlyph, catColor, type CategoryId } from '../../entities/place/categories'
 import { TALLINN_CENTER } from '../../shared/lib/geo'
+import { track } from '../../shared/api/track'
 
 export interface SpotMapItem {
   slug: string
@@ -235,7 +236,10 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
         let rec = markersRef.current.get(id)
         if (!rec) {
           const el = document.createElement('div')
-          el.addEventListener('click', () => onSelectRef.current?.(slug))
+          el.addEventListener('click', () => {
+            track('pin', undefined, slug)
+            onSelectRef.current?.(slug)
+          })
           const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
             .setLngLat(coords)
             .addTo(map)

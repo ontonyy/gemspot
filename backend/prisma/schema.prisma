@@ -201,3 +201,16 @@ model Report {
 
   @@map("reports")
 }
+
+// Analytics events — anonymous by default (no auth). track(event,props) on the
+// SPA posts here; the admin dashboard reads grouped counts. props is free-form.
+model Event {
+  id        String   @id @default(uuid())
+  name      String
+  props     Json?
+  placeId   String?
+  createdAt DateTime @default(now())
+
+  @@index([name])
+  @@map("events")
+}

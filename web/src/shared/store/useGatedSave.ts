@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSavedStore } from './savedStore'
 import { useAuthStore } from './authStore'
 import { useToastStore } from './toastStore'
+import { track } from '../api/track'
 
 export function useGatedSave() {
   const navigate = useNavigate()
@@ -20,6 +21,7 @@ export function useGatedSave() {
       return
     }
     const nowSaved = toggle(id)
+    if (nowSaved) track('save', undefined, id)
     showToast(nowSaved ? 'Saved to your collection' : 'Removed from collection')
   }
 }

@@ -10,6 +10,7 @@ import { useGeoStore } from '../../shared/store/geoStore'
 import { useSavedStore } from '../../shared/store/savedStore'
 import { useToastStore } from '../../shared/store/toastStore'
 import { useAuthStore } from '../../shared/store/authStore'
+import { track } from '../../shared/api/track'
 
 /* Spot detail panel. Slides over the rail on desktop, full-screen on mobile.
    Driven by slug → usePlace. fg-app.jsx Detail + fg.css .fg-detail spec.
@@ -60,10 +61,12 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
   const onSave = () => {
     if (!requireAuth('Sign in to save spots')) return
     const nowSaved = toggleSave(p.id)
+    if (nowSaved) track('save', undefined, p.id)
     showToast(nowSaved ? 'Saved to your collection' : 'Removed from collection')
   }
 
   const onShare = async () => {
+    track('share', undefined, p.id)
     const url = `${window.location.origin}${import.meta.env.BASE_URL}#/spot/${p.slug}`
     const shareData = { title: p.name, text: `${p.name} · GemSpot Tallinn`, url }
     if (navigator.share) {
@@ -156,10 +159,10 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
             <>
               <div className="fg-dir-scrim" onClick={() => setDirOpen(false)} />
               <div className="fg-dir-menu" role="menu">
-                <a className="fg-dir-item" href={p.appleMapsUrl} target="_blank" rel="noreferrer" onClick={() => setDirOpen(false)}>
+                <a className="fg-dir-item" href={p.appleMapsUrl} target="_blank" rel="noreferrer" onClick={() => { track('directions', { provider: 'apple' }, p.id); setDirOpen(false) }}>
                   <Icon d={Ic.arrow} size={15} sw={2} />Apple Maps
                 </a>
-                <a className="fg-dir-item" href={p.googleMapsUrl} target="_blank" rel="noreferrer" onClick={() => setDirOpen(false)}>
+                <a className="fg-dir-item" href={p.googleMapsUrl} target="_blank" rel="noreferrer" onClick={() => { track('directions', { provider: 'google' }, p.id); setDirOpen(false) }}>
                   <Icon d={Ic.arrow} size={15} sw={2} />Google Maps
                 </a>
               </div>

@@ -2,6 +2,7 @@
    FG_CATS, so the backend serves byte-identical DTOs to the mock. Keep in sync. */
 
 import { PrismaClient } from '@prisma/client'
+import * as bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -71,9 +72,24 @@ async function main() {
     })
   }
 
+  // admin user — moderation panel access. Idempotent upsert; password from
+  // ADMIN_PASSWORD env (defaults to a dev value).
+  const adminEmail = (process.env.ADMIN_EMAIL ?? 'admin@gemspot.ee').toLowerCase()
+  const adminPass = process.env.ADMIN_PASSWORD ?? 'admin1234'
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: { role: 'ADMIN' },
+    create: {
+      email: adminEmail,
+      passwordHash: await bcrypt.hash(adminPass, 10),
+      role: 'ADMIN',
+      profile: { create: { name: 'GemSpot Admin' } },
+    },
+  })
+
   const places = await prisma.place.count()
   const cats = await prisma.category.count()
-  console.log(`Seeded ${cats} categories, ${places} places.`)
+  console.log(`Seeded ${cats} categories, ${places} places. Admin: ${adminEmail}`)
 }
 
 main()
