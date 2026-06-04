@@ -1,0 +1,59 @@
+# Render Blueprint — GemSpot MVP backend (NestJS) + managed Postgres.
+# Deploy: Render Dashboard → New → Blueprint → point at this repo. Render reads
+# this file, provisions the database, builds and starts the API.
+#
+# After the first deploy, set the GitHub repo secret VITE_API_URL to the API's
+# public URL (https://gemspot-api.onrender.com) so the GH Pages build flips the
+# frontend seam from mock → real (see .github/workflows/deploy.yml).
+#
+# NOTE: the web service filesystem is ephemeral — uploaded photos under
+# backend/uploads/ are lost on redeploy. Acceptable for MVP; move to object
+# storage (S3/R2) before relying on user photos in production.
+
+databases:
+  - name: gemspot-db
+    plan: free
+    databaseName: gemspot
+    user: gemspot
+
+services:
+  - type: web
+    name: gemspot-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    # Build = install, generate client, apply migrations, seed, compile.
+    # migrate deploy + seed are both idempotent (seed upserts), so running them
+    # in the build step is safe and works on Render's free plan (which has no
+    # preDeployCommand). DATABASE_URL is available during build.
+    # --include=dev: NODE_ENV=production would otherwise make npm ci skip
+    # devDependencies, but the build tools (nest-cli, prisma, ts-node, typescript)
+    # live there.
+    buildCommand: npm ci --include=dev && npm run prisma:generate && npx prisma migrate deploy && npm run db:seed && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gemspot-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      # GitHub Pages origin. Comma-separated if more origins are added.
+      - key: CORS_ORIGIN
+        value: https://ontonyy.github.io
+      # JWT secrets — generated once by Render, stable across deploys.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_TTL
+        value: 15m
+      - key: JWT_REFRESH_TTL
+        value: 30d
+      # Seed admin account (moderation panel). CHANGE the password in the Render
+      # dashboard after first deploy, or set it here before deploying.
+      - key: ADMIN_EMAIL
+        value: admin@gemspot.ee
+      - key: ADMIN_PASSWORD
+        sync: false

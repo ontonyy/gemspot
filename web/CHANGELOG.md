@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+### Added
+- **Render deploy prep (P2.2).** Initial Prisma migration (`backend/prisma/migrations/0001_init`, generated offline via `migrate diff`); `render.yaml` Blueprint provisioning free Postgres + NestJS web service (build runs migrate deploy + idempotent seed; `--include=dev` so build tools survive `NODE_ENV=production`; `/health` check; CORS pinned to GitHub Pages; generated JWT secrets). Frontend `deploy.yml` already passes the `VITE_API_URL` secret, so flipping the seam mock→real needs only the secret set post-deploy. README + `.env.example` updated.
+- **Backend tests (P2.1).** Jest + ts-jest unit suite over service business logic with a mocked Prisma (no Postgres → CI-green): auth (register/login/refresh/me, bcrypt-never-plaintext), saved (list order, save, **merge** valid/skip-unknown/skip-dupe/empty, remove), submissions (create PENDING + photoCount derive, listMine), admin moderation flips (approve PENDING→ACTIVE place + slug disambiguation, reject, place/report status, 404 paths), relative-time. 33 tests, all green; `backend npm test` now runs `jest` (was an echo stub).
+
+### Fixed
+- **Map blank (P1, critical).** Spot pins/clusters never rendered on `/explore` or `/spot/:slug`. Two root causes, both in `widgets/map/SpotMap.tsx`, previously misattributed to the preview hidden-tab RAF throttle:
+  1. **Stale `once('idle')` closure wiped the source.** The initial `items=[]` render registered `map.once('idle', apply)` capturing empty items; it fired *after* the populated `setData(10)` and reset the GeoJSON source to empty. Replaced with an `itemsRef` + a single `pushData()` that always reads the latest items, called from the `load` handler and the items effect — no stale closures.
+  2. **GeoJSON source was never tiled.** MapLibre only generates tiles for a source referenced by ≥1 layer. Pins/clusters render as HTML `Marker` overlays driven by `querySourceFeatures`, with no GL layer on the source → tiles never built → `querySourceFeatures` always returned `[]` → zero markers. Added an inert `spots-probe` circle layer (radius/opacity 0) to force tiling.
+- Verified live-style (mock seam): basemap renders (Tallinn, districts, fg monochrome) and 10 spots render as 5 pins + 1 cluster with correct taxonomy colors. Existing WebGL-detect / 10s-timeout / `fg-maperr` Retry fallback unchanged.
+
 ## [0.2.0] - 2026-06-03
 
 ### Added
