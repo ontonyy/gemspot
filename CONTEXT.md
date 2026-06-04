@@ -104,6 +104,35 @@ LOCKED: host repo = `ontonyy/gemspot` (project page) · base `/gemspot/` · URL 
 - **Block 13 (search)** — works as designed, no code. Top bar writes `uiStore.searchQuery` → `Explore` reads it via `useExploreList({query})` → filters the Explore rail only (name/area/tags). No global search requested.
 - **Map base-path fix** — `SpotMap` style path changed `/map-style.json` → `` `${import.meta.env.BASE_URL}map-style.json` `` (leading-slash 404'd under `/gemspot/` on GH Pages = blank live map). Rule: any public-asset path must use `import.meta.env.BASE_URL`.
 
+## P1 — Map blank (markers never rendered) — DONE 2026-06-04
+- **Root cause: NOT deploy/CDN/CSS.** OpenFreeMap (planet/fonts/tiles) all 200; `.fg-mapcanvas`/`.fg-mapwrap` heights fine; style path already `BASE_URL`-relative; basemap rendered. The genuine bug = pins/clusters never appeared (always blamed on preview RAF throttle; never actually verified rendering since Block 4). Two compounding defects in `widgets/map/SpotMap.tsx`:
+  1. **Stale `once('idle')` wiped data.** Items effect on first (empty) render took the `else map.once('idle', apply)` branch capturing `items=[]`; when the query resolved, the immediate `apply(10)` ran, then the queued empty-closure idle fired and `setData([])` — leaving the source permanently empty. Fix: `itemsRef` (updated every render) + single `pushData()` reading `itemsRef.current`; called from the `load` handler (after addSource) and the `[items]` effect. No stale closures, no `once('idle')`.
+  2. **GeoJSON source never tiled.** MapLibre only builds tiles for a source consumed by ≥1 style layer. Markers are HTML `Marker` overlays driven by `querySourceFeatures(SOURCE)` with NO GL layer on `spots` → tiles never generated → `querySourceFeatures` always `[]` → 0 markers. Fix: add inert `spots-probe` circle layer (`circle-radius:0`, `circle-opacity:0`) right after `addSource`, purely to force tiling. **Rule: any HTML-marker-over-GeoJSON pattern needs a (possibly invisible) layer on that source.**
+- **Verified** (mock seam, tab foregrounded): basemap (Tallinn/districts/fg monochrome) + 10 spots = 5 pins + 1 cluster, correct taxonomy colors. `npm run build` + `npm test` (5/5) green.
+- **Preview caveats observed**: (a) `.env.local` sets `VITE_API_URL=http://localhost:4000` → dev uses HTTP seam → empty list when backend down (live CI leaves it unset → mock). (b) Preview tab runs `document.hidden=true` → maplibre RAF throttle stalls `'load'` → 10s timeout fires `fg-maperr` box; only foreground (or right after a screenshot) loads cleanly. Neither affects live HTTPS. (c) `/` now renders `Home.tsx` landing (untracked) instead of redirect to `/explore`.
+
+## P2 — Deploy backend (MVP gate) · Block P2.1 (backend tests) — DONE 2026-06-04
+- **Decision**: host = **Render** (Web Service + managed Postgres), per `docs/mvp-backend-plan-webapp-claude.md`. Sequence = tests first, then deploy prep.
+- **Test stack**: Jest + ts-jest (added devDeps `jest@^29`/`ts-jest@^29`/`@types/jest@^29`). `backend/jest.config.js` (preset ts-jest, node env, `roots: test/`, `*.spec.ts`). `package.json` `test` script = `jest` (was echo stub) + `test:watch`. Tests live in `backend/test/` — excluded from `nest build` (tsconfig `include: src/**`), so dist stays clean.
+- **Approach = pure unit tests with a mocked Prisma — NO Postgres needed**, so `npm test` is green in CI without a DB. `test/prisma-mock.ts` = typed `jest.fn()` stub per model + `$transaction` that runs the callback with the same mock (so `tx.place.create` ↔ `prisma.place.create`).
+- **Coverage (33 tests, 5 suites, all green)**:
+  - `auth.service.spec.ts` — register conflict + email lowercase/trim + bcrypt hash (never plaintext) + token issue; login unknown/wrong-pw/valid; refresh garbage/wrong-typ(access-as-refresh)/rotate; me missing/ok. Uses a real `JwtService` (service passes secrets explicitly).
+  - `saved.service.spec.ts` — list in place-sort order; add known/unknown(no upsert); **merge** valid+skip-unknown+skip-dupes + empty no-op; remove.
+  - `submissions.service.spec.ts` — create PENDING w/ photos + photoCount derive + no-photo case; listMine newest-first DTO.
+  - `admin.service.spec.ts` — stats aggregate; **approveSubmission** missing→404, PENDING→ACTIVE place(next padded id/sort, slug, primary category)+submission APPROVED, slug disambiguation; rejectSubmission 404+flip; setPlaceStatus 404+update; setReportStatus 404+flip+enum→front-slug map.
+- **Verify**: `npx jest` 33/33 PASS; `npm run build` (nest build) green.
+## Block P2.2 (Render deploy prep) — DONE 2026-06-04
+- **Initial migration created** (was none → `prisma migrate deploy` would have no-op'd/failed). Generated offline (no DB) via `prisma migrate diff --from-empty --to-schema-datamodel --script` → `backend/prisma/migrations/0001_init/migration.sql` (212 lines, all enums+tables) + `migration_lock.toml` (provider postgresql). `prisma validate` green.
+- **`render.yaml`** (repo root) = Blueprint: `gemspot-db` (free Postgres) + `gemspot-api` (free Node web service, `rootDir: backend`). buildCommand = `npm ci --include=dev && prisma:generate && prisma migrate deploy && db:seed && nest build`; startCommand = `npm run start`; healthCheckPath `/health`.
+  - **Gotcha 1**: Render free plan has NO `preDeployCommand` (paid-only) → migrate+seed folded into buildCommand. Both idempotent (seed upserts categories/places/admin), safe to re-run per build.
+  - **Gotcha 2**: `NODE_ENV=production` makes `npm ci` skip devDeps, but nest-cli/prisma/ts-node/typescript live there → `--include=dev` required or build fails.
+  - **Gotcha 3**: free filesystem ephemeral → `uploads/` photos lost on redeploy (noted in render.yaml + README; move to object storage later).
+  - envVars: `DATABASE_URL` fromDatabase; `NODE_ENV=production`; `CORS_ORIGIN=https://ontonyy.github.io`; `JWT_SECRET`/`JWT_REFRESH_SECRET` generateValue (stable); TTLs; `ADMIN_EMAIL` + `ADMIN_PASSWORD` (sync:false).
+- **Frontend deploy already wired**: `.github/workflows/deploy.yml` passes `VITE_API_URL: ${{ secrets.VITE_API_URL }}` to the web build. No workflow change needed — user sets the repo secret to the Render API URL post-deploy, re-runs Pages, seam flips mock→real.
+- **README** updated: Tests section, Render deploy steps, corrected env-var table (`JWT_SECRET` not `JWT_ACCESS_SECRET`), removed stale "auth not wired" note. `.env.example` gained ADMIN_EMAIL/ADMIN_PASSWORD.
+- **Verify**: `prisma validate` green; `npx jest` 33/33; `nest build` green.
+- **HANDOFF — user-only remaining steps** (need accounts/secrets I can't create): (1) Render Dashboard → New → Blueprint → this repo → set `ADMIN_PASSWORD`. (2) Copy live API URL → GitHub repo secret `VITE_API_URL` → re-run Pages deploy. (3) Acceptance check on live HTTPS: Explore+detail from API, cross-device saves (login persists), PENDING→approve→public map, `POST /events` 201.
+
 Local-discovery map for Tallinn. Discovery product, not navigation. React frontend + Spring/Java backend.
 
 ## Canonical sources
