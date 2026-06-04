@@ -39,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="fg-shell">
       <header className="fg-top">
-        <button className="fg-brand" onClick={() => navigate('/explore')} aria-label="GemSpot — home">
+        <button className="fg-brand" onClick={() => navigate('/')} aria-label="GemSpot — home">
           <div className="fg-logo" />
           <div>
             <div className="fg-wordmark">Gem<span>Spot</span></div>

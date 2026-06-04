@@ -1,4 +1,5 @@
 import { createHashRouter, Navigate } from 'react-router-dom'
+import Home from '../pages/Home'
 import Explore from '../pages/Explore'
 import Saved from '../pages/Saved'
 import Guides from '../pages/Guides'
@@ -11,10 +12,10 @@ import AdminModeration from '../pages/admin/AdminModeration'
 import AdminPlaces from '../pages/admin/AdminPlaces'
 import AdminUsers from '../pages/admin/AdminUsers'
 
-/* Data router. Explore is URL-driven (?cat=). Root redirects to /explore.
+/* Data router. Root = landing/home. Explore is URL-driven (?cat=).
    Saved/Guides/Add are full screens sharing the AppShell chrome. */
 export const router = createHashRouter([
-  { path: '/', element: <Navigate to="/explore" replace /> },
+  { path: '/', element: <Home /> },
   { path: '/explore', element: <Explore /> },
   // detail opens as a panel over Explore; cold-loads as a full page (Explore renders behind)
   { path: '/spot/:slug', element: <Explore /> },

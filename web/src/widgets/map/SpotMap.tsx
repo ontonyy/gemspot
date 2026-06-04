@@ -8,13 +8,24 @@
    reading `querySourceFeatures` on each render. React roots are cached per
    marker id and only re-rendered when their visual state key changes. */
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { createRoot, type Root } from 'react-dom/client'
 import { CategoryGlyph, catColor, type CategoryId } from '../../entities/place/categories'
 import { TALLINN_CENTER } from '../../shared/lib/geo'
 import { track } from '../../shared/api/track'
+
+/** Browser WebGL capability — maplibre needs it; without it the canvas is a
+    silent white box. Detect up-front so we can show a fallback instead. */
+function webglAvailable(): boolean {
+  try {
+    const c = document.createElement('canvas')
+    return !!(c.getContext('webgl2') || c.getContext('webgl') || c.getContext('experimental-webgl'))
+  } catch {
+    return false
+  }
+}
 
 export interface SpotMapItem {
   slug: string
@@ -108,23 +119,43 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
   selectedRef.current = selectedSlug
   onSelectRef.current = onSelect
 
-  // ── init map once ──────────────────────────────────────────────────────
+  // 'loading' until the style paints; 'error' on WebGL-missing / init throw /
+  // load timeout → render a visible fallback instead of a silent white box.
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [retry, setRetry] = useState(0)
+
+  // ── init map once (re-runs on retry) ─────────────────────────────────────
   useEffect(() => {
     if (!hostRef.current) return
-    const map = new maplibregl.Map({
-      container: hostRef.current,
-      style: `${import.meta.env.BASE_URL}map-style.json`,
-      center: CENTER,
-      zoom: 12.4,
-      minZoom: 10,
-      maxZoom: 18,
-      maxBounds: MAX_BOUNDS,
-      attributionControl: { compact: true },
-    })
+    if (!webglAvailable()) { setStatus('error'); return }
+    setStatus('loading')
+
+    let map: maplibregl.Map
+    try {
+      map = new maplibregl.Map({
+        container: hostRef.current,
+        style: `${import.meta.env.BASE_URL}map-style.json`,
+        center: CENTER,
+        zoom: 12.4,
+        minZoom: 10,
+        maxZoom: 18,
+        maxBounds: MAX_BOUNDS,
+        attributionControl: { compact: true },
+      })
+    } catch (err) {
+      console.warn('[SpotMap] init failed', err)
+      setStatus('error')
+      return
+    }
     mapRef.current = map
+    // fallback if the style never finishes (blocked tiles, offline, slow CDN)
+    const loadTimer = setTimeout(() => setStatus((s) => (s === 'loading' ? 'error' : s)), 10_000)
     map.on('error', (e) => console.warn('[SpotMap]', (e as { error?: Error }).error?.message))
 
     map.on('load', () => {
+      clearTimeout(loadTimer)
+      setStatus('ready')
+      map.resize() // container may have settled its flex height after init
       map.addSource(SOURCE, {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
@@ -148,6 +179,7 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
     })
 
     return () => {
+      clearTimeout(loadTimer)
       ro.disconnect()
       markersRef.current.forEach((r) => {
         r.root.unmount()
@@ -159,7 +191,7 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
       mapRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [retry])
 
   // ── feed data into the source ────────────────────────────────────────────
   useEffect(() => {
@@ -288,5 +320,18 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
     })
   }
 
-  return <div ref={hostRef} className="fg-mapcanvas" />
+  return (
+    <div className="fg-mapcanvas">
+      <div ref={hostRef} style={{ position: 'absolute', inset: 0 }} />
+      {status === 'error' && (
+        <div className="fg-maperr">
+          <div className="fg-maperr-box">
+            <strong>Map couldn't load</strong>
+            <span>Check your connection — the spot list still works below.</span>
+            <button className="fg-btn" onClick={() => setRetry((n) => n + 1)}>Retry</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }

@@ -63,7 +63,7 @@ Modules + routes:
 
 Prisma schema: users, profiles, places, categories, place_categories, saved_places, submissions, submission_photos, reports + enums `UserRole`, `PlaceStatus`. Seed loads the 10 Tallinn spots from `web` `RAW[]`.
 
-Env (`backend/.env`): `DATABASE_URL` (localhost only), `PORT`, `JWT_*`, `CORS_ORIGIN=https://gavanton.github.io`.
+Env (`backend/.env`): `DATABASE_URL` (localhost only), `PORT`, `JWT_*`, `CORS_ORIGIN=https://ontonyy.github.io`.
 
 ---
 
