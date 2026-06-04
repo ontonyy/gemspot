@@ -39,6 +39,12 @@ services:
           property: connectionString
       - key: NODE_ENV
         value: production
+      # Pin Node 22 (matches the npm 10 that generated package-lock.json).
+      # Render's default Node 24 ships npm 11, whose stricter resolver rejects
+      # the lock as out of sync (ajv drift) → npm ci fails. Also set in
+      # backend/.node-version.
+      - key: NODE_VERSION
+        value: 22.13.1
       # GitHub Pages origin. Comma-separated if more origins are added.
       - key: CORS_ORIGIN
         value: https://ontonyy.github.io
