@@ -3,5 +3,6 @@ dist/
 .env
 *.log
 
-# uploaded photos (local-disk storage backend)
-uploads/
+# uploaded photos (local-disk storage backend) — anchored to repo root so it
+# does NOT match the src/api/uploads/ module.
+/uploads/
