@@ -26,10 +26,12 @@ services:
     # migrate deploy + seed are both idempotent (seed upserts), so running them
     # in the build step is safe and works on Render's free plan (which has no
     # preDeployCommand). DATABASE_URL is available during build.
-    # --include=dev: NODE_ENV=production would otherwise make npm ci skip
-    # devDependencies, but the build tools (nest-cli, prisma, ts-node, typescript)
-    # live there.
-    buildCommand: npm ci --include=dev && npm run prisma:generate && npx prisma migrate deploy && npm run db:seed && npm run build
+    # Use `npm install` (not `npm ci`): Render's npm rejects this package-lock
+    # as out-of-sync (ajv 6/8 tree drift) even though it installs fine; npm
+    # install reconciles instead of erroring. --include=dev: NODE_ENV=production
+    # would otherwise skip devDeps, but build tools (nest-cli, prisma, ts-node,
+    # typescript) live there.
+    buildCommand: npm install --include=dev --no-audit --no-fund && npm run prisma:generate && npx prisma migrate deploy && npm run db:seed && npm run build
     startCommand: npm run start
     healthCheckPath: /health
     envVars:
