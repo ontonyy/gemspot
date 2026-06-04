@@ -116,8 +116,10 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
   // latest props read inside event handlers without re-binding listeners
   const selectedRef = useRef<string | null | undefined>(selectedSlug)
   const onSelectRef = useRef<typeof onSelect>(onSelect)
+  const itemsRef = useRef<SpotMapItem[]>(items)
   selectedRef.current = selectedSlug
   onSelectRef.current = onSelect
+  itemsRef.current = items
 
   // 'loading' until the style paints; 'error' on WebGL-missing / init throw /
   // load timeout → render a visible fallback instead of a silent white box.
@@ -163,6 +165,17 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
         clusterRadius: 52,
         clusterMaxZoom: 15,
       })
+      // Invisible layer: MapLibre only tiles a source that at least one layer
+      // references. We render pins/clusters as HTML markers (not GL layers), so
+      // without this the source is never tiled and querySourceFeatures() returns
+      // nothing → no markers ever. radius/opacity 0 keeps it visually inert.
+      map.addLayer({
+        id: `${SOURCE}-probe`,
+        type: 'circle',
+        source: SOURCE,
+        paint: { 'circle-radius': 0, 'circle-opacity': 0 },
+      })
+      pushData() // feed whatever items exist now (query may already be settled)
       updateMarkers()
     })
     // container can mount before flex layout settles its height → keep the GL
@@ -194,28 +207,33 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
   }, [retry])
 
   // ── feed data into the source ────────────────────────────────────────────
-  useEffect(() => {
+  // Reads the latest items off a ref (never a stale closure) and writes them
+  // to the GeoJSON source. Safe to call before the source exists — it no-ops
+  // and the 'load' handler calls it again once the source is added.
+  function pushData() {
     const map = mapRef.current
-    if (!map) return
-    const apply = () => {
-      const src = map.getSource(SOURCE) as maplibregl.GeoJSONSource | undefined
-      if (!src) return
-      src.setData({
-        type: 'FeatureCollection',
-        features: items.map((p) => ({
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-          properties: {
-            slug: p.slug,
-            name: p.name,
-            cat: p.category.id,
-            saved: p.isSaved ? 1 : 0,
-          },
-        })),
-      })
-    }
-    if (map.isStyleLoaded() && map.getSource(SOURCE)) apply()
-    else map.once('idle', apply)
+    const src = map?.getSource(SOURCE) as maplibregl.GeoJSONSource | undefined
+    if (!src) return
+    src.setData({
+      type: 'FeatureCollection',
+      features: itemsRef.current.map((p) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+        properties: {
+          slug: p.slug,
+          name: p.name,
+          cat: p.category.id,
+          saved: p.isSaved ? 1 : 0,
+        },
+      })),
+    })
+  }
+
+  useEffect(() => {
+    // itemsRef is already current; push if the source is ready, otherwise the
+    // map 'load' handler will pick it up. No stale once('idle') closures.
+    pushData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items])
 
   // ── re-skin markers when selection changes ────────────────────────────────
