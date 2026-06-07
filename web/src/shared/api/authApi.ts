@@ -30,6 +30,7 @@ export interface LoginInput {
 export interface AuthApi {
   register(input: RegisterInput): Promise<AuthResponse>
   login(input: LoginInput): Promise<AuthResponse>
+  oauthGoogle(idToken: string): Promise<AuthResponse>
   refresh(refreshToken: string): Promise<AuthResponse>
   logout(): Promise<void>
   me(accessToken: string): Promise<AuthUser>
@@ -68,6 +69,8 @@ async function call<T>(path: string, init: RequestInit, token?: string): Promise
 const httpAuthApi: AuthApi = {
   register: (input) => call<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify(input) }),
   login: (input) => call<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
+  oauthGoogle: (idToken) =>
+    call<AuthResponse>('/auth/oauth/google', { method: 'POST', body: JSON.stringify({ idToken }) }),
   refresh: (refreshToken) =>
     call<AuthResponse>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
   logout: () => call<void>('/auth/logout', { method: 'POST', body: '{}' }),
@@ -85,13 +88,16 @@ const httpAuthApi: AuthApi = {
    gating work in `npm run dev` with no backend. Saved sync is an echo (the real
    server set lives only when VITE_API_URL points at the NestJS API). */
 function mockAuthApi(): AuthApi {
-  const users = new Map<string, { id: string; name: string | null; password: string }>()
+  const users = new Map<string, { id: string; name: string | null; password: string; role: AuthUser['role'] }>()
+  // Seed an admin so the role-gated panel is demoable offline (mirrors the
+  // backend's prisma seed admin). Real creds come from the API when wired.
+  users.set('admin@gemspot.ee', { id: 'u-admin', name: 'GemSpot Admin', password: 'admin1234', role: 'ADMIN' })
   let seq = 0
   const tok = (id: string, kind: string) => `mock.${kind}.${id}`
   const respond = (email: string): AuthResponse => {
     const u = users.get(email)!
     return {
-      user: { id: u.id, email, name: u.name, role: 'CLIENT' },
+      user: { id: u.id, email, name: u.name, role: u.role },
       accessToken: tok(u.id, 'access'),
       refreshToken: tok(u.id, 'refresh'),
     }
@@ -102,13 +108,34 @@ function mockAuthApi(): AuthApi {
       const email = input.email.toLowerCase().trim()
       if (users.has(email)) throw new Error('Email already registered')
       seq += 1
-      users.set(email, { id: `u-${seq}`, name: input.name?.trim() || null, password: input.password })
+      users.set(email, { id: `u-${seq}`, name: input.name?.trim() || null, password: input.password, role: 'CLIENT' })
       return delay(respond(email))
     },
     async login(input) {
       const email = input.email.toLowerCase().trim()
       const u = users.get(email)
       if (!u || u.password !== input.password) throw new Error('Invalid email or password')
+      return delay(respond(email))
+    },
+    async oauthGoogle(idToken) {
+      // Mock mode has no backend to verify against. Best-effort decode of the
+      // GIS credential payload for a believable demo user; falls back to a
+      // placeholder. Links by email like the real flow.
+      let email = 'google-user@gmail.com'
+      let name: string | null = 'Google User'
+      try {
+        const payload = JSON.parse(atob(idToken.split('.')[1] ?? '')) as { email?: string; name?: string }
+        if (payload.email) email = payload.email.toLowerCase()
+        if (payload.name) name = payload.name
+      } catch {
+        /* not a JWT — keep placeholder */
+      }
+      let u = users.get(email)
+      if (!u) {
+        seq += 1
+        u = { id: `u-${seq}`, name, password: '', role: 'CLIENT' }
+        users.set(email, u)
+      }
       return delay(respond(email))
     },
     async refresh(refreshToken) {
@@ -124,7 +151,7 @@ function mockAuthApi(): AuthApi {
       const id = accessToken.split('.')[2]
       const entry = [...users.entries()].find(([, u]) => u.id === id)
       if (!entry) throw new Error('Account not found')
-      return { id, email: entry[0], name: entry[1].name, role: 'CLIENT' }
+      return { id, email: entry[0], name: entry[1].name, role: entry[1].role }
     },
     async listSaved() {
       return delay([])

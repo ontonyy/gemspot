@@ -6,9 +6,9 @@ Working location:
   base_branch: master
   branch: BP-NA-gemspot-fe-explore-slice
   worktree: /Users/ontony/.claude/worktrees/gemspot-fe-explore-slice
-  last_commit: none (uncommitted)
-  status: block-6-done (spot detail panel + full Explore slice; build green)
-  updated: 2026-06-02
+  last_commit: 3d63c99 (P2.3 — backend live on Render)
+  status: P2-DONE — backend live https://gemspot-api.onrender.com (health/places/categories verified); frontend seam flip (VITE_API_URL secret) + admin password = user TODO
+  updated: 2026-06-04
 ```
 
 ## Build progress (per-block durable handoff — compact facts only)
@@ -132,6 +132,17 @@ LOCKED: host repo = `ontonyy/gemspot` (project page) · base `/gemspot/` · URL 
 - **README** updated: Tests section, Render deploy steps, corrected env-var table (`JWT_SECRET` not `JWT_ACCESS_SECRET`), removed stale "auth not wired" note. `.env.example` gained ADMIN_EMAIL/ADMIN_PASSWORD.
 - **Verify**: `prisma validate` green; `npx jest` 33/33; `nest build` green.
 - **HANDOFF — user-only remaining steps** (need accounts/secrets I can't create): (1) Render Dashboard → New → Blueprint → this repo → set `ADMIN_PASSWORD`. (2) Copy live API URL → GitHub repo secret `VITE_API_URL` → re-run Pages deploy. (3) Acceptance check on live HTTPS: Explore+detail from API, cross-device saves (login persists), PENDING→approve→public map, `POST /events` 201.
+
+## Block P2.3 (Render deploy — LIVE) — DONE 2026-06-04
+- **Backend live: `https://gemspot-api.onrender.com`** (Render free web service `gemspot-api` srv-d8gmleegvqtc73evl9lg + free Postgres `gemspot-db`, Blueprint-managed off `master`). DB migrated (`0001_init` applied) + seeded (7 categories, 10 places, admin `admin@gemspot.ee`).
+- **Verified live**: `GET /health` → `{"status":"ok"}`; `GET /categories` → 7; `GET /places` → all 10 (ids 01–10, byte-shape matches PlaceCardDto). CORS pinned to `https://ontonyy.github.io`.
+- **Deploy took 5 failed builds — 4 real blockers fixed in order** (all were repo/config defects, NOT Render):
+  1. **Stale lock — Node version theory (WRONG).** First failures: `npm ci` EUSAGE "package-lock out of sync, ajv@8.12.0 does not satisfy ajv@6.15.0". Pinned Node 22.13.1 (`backend/.node-version` + `NODE_VERSION` env) thinking Render's Node 24/npm 11 was stricter. **Did not fix** — same error on Node 22.13.1. (Node pin kept anyway; harmless + reproducible.)
+  2. **Corrupted package-lock.** Committed lock had a malformed hybrid v2/v3 tree (inconsistent ajv 6/8 nested entries). `rm package-lock.json && npm install` regenerated clean (372 lines changed). `npm ci` passed locally but **STILL failed on Render** — the lock inconsistency is tolerated by local npm 10.9.2, rejected by Render's. 
+  3. **`npm ci` → `npm install`.** Switched buildCommand `npm ci --include=dev` → `npm install --include=dev --no-audit --no-fund`. `npm install` reconciles the lock instead of hard-failing. **This cleared the install wall** — install/prisma generate/migrate deploy/seed all then passed. **Rule: for this repo's lock, use `npm install` on Render, not `npm ci`.**
+  4. **`src/api/uploads/` was gitignored → never committed → `nest build` TS2307 "Cannot find module './api/uploads/uploads.module'".** Root cause: `backend/.gitignore` had unanchored `uploads/` which matched BOTH the runtime photo dir AND `src/api/uploads/`. Fixed: anchored to `/uploads/`, force-added `uploads.controller.ts` + `uploads.module.ts`. Scanned `comm -23 (find src) (git ls-files src)` → uploads was the only untracked src gap. **Rule: anchor dir-name gitignores with a leading `/` so they don't swallow same-named source dirs.**
+- **Commits (on master)**: pin-node → regen-lock → npm-install → commit-uploads (3d63c99 = live). Build pipeline now: `npm install --include=dev → prisma generate → migrate deploy (idempotent) → db:seed (idempotent upserts) → nest build`.
+- **STILL OPEN (user)**: (a) set `VITE_API_URL=https://gemspot-api.onrender.com` GitHub secret + re-run Pages → flips live frontend mock→real. (b) **SECURITY: admin seeded with default `admin1234`** (`ADMIN_PASSWORD` left unset) — set real password in Render env before public launch. (c) free tier cold-start ~50s after idle. (d) ephemeral FS → uploaded photos lost on redeploy (object storage later).
 
 Local-discovery map for Tallinn. Discovery product, not navigation. React frontend + Spring/Java backend.
 

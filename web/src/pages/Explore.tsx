@@ -40,7 +40,7 @@ export default function Explore() {
   const geoStatus = useGeoStore((s) => s.status)
   useEffect(() => { requestGeo() }, [requestGeo])
 
-  const { items, isLoading } = useExploreList({ cat, query: searchQuery, free })
+  const { items, isLoading, isError, refetch } = useExploreList({ cat, query: searchQuery, free })
 
   const [hover, setHover] = useState<string | null>(null)
 
@@ -84,6 +84,8 @@ export default function Explore() {
         <MobileExplore
           items={items}
           loading={isLoading}
+          error={isError}
+          onRetry={() => { void refetch() }}
           searching={searching}
           cat={cat}
           onCat={setCat}
@@ -99,6 +101,8 @@ export default function Explore() {
         <DesktopExplore
           items={items}
           loading={isLoading}
+          error={isError}
+          onRetry={() => { void refetch() }}
           searching={searching}
           cat={cat}
           onCat={setCat}

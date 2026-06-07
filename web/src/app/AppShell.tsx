@@ -8,6 +8,7 @@ import { CategoryGlyph, catColor } from '../entities/place/categories'
 import { MobileNav } from '../widgets/nav/MobileNav'
 import { AccountMenu } from '../features/account/AccountMenu'
 import { useExploreList } from '../features/explore/useExploreList'
+import { useGuides, useCategories } from '../shared/api/queries'
 import { useToastStore } from '../shared/store/toastStore'
 import { useUiStore } from '../shared/store/uiStore'
 import { useSavedStore } from '../shared/store/savedStore'
@@ -68,19 +69,36 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 /* Top-bar search. Writes `searchQuery` (filters the Explore rail) AND shows a
-   quick-jump dropdown of matching spots — click to open the spot from any page. */
+   global quick-jump dropdown across spots, guides and categories — click to
+   jump to the spot, guide or filtered Explore view from any page. */
 function SearchBox({ query, setQuery }: { query: string; setQuery: (q: string) => void }) {
   const navigate = useNavigate()
   const [focused, setFocused] = useState(false)
   const { items } = useExploreList({ query })
+  const { data: guides } = useGuides()
+  const { data: categories } = useCategories()
   const q = query.trim()
-  const results = q ? items.slice(0, 6) : []
-  const open = focused && q.length > 0
+  const ql = q.toLowerCase()
 
-  const go = (slug: string) => {
+  const spotHits = q ? items.slice(0, 6) : []
+  const guideHits = q
+    ? (guides ?? [])
+        .filter((g) => g.title.toLowerCase().includes(ql) || g.subtitle.toLowerCase().includes(ql))
+        .slice(0, 4)
+    : []
+  const catHits = q
+    ? (categories ?? [])
+        .filter((c) => c.label.toLowerCase().includes(ql) || c.short.toLowerCase().includes(ql))
+        .slice(0, 4)
+    : []
+
+  const open = focused && q.length > 0
+  const hasHits = spotHits.length + guideHits.length + catHits.length > 0
+
+  const jump = (to: string) => {
     setFocused(false)
     setQuery('')
-    navigate(`/spot/${slug}`)
+    navigate(to)
   }
 
   return (
@@ -91,25 +109,62 @@ function SearchBox({ query, setQuery }: { query: string; setQuery: (q: string) =
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 120)}
-        placeholder="Search spots, areas…"
+        placeholder="Search spots, guides, categories…"
       />
       {open && (
         <div className="fg-search-results" role="listbox">
-          {results.length === 0 ? (
-            <div className="fg-search-empty">No spots match “{q}”.</div>
+          {!hasHits ? (
+            <div className="fg-search-empty">Nothing matches “{q}”.</div>
           ) : (
-            results.map((p) => (
-              <button key={p.slug} className="fg-search-row" role="option"
-                onMouseDown={(e) => e.preventDefault()} onClick={() => go(p.slug)}>
-                <span className="fg-search-ic" style={{ background: catColor(p.category.id) }}>
-                  <CategoryGlyph cat={p.category.id} size={12} />
-                </span>
-                <span className="fg-search-txt">
-                  <b>{p.name}</b>
-                  <small>{p.category.short} · {p.neighborhood}</small>
-                </span>
-              </button>
-            ))
+            <>
+              {spotHits.length > 0 && (
+                <div className="kicker" style={{ padding: '8px 12px 4px' }}>Spots</div>
+              )}
+              {spotHits.map((p) => (
+                <button key={p.slug} className="fg-search-row" role="option"
+                  onMouseDown={(e) => e.preventDefault()} onClick={() => jump(`/spot/${p.slug}`)}>
+                  <span className="fg-search-ic" style={{ background: catColor(p.category.id) }}>
+                    <CategoryGlyph cat={p.category.id} size={12} />
+                  </span>
+                  <span className="fg-search-txt">
+                    <b>{p.name}</b>
+                    <small>{p.category.short} · {p.neighborhood}</small>
+                  </span>
+                </button>
+              ))}
+
+              {guideHits.length > 0 && (
+                <div className="kicker" style={{ padding: '8px 12px 4px' }}>Guides</div>
+              )}
+              {guideHits.map((g) => (
+                <button key={g.id} className="fg-search-row" role="option"
+                  onMouseDown={(e) => e.preventDefault()} onClick={() => jump(`/guides/${g.id}`)}>
+                  <span className="fg-search-ic" style={{ background: catColor(g.coverCategory) }}>
+                    <CategoryGlyph cat={g.coverCategory} size={12} />
+                  </span>
+                  <span className="fg-search-txt">
+                    <b>{g.title}</b>
+                    <small>{g.count} spots · guide</small>
+                  </span>
+                </button>
+              ))}
+
+              {catHits.length > 0 && (
+                <div className="kicker" style={{ padding: '8px 12px 4px' }}>Categories</div>
+              )}
+              {catHits.map((c) => (
+                <button key={c.id} className="fg-search-row" role="option"
+                  onMouseDown={(e) => e.preventDefault()} onClick={() => jump(`/explore?cat=${c.id}`)}>
+                  <span className="fg-search-ic" style={{ background: catColor(c.id) }}>
+                    <CategoryGlyph cat={c.id} size={12} />
+                  </span>
+                  <span className="fg-search-txt">
+                    <b>{c.label}</b>
+                    <small>Browse on the map</small>
+                  </span>
+                </button>
+              ))}
+            </>
           )}
         </div>
       )}

@@ -9,6 +9,10 @@ import { queryClient } from './shared/api/queries'
 import { router } from './app/router'
 import { useAuthStore } from './shared/store/authStore'
 import { hydrateMine } from './shared/api/hydrateMine'
+import { warmupBackend } from './shared/api/warmup'
+
+// Wake the (possibly sleeping) Render dyno first so data fetches land warm.
+warmupBackend()
 
 // Trade any stored refresh token for a fresh session, then load the user's
 // server-backed PENDING submissions / OPEN reports so they survive reload.

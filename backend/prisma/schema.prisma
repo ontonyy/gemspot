@@ -48,7 +48,9 @@ enum ReportReason {
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
-  passwordHash String
+  passwordHash String? // nullable: OAuth-only accounts have no local password
+  provider     String? // "google" | null (email/pw). Null = local credential account.
+  providerId   String? // provider's stable subject id (Google "sub")
   role         UserRole @default(CLIENT)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -58,6 +60,7 @@ model User {
   submissions Submission[]
   reports     Report[]
 
+  @@unique([provider, providerId])
   @@map("users")
 }
 

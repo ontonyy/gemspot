@@ -12,6 +12,8 @@ type SheetState = 'peek' | 'half' | 'full'
 interface MobileExploreProps {
   items: ExploreCard[]
   loading?: boolean
+  error?: boolean
+  onRetry?: () => void
   searching?: boolean
   cat: CategoryId | null
   onCat: (cat: CategoryId | null) => void
@@ -99,6 +101,8 @@ export function MobileExplore(s: MobileExploreProps) {
             <RailList
               items={s.items}
               loading={s.loading}
+              error={s.error}
+              onRetry={s.onRetry}
               searching={s.searching}
               selected={s.selected}
               onSelect={s.onSelect}

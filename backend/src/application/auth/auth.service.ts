@@ -57,9 +57,70 @@ export class AuthService {
       where: { email },
       include: { profile: true },
     })
-    if (!user) throw new UnauthorizedException('Invalid email or password')
+    // OAuth-only accounts have no local password — reject password login for them.
+    if (!user || !user.passwordHash) throw new UnauthorizedException('Invalid email or password')
     const ok = await bcrypt.compare(input.password, user.passwordHash)
     if (!ok) throw new UnauthorizedException('Invalid email or password')
+    return this.session(user.id, user.email, user.role, user.profile?.name ?? null)
+  }
+
+  /* Google sign-in. The SPA sends the ID token minted by Google Identity
+     Services; we verify it against Google's tokeninfo endpoint (no extra dep),
+     check the audience matches our client id and the email is verified, then
+     link by verified email: an existing account gains the provider link, a new
+     email creates an OAuth-only account (passwordHash null). Issue our own JWT. */
+  async oauthGoogle(idToken: string): Promise<AuthResponseDto> {
+    const clientId = process.env.GOOGLE_CLIENT_ID
+    if (!clientId) throw new UnauthorizedException('Google sign-in is not configured')
+
+    let claims: {
+      aud?: string
+      sub?: string
+      email?: string
+      email_verified?: string | boolean
+      name?: string
+    }
+    try {
+      const res = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+      )
+      if (!res.ok) throw new Error(`tokeninfo ${res.status}`)
+      claims = (await res.json()) as typeof claims
+    } catch {
+      throw new UnauthorizedException('Could not verify Google sign-in')
+    }
+
+    if (claims.aud !== clientId) throw new UnauthorizedException('Google token audience mismatch')
+    const verified = claims.email_verified === true || claims.email_verified === 'true'
+    if (!claims.sub || !claims.email || !verified) {
+      throw new UnauthorizedException('Google account email is not verified')
+    }
+    const email = claims.email.toLowerCase().trim()
+
+    // Link by verified email: reuse an existing account if the email matches.
+    const existing = await this.prisma.user.findUnique({
+      where: { email },
+      include: { profile: true },
+    })
+    if (existing) {
+      if (existing.provider !== 'google') {
+        await this.prisma.user.update({
+          where: { id: existing.id },
+          data: { provider: 'google', providerId: claims.sub },
+        })
+      }
+      return this.session(existing.id, existing.email, existing.role, existing.profile?.name ?? null)
+    }
+
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        provider: 'google',
+        providerId: claims.sub,
+        profile: { create: { name: claims.name?.trim() || null } },
+      },
+      include: { profile: true },
+    })
     return this.session(user.id, user.email, user.role, user.profile?.name ?? null)
   }
 

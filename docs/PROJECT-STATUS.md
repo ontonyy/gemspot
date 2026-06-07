@@ -2,17 +2,18 @@
 
 > Spotter's Field Guide to Tallinn. Map-first UGC app: discover/save/submit outdoor spots
 > (ping-pong, hoops, football, tennis, padel, viewpoints, sakura).
-> Stack: React + Vite (FSD, HashRouter, base `/gemspot/`) → GitHub Pages · NestJS + Prisma + Postgres.
-> Last updated: 2026-06-03 · web `v0.2.0`.
+> Stack: React + Vite (FSD, HashRouter, base `/gemspot/`) → GitHub Pages · NestJS + Prisma + Postgres → Render.
+> Last updated: 2026-06-04 · web `v0.2.0` · backend LIVE `https://gemspot-api.onrender.com`.
 
 ---
 
 ## TL;DR
 
 - **Frontend: done.** Full app on mock seam → GitHub Pages. All 14 review items addressed (1 optional skipped earlier, now solid thumbnails shipped).
-- **Backend: built, committed, NOT deployed.** NestJS API + Prisma schema + seed exist + `nest build` green. Runs local only (`DATABASE_URL=localhost:5433`).
-- **Live site still on mock data** — `VITE_API_URL` unset in CI → frontend uses mock fallbacks. Real frontend↔backend integration unproven end-to-end.
-- **Gaps:** backend has zero tests; version/CHANGELOG stale at `0.2.0`; backend not hosted.
+- **Backend: LIVE on Render.** `https://gemspot-api.onrender.com` — health/categories/places verified, DB migrated + seeded (7 cats, 10 places). NestJS + Prisma + free Postgres, Blueprint-managed off `master` (`render.yaml`).
+- **Backend now has tests** — Jest unit suite, 33 tests, mocked Prisma (auth/saved-merge/submissions/admin moderation/relative-time).
+- **Live site STILL on mock data until secret set** — set GitHub secret `VITE_API_URL=https://gemspot-api.onrender.com` + re-run Pages → seam flips mock→real (zero code change). Then run acceptance tests.
+- **Gaps:** admin seeded with default password (`ADMIN_PASSWORD` unset) — set real one before launch; version/CHANGELOG at `0.2.0`; free tier cold-start ~50s; uploads on ephemeral FS.
 
 ---
 
@@ -43,10 +44,11 @@ Path: `web/`. FSD layers: `app / pages / widgets / features / entities / shared`
 
 ---
 
-## Backend — BUILT (not deployed)
+## Backend — LIVE on Render
 
 Path: `backend/`. NestJS, layered `api / application / domain / infra / contracts`. Prisma + Postgres.
-`nest build` green. Endpoints conform to frontend DTO shapes (do not change shapes).
+Live at `https://gemspot-api.onrender.com` (Blueprint `render.yaml`, free web + free Postgres).
+Endpoints conform to frontend DTO shapes (do not change shapes).
 
 Modules + routes:
 - `health` — `GET /health`
@@ -63,23 +65,18 @@ Modules + routes:
 
 Prisma schema: users, profiles, places, categories, place_categories, saved_places, submissions, submission_photos, reports + enums `UserRole`, `PlaceStatus`. Seed loads the 10 Tallinn spots from `web` `RAW[]`.
 
-Env (`backend/.env`): `DATABASE_URL` (localhost only), `PORT`, `JWT_*`, `CORS_ORIGIN=https://ontonyy.github.io`.
+Env (Render): `DATABASE_URL` (fromDatabase), `PORT` (injected), `NODE_ENV=production`, `JWT_SECRET`/`JWT_REFRESH_SECRET` (generated) + TTLs, `CORS_ORIGIN=https://ontonyy.github.io`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` (sync:false — currently UNSET → default `admin1234`). Build = `npm install --include=dev → prisma generate → migrate deploy → db:seed → nest build`. **Use `npm install`, not `npm ci`** (lock tree drift Render rejects). Deploy notes: CONTEXT.md Block P2.3.
 
 ---
 
 ## What's needed next (to ship real MVP)
 
-1. **Deploy backend (highest value).**
-   - Hosted Postgres (Render/Neon/Supabase) → real `DATABASE_URL`.
-   - `prisma migrate deploy` + `npm run db:seed`.
-   - Host NestJS (Render/Fly/Railway) → public HTTPS URL.
-   - Set `VITE_API_URL` secret in GH Actions web build → flips seams to real.
-   - Confirm `CORS_ORIGIN` = Pages origin.
-   - Verify live: Explore from API, login persists cross-device, approve PENDING → live map.
-2. **Backend tests.** Currently zero (`"test"` is an echo stub). Add e2e/unit for auth, submissions, moderation flips, saved-merge.
-3. **Version + CHANGELOG.** Bump `web/package.json` past `0.2.0`; log CW/C/D/E/F entries. Tag release.
-4. **Avatar + verifiedAt** — derive avatar from auth user (hardcoded `"M"`); `verifiedAt` → real timestamp + relative format once API serves real dates.
-5. **`TokenProbe.tsx`** dev page — remove or route-gate before launch.
+1. **Flip live frontend to real API.** ✅ backend deployed. REMAINING: set GitHub repo secret `VITE_API_URL=https://gemspot-api.onrender.com` → re-run Pages workflow → seam flips mock→real (zero code change). Then verify live: Explore from API, login persists cross-device, approve PENDING → live map, `POST /events` 201.
+2. **SECURITY: set admin password.** Admin seeded with default `admin1234` (`ADMIN_PASSWORD` unset). Set a real value in Render env before public launch (redeploys + re-seeds).
+3. ~~**Backend tests.**~~ ✅ DONE — Jest, 33 tests (auth/saved-merge/submissions/admin moderation/relative-time), mocked Prisma.
+4. **Version + CHANGELOG.** Bump `web/package.json` past `0.2.0`; log CW/C/D/E/F entries. Tag release.
+5. **Avatar + verifiedAt** — derive avatar from auth user (hardcoded `"M"`); `verifiedAt` → real timestamp + relative format once API serves real dates.
+6. **`TokenProbe.tsx`** dev page — remove or route-gate before launch.
 
 ---
 

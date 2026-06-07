@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../app/AppShell'
 import { RailCard } from '../features/explore/RailCard'
-import { SkeletonList } from '../features/explore/RailStates'
+import { SkeletonList, ErrorState } from '../features/explore/RailStates'
 import { useExploreList } from '../features/explore/useExploreList'
 import { useGuide } from '../shared/api/queries'
 import { Icon, Ic } from '../shared/ui/Icon'
@@ -18,8 +18,8 @@ export default function GuideDetail() {
   const requestGeo = useGeoStore((s) => s.request)
   useEffect(() => { requestGeo() }, [requestGeo])
 
-  const { data, isLoading: guideLoading } = useGuide(id ?? null)
-  const { items, isLoading: listLoading } = useExploreList()
+  const { data, isLoading: guideLoading, isError: guideError, refetch: refetchGuide } = useGuide(id ?? null)
+  const { items, isLoading: listLoading, isError: listError, refetch: refetchList } = useExploreList()
   const save = useGatedSave()
 
   const spots = useMemo(() => {
@@ -31,6 +31,7 @@ export default function GuideDetail() {
   }, [data, items])
 
   const isLoading = guideLoading || listLoading
+  const isError = guideError || listError
 
   return (
     <AppShell>
@@ -50,6 +51,8 @@ export default function GuideDetail() {
 
           {isLoading ? (
             <SkeletonList />
+          ) : isError && spots.length === 0 ? (
+            <ErrorState onRetry={() => { void refetchGuide(); void refetchList() }} />
           ) : (
             <div className="fg-page-grid">
               {spots.map((p) => (
