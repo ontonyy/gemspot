@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common'
 import { AuthService } from '../../application/auth/auth.service'
 import {
+  GoogleOAuthDto,
   LoginDto,
   RefreshDto,
   RegisterDto,
@@ -35,6 +36,12 @@ export class AuthController {
   @HttpCode(200)
   refresh(@Body() input: RefreshDto): Promise<AuthResponseDto> {
     return this.auth.refresh(input.refreshToken)
+  }
+
+  @Post('oauth/google')
+  @HttpCode(200)
+  oauthGoogle(@Body() input: GoogleOAuthDto): Promise<AuthResponseDto> {
+    return this.auth.oauthGoogle(input.idToken)
   }
 
   // Stateless logout — the SPA discards its tokens. Endpoint exists for parity

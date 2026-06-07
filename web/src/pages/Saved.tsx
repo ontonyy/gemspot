@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppShell } from '../app/AppShell'
 import { RailCard } from '../features/explore/RailCard'
-import { SkeletonList } from '../features/explore/RailStates'
+import { SkeletonList, ErrorState } from '../features/explore/RailStates'
 import { useExploreList } from '../features/explore/useExploreList'
 import { Icon, Ic } from '../shared/ui/Icon'
 import { useGatedSave } from '../shared/store/useGatedSave'
@@ -15,7 +15,7 @@ export default function Saved() {
   const requestGeo = useGeoStore((s) => s.request)
   useEffect(() => { requestGeo() }, [requestGeo])
 
-  const { items, isLoading } = useExploreList()
+  const { items, isLoading, isError, refetch } = useExploreList()
   const save = useGatedSave()
 
   const saved = useMemo(() => items.filter((p) => p.isSaved), [items])
@@ -34,6 +34,8 @@ export default function Saved() {
 
           {isLoading ? (
             <SkeletonList />
+          ) : isError && items.length === 0 ? (
+            <ErrorState onRetry={() => { void refetch() }} />
           ) : saved.length === 0 ? (
             <div className="fg-empty">
               <div className="fg-empty-mark">

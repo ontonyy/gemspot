@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppShell } from '../app/AppShell'
-import { SkeletonList } from '../features/explore/RailStates'
+import { SkeletonList, ErrorState } from '../features/explore/RailStates'
 import { useGuides } from '../shared/api/queries'
 import { catColor, CategoryGlyph } from '../entities/place/categories'
 
@@ -9,7 +9,7 @@ import { catColor, CategoryGlyph } from '../entities/place/categories'
    opens a GuideDetail list. Cover accent + glyph driven by coverCategory. */
 export default function Guides() {
   const navigate = useNavigate()
-  const { data: guides, isLoading } = useGuides()
+  const { data: guides, isLoading, isError, refetch } = useGuides()
 
   return (
     <AppShell>
@@ -26,6 +26,8 @@ export default function Guides() {
 
           {isLoading ? (
             <SkeletonList />
+          ) : isError && !guides?.length ? (
+            <ErrorState onRetry={() => { void refetch() }} />
           ) : (
             <div className="fg-guides">
               {guides?.map((g) => (

@@ -120,6 +120,62 @@ describe('AuthService', () => {
     })
   })
 
+  describe('oauthGoogle', () => {
+    const realFetch = global.fetch
+    const OLD_ID = process.env.GOOGLE_CLIENT_ID
+    afterEach(() => {
+      global.fetch = realFetch
+      if (OLD_ID === undefined) delete process.env.GOOGLE_CLIENT_ID
+      else process.env.GOOGLE_CLIENT_ID = OLD_ID
+    })
+    const mockTokeninfo = (body: unknown, ok = true) => {
+      global.fetch = jest.fn().mockResolvedValue({ ok, json: async () => body }) as never
+    }
+
+    it('rejects when not configured', async () => {
+      delete process.env.GOOGLE_CLIENT_ID
+      await expect(svc.oauthGoogle('tok')).rejects.toBeInstanceOf(UnauthorizedException)
+    })
+
+    it('rejects an audience mismatch', async () => {
+      process.env.GOOGLE_CLIENT_ID = 'mine'
+      mockTokeninfo({ aud: 'someone-else', sub: 's', email: 'a@b.com', email_verified: 'true' })
+      await expect(svc.oauthGoogle('tok')).rejects.toBeInstanceOf(UnauthorizedException)
+    })
+
+    it('rejects an unverified email', async () => {
+      process.env.GOOGLE_CLIENT_ID = 'mine'
+      mockTokeninfo({ aud: 'mine', sub: 's', email: 'a@b.com', email_verified: 'false' })
+      await expect(svc.oauthGoogle('tok')).rejects.toBeInstanceOf(UnauthorizedException)
+    })
+
+    it('links to an existing account by verified email', async () => {
+      process.env.GOOGLE_CLIENT_ID = 'mine'
+      mockTokeninfo({ aud: 'mine', sub: 'g-1', email: 'A@B.com', email_verified: 'true', name: 'Ann' })
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'u1', email: 'a@b.com', role: 'CLIENT', provider: null, profile: { name: 'Ann' },
+      })
+      prisma.user.update.mockResolvedValue({})
+      const res = await svc.oauthGoogle('tok')
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email: 'a@b.com' }, include: { profile: true } })
+      expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: 'u1' }, data: { provider: 'google', providerId: 'g-1' } })
+      expect(res.user).toEqual({ id: 'u1', email: 'a@b.com', name: 'Ann', role: 'CLIENT' })
+    })
+
+    it('creates an OAuth-only account for a new email', async () => {
+      process.env.GOOGLE_CLIENT_ID = 'mine'
+      mockTokeninfo({ aud: 'mine', sub: 'g-2', email: 'new@b.com', email_verified: true, name: 'Newbie' })
+      prisma.user.findUnique.mockResolvedValue(null)
+      prisma.user.create.mockResolvedValue({ id: 'u2', email: 'new@b.com', role: 'CLIENT', profile: { name: 'Newbie' } })
+      const res = await svc.oauthGoogle('tok')
+      const data = prisma.user.create.mock.calls[0][0].data
+      expect(data.provider).toBe('google')
+      expect(data.providerId).toBe('g-2')
+      expect(data.passwordHash).toBeUndefined()
+      expect(res.user.email).toBe('new@b.com')
+    })
+  })
+
   describe('me', () => {
     it('throws when the account is gone', async () => {
       prisma.user.findUnique.mockResolvedValue(null)

@@ -1,5 +1,5 @@
 import { RailCard } from './RailCard'
-import { SkeletonList, EmptyState } from './RailStates'
+import { SkeletonList, EmptyState, ErrorState } from './RailStates'
 import type { ExploreCard } from './useExploreList'
 import { useGatedSave } from '../../shared/store/useGatedSave'
 
@@ -8,6 +8,8 @@ import { useGatedSave } from '../../shared/store/useGatedSave'
 interface RailListProps {
   items: ExploreCard[]
   loading?: boolean
+  error?: boolean
+  onRetry?: () => void
   searching?: boolean
   selected?: string | null
   onHover?: (slug: string | null) => void
@@ -16,11 +18,12 @@ interface RailListProps {
 }
 
 export function RailList({
-  items, loading, searching, selected, onHover, onSelect, onReset,
+  items, loading, error, onRetry, searching, selected, onHover, onSelect, onReset,
 }: RailListProps) {
   const save = useGatedSave()
 
   if (loading) return <SkeletonList />
+  if (error && items.length === 0) return <ErrorState onRetry={onRetry} />
   if (items.length === 0) return <EmptyState searching={searching} onReset={onReset} />
 
   return (

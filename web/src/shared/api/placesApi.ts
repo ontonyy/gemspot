@@ -195,7 +195,105 @@ export const mockPlacesApi: PlacesApi = {
 /** Swap point: httpPlacesApi when VITE_API_URL is set, mock otherwise.
    Same seam + identical DTO shapes → zero call-site changes either way. */
 import { httpPlacesApi } from './httpPlacesApi'
+import { useToastStore } from '../store/toastStore'
 
-export const placesApi: PlacesApi = import.meta.env.VITE_API_URL
-  ? httpPlacesApi
-  : mockPlacesApi
+/* Graceful degradation: a sleeping/erroring backend should never blank the UI.
+   On network error (no status) or 5xx, READ paths fall back to the mock dataset
+   so the map/guides still render, and a one-time toast tells the user samples
+   are showing. 4xx pass through (legit client errors). Writes + auth-gated reads
+   (createSubmission/createReport/uploadPhoto, getMy*) stay strict — never faked. */
+function isBackendUnavailable(err: unknown): boolean {
+  const status = (err as { status?: number } | null)?.status
+  return status === undefined || status >= 500
+}
+
+let warnedUnavailable = false
+function warnUnavailableOnce() {
+  if (warnedUnavailable) return
+  warnedUnavailable = true
+  useToastStore.getState().show('Live data unavailable — showing samples', 3200)
+}
+
+function withMockFallback<A extends unknown[], R>(
+  live: (...args: A) => Promise<R>,
+  mock: (...args: A) => Promise<R>,
+): (...args: A) => Promise<R> {
+  return async (...args: A) => {
+    try {
+      return await live(...args)
+    } catch (err) {
+      if (!isBackendUnavailable(err)) throw err
+      warnUnavailableOnce()
+      return mock(...args)
+    }
+  }
+}
+
+const gracefulHttpPlacesApi: PlacesApi = {
+  ...httpPlacesApi,
+  getPlaces: withMockFallback(httpPlacesApi.getPlaces, mockPlacesApi.getPlaces),
+  getPlace: withMockFallback(httpPlacesApi.getPlace, mockPlacesApi.getPlace),
+  getCategories: withMockFallback(httpPlacesApi.getCategories, mockPlacesApi.getCategories),
+  getGuides: withMockFallback(httpPlacesApi.getGuides, mockPlacesApi.getGuides),
+  getGuide: withMockFallback(httpPlacesApi.getGuide, mockPlacesApi.getGuide),
+}
+
+/* Hand-curated editorial guides (no CMS). Cross-category cuts the derived
+   per-category guides can't express — a journey, a mood, a circuit. Keyed to
+   the seeded spot slugs so they resolve in BOTH mock and live mode. Spots are
+   re-derived from getPlaces (GuideDetail uses spotSlugs), so a backend that
+   doesn't know these ids never 404s. count = referenced slug count. */
+const CURATED_GUIDES: GuideDto[] = [
+  {
+    id: 'curated-tallinn-afternoon',
+    title: 'A perfect Tallinn afternoon',
+    subtitle: 'Blossoms, a rooftop view, then ping-pong by the pond',
+    coverCategory: 'scenic',
+    count: 3,
+    spotSlugs: ['kanuti-aed-blossoms', 'patkuli-viewpoint', 'snelli-pond-tables'],
+  },
+  {
+    id: 'curated-sunset-chasers',
+    title: 'Sunset chasers',
+    subtitle: 'Where Tallinn glows at golden hour',
+    coverCategory: 'scenic',
+    count: 3,
+    spotSlugs: ['patkuli-viewpoint', 'lasnamae-cliff-view', 'lowenruh-pitch'],
+  },
+  {
+    id: 'curated-racket-circuit',
+    title: 'Racket sports circuit',
+    subtitle: 'Tennis, padel and table tennis across the city',
+    coverCategory: 'tennis',
+    count: 4,
+    spotSlugs: ['kadrioru-tennis-courts', 'pirita-padel-club', 'politseiaia-ping-pong', 'snelli-pond-tables'],
+  },
+]
+
+/* Decorator: prepend curated guides to whatever the underlying api returns, and
+   resolve curated getGuide(id) client-side from getPlaces. Wraps the chosen api
+   (mock or http) so the single swap point + DTO contract stay intact. */
+function withCuratedGuides(api: PlacesApi): PlacesApi {
+  const curatedById = new Map(CURATED_GUIDES.map((g) => [g.id, g]))
+  return {
+    ...api,
+    async getGuides() {
+      const live = await api.getGuides()
+      return [...CURATED_GUIDES, ...live]
+    },
+    async getGuide(id) {
+      const curated = curatedById.get(id)
+      if (!curated) return api.getGuide(id)
+      const all = await api.getPlaces()
+      const bySlug = new Map(all.map((p) => [p.slug, p]))
+      const spots = curated.spotSlugs
+        .map((s) => bySlug.get(s))
+        .filter((p): p is PlaceCardDto => !!p)
+      return { guide: curated, spots }
+    },
+  }
+}
+
+export const placesApi: PlacesApi = withCuratedGuides(
+  import.meta.env.VITE_API_URL ? gracefulHttpPlacesApi : mockPlacesApi,
+)

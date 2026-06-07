@@ -14,6 +14,7 @@ interface AuthState {
   busy: boolean
   register: (input: RegisterInput) => Promise<AuthUser>
   login: (input: LoginInput) => Promise<AuthUser>
+  loginWithGoogle: (idToken: string) => Promise<AuthUser>
   logout: () => void
   bootstrap: () => Promise<void>
 }
@@ -44,6 +45,15 @@ export const useAuthStore = create<AuthState>()(
           set({ busy: true })
           try {
             return apply(await authApi.login(input))
+          } finally {
+            set({ busy: false })
+          }
+        },
+
+        async loginWithGoogle(idToken) {
+          set({ busy: true })
+          try {
+            return apply(await authApi.oauthGoogle(idToken))
           } finally {
             set({ busy: false })
           }

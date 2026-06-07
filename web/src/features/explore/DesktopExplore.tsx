@@ -9,6 +9,8 @@ import type { ExploreCard } from './useExploreList'
 interface DesktopExploreProps {
   items: ExploreCard[]
   loading?: boolean
+  error?: boolean
+  onRetry?: () => void
   searching?: boolean
   cat: CategoryId | null
   onCat: (cat: CategoryId | null) => void
@@ -68,6 +70,8 @@ export function DesktopExplore(s: DesktopExploreProps) {
           <RailList
             items={s.items}
             loading={s.loading}
+            error={s.error}
+            onRetry={s.onRetry}
             searching={s.searching}
             selected={mapSel}
             onHover={s.onHover}

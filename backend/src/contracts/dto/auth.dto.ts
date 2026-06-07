@@ -35,6 +35,12 @@ export class RefreshDto {
   refreshToken!: string
 }
 
+export class GoogleOAuthDto {
+  @IsString()
+  @MinLength(1)
+  idToken!: string
+}
+
 export interface AuthUserDto {
   id: string
   email: string
