@@ -21,7 +21,14 @@ export default function Explore() {
   // detail panel driven by /spot/:slug route param
   const navigate = useNavigate()
   const { slug: detailSlug } = useParams<{ slug: string }>()
-  const search = params.toString()
+  // ?focus= opens Explore centered on a spot (e.g. "Open in full map" from a
+  // detail). Detail-open focus takes priority; the query param is the cold-open
+  // path. One-shot: stripped from the search we propagate so it never sticks to
+  // spot links.
+  const focusSlug = detailSlug ?? params.get('focus')
+  const navParams = new URLSearchParams(params)
+  navParams.delete('focus')
+  const search = navParams.toString()
   const openSpot = useCallback(
     (slug: string) => navigate(`/spot/${slug}${search ? `?${search}` : ''}`),
     [navigate, search],
@@ -94,8 +101,12 @@ export default function Explore() {
           selected={detailSlug ?? hover}
           onSelect={openSpot}
           detailSlug={detailSlug ?? null}
+          focusSlug={focusSlug}
           onCloseDetail={closeSpot}
           onReset={resetFilters}
+          curated={curated}
+          onEnableLocation={requestGeo}
+          locating={geoStatus === 'locating'}
         />
       ) : (
         <DesktopExplore
@@ -114,6 +125,7 @@ export default function Explore() {
           onHover={setHover}
           onSelect={openSpot}
           detailSlug={detailSlug ?? null}
+          focusSlug={focusSlug}
           onCloseDetail={closeSpot}
           onReset={resetFilters}
           onEnableLocation={requestGeo}

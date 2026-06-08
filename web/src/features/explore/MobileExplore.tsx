@@ -22,8 +22,13 @@ interface MobileExploreProps {
   selected: string | null
   onSelect: (slug: string) => void
   detailSlug: string | null
+  /** Slug the map should fly to + isolate. Detail-open or ?focus= cold-open. */
+  focusSlug: string | null
   onCloseDetail: () => void
   onReset: () => void
+  curated?: boolean
+  onEnableLocation?: () => void
+  locating?: boolean
 }
 
 export function MobileExplore(s: MobileExploreProps) {
@@ -64,7 +69,7 @@ export function MobileExplore(s: MobileExploreProps) {
     <div className="fg-explore-m">
       <div className="fg-m-stage" ref={stageRef}>
         <div style={{ position: 'absolute', inset: 0 }}>
-          <SpotMap items={s.items} selectedSlug={s.selected} onSelect={s.onSelect} />
+          <SpotMap items={s.items} selectedSlug={s.selected} focusSlug={s.focusSlug} onSelect={s.onSelect} />
         </div>
 
         <div className="fg-m-legend">
@@ -91,11 +96,14 @@ export function MobileExplore(s: MobileExploreProps) {
           <div className="fg-sheet-head">
             <div>
               <div className="count" style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>
-                <b className="mono">{s.items.length}</b> spots nearby
+                <b className="mono">{s.items.length}</b> {s.curated ? 'spots in view' : 'spots nearby'}
               </div>
               <div className="sub kicker" style={{ marginTop: 3 }}>Sorted by distance</div>
             </div>
-            <button className="fg-sort"><Icon d={Ic.sort} size={13} />Near</button>
+            <button className="fg-sort" onClick={s.onEnableLocation} disabled={s.locating}
+              aria-label="Sort by distance from my location">
+              <Icon d={Ic.sort} size={13} />{s.locating ? 'Getting location…' : 'Near'}
+            </button>
           </div>
           <div className="fg-rail-list">
             <RailList
