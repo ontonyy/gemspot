@@ -36,6 +36,7 @@ export interface GuideDto {
   title: string
   subtitle: string
   coverCategory: CategoryId // drives accent + glyph
+  coverIcon?: string // optional Ic key for cross-cut guides w/o a sport category
   count: number
   spotSlugs: string[]
 }
@@ -83,7 +84,7 @@ export interface PlaceDetailDto extends PlaceCardDto {
   viewsCount: number
   sharesCount: number
   contributor: { name: string }
-  verifiedAt?: string
+  verifiedAt?: string // ISO 8601 timestamp; absent = unverified (no badge). Rendered relative client-side.
   // 3-cell Field notes table on the detail panel
   fieldNotes: { access: string; lit: string; best: string }
   appleMapsUrl: string

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AppShell } from '../app/AppShell'
 import { Legend } from '../features/explore/Legend'
 import { LocationPicker } from '../features/add-spot/LocationPicker'
@@ -22,6 +22,7 @@ const MAX_PHOTOS = 6
 
 export default function AddSpot() {
   const navigate = useNavigate()
+  const prefillName = (useLocation().state as { name?: string } | null)?.name ?? ''
   const addSubmission = useSubmissionsStore((s) => s.add)
   const showToast = useToastStore((s) => s.show)
   const user = useAuthStore((s) => s.user)
@@ -34,7 +35,7 @@ export default function AddSpot() {
     }
   }, [user, navigate, showToast])
 
-  const [name, setName] = useState('')
+  const [name, setName] = useState(prefillName)
   const [category, setCategory] = useState<CategoryId | null>(null)
   const [coords, setCoords] = useState<LatLng>(TALLINN_CENTER)
   const [note, setNote] = useState('')
