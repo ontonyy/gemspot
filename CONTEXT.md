@@ -144,6 +144,40 @@ LOCKED: host repo = `ontonyy/gemspot` (project page) · base `/gemspot/` · URL 
 - **Commits (on master)**: pin-node → regen-lock → npm-install → commit-uploads (3d63c99 = live). Build pipeline now: `npm install --include=dev → prisma generate → migrate deploy (idempotent) → db:seed (idempotent upserts) → nest build`.
 - **STILL OPEN (user)**: (a) set `VITE_API_URL=https://gemspot-api.onrender.com` GitHub secret + re-run Pages → flips live frontend mock→real. (b) **SECURITY: admin seeded with default `admin1234`** (`ADMIN_PASSWORD` left unset) — set real password in Render env before public launch. (c) free tier cold-start ~50s after idle. (d) ephemeral FS → uploaded photos lost on redeploy (object storage later).
 
+## Polish pass #1 (spot-detail map flyTo + isolation) — DONE 2026-06-08
+- **Bug #1 (fixes/5-review.md):** opening `/spot/:slug` never moved the map. `SpotDetail` renders no map; on desktop its panel slides over the shared Explore `SpotMap`, which only re-skinned the selected pin — never `flyTo`/isolated it.
+- **Fix:** `SpotMap` gains a `focusSlug?: string|null` prop, **distinct from `selectedSlug`** (which also fires on hover, so hover never moves the viewport). On change: `flyTo({center:[lng,lat],zoom:15.5,duration:700})` to the item from `itemsRef`, and dims every other pin/cluster via `data-dim` (`opacity:.35` in `atoms.css`). Focused pin stays enlarged via existing `data-sel`. The focus effect calls `updateMarkers()` first so clearing focus un-dims back to the multi-pin view.
+- **Wiring:** `Explore.tsx` already threads `detailSlug` to `Desktop/MobileExplore`; both now pass it straight to `SpotMap` as `focusSlug` (no new Explore-level state). On `closeSpot` `detailSlug`→null → focus clears; viewport left in place (fitBounds-back was optional in the review, not done).
+- **Unblocks:** #2 (search-jump) and #10 (open-in-full-map) reuse the same `focusSlug`→flyTo path.
+- **Verify limit:** preview sandbox can't reach `tiles.openfreemap.org` (vector source + glyphs) → map hits the 10s error fallback, so flyTo/dim are unverifiable in-browser here. Route wiring confirmed (card click → `/spot/snelli-pond-tables`, detail panel mounts). `npm run build` + `npm test` (5) green. v0.2.1→0.2.2.
+
+## Polish pass #2 (search-jump pans the map) — DONE 2026-06-08
+- **Bug #2 (fixes/5-review.md):** picking a spot from the top-bar search dropdown didn't move the map. `SearchBox.jump()` only `navigate('/spot/'+slug)`.
+- **Confirmed (no extra wiring):** that route renders `Explore` (`router.tsx`), `useParams().slug` → `detailSlug` → passed as `focusSlug` to `SpotMap` in both `Desktop/MobileExplore` → #1's `[focusSlug]` flyTo fires. `jump()` also clears the query, so the rail un-filters and the spot is present in `itemsRef` for the coord lookup.
+- **One gap fixed:** "from any page" — a search-jump from a non-Explore page (e.g. `/guides`) cold-mounts `Explore`/`SpotMap` with `focusSlug` already set; the `[focusSlug]` effect ran before `mapRef.current` existed and never re-fires. Added an initial-focus `flyTo` in `SpotMap`'s `load` handler (reads `focusRef.current`). Surgical, no new props/state, DTO + seam untouched.
+- **Verify limit:** preview sandbox can't reach `tiles.openfreemap.org` → map hits the 10s error fallback, so the fly is unverifiable in-browser here (same constraint as #1). Route/prop chain confirmed by source. `npm run build` + `npm test` (5) green. v0.2.2→0.2.3.
+
+## Polish pass #3 (photo placeholder solid fill + big white glyph) — DONE 2026-06-08
+- **Bug #3 (fixes/5-review.md):** no-photo cards/hero rendered a category-tinted `color-mix(--pc 32%, --paper)` background with a faint (`opacity:.55`) small category-colored glyph — muddy, low-contrast (no literal stripe/hatch in CSS, just the weak tint).
+- **Fix:** `atoms.css` `.fg-photo` now fills solid `var(--pc)`; `.fg-photo-glyph` renders white (`color:#fff`) at full opacity, centered. `Photo` gained a `large` flag → glyph size 64 (hero) vs 26 (cards), glyph `color="#fff"`. Real-`url` branch untouched; same `CategoryGlyph`. `SpotDetail` hero passes `large`.
+- **Verify:** preview confirmed — Explore cards render solid colored thumbs + centered white glyphs; `/spot/:slug` hero shows solid orange fill + big white ping-pong glyph, no stripes anywhere. `npm run build` + `npm test` (5) green. v0.2.3→0.2.4.
+
+## Polish pass #5 (guide/saved card names wrap to 2 lines) — DONE 2026-06-08
+- **Bug #5 (fixes/5-review.md):** `.fg-card-body h3` is `white-space:nowrap` + ellipsis for the 1-line rail rhythm. In the narrower `.fg-page-grid` cards (GuideDetail/Saved), long names cut ("Kadrioru tennis co…"). Actual selector is `.fg-card-body h3`, not `.fg-card h3` as the review brief stated.
+- **Fix:** scoped rule `.fg-page-grid .fg-card-body h3` in `atoms.css` — `display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; white-space:normal; overflow:hidden; line-height:1.2`. Rail single-line rhythm untouched (scoped, not global). CSS-only, no new tokens.
+- **Verify:** preview confirmed — long name forced into a `.fg-page-grid` card wraps to exactly 2 lines (36px = 2×18), clamps cleanly, sibling cards stay top-aligned (`.fg-card align-items:start`). `npm run build` + `npm test` (5) green. v0.2.4→0.2.5.
+
+## Polish pass #9 + #12 (copy: bookmark wording + accurate rail-head noun) — DONE 2026-06-08
+- **Bug #9 (fixes/5-review.md):** Saved empty state said "Tap the **stamp** on any specimen…" but the save control is `SaveButton` — a bookmark glyph. Fix: copy → "Tap the bookmark icon on any spot to save it here. Your collection lives on this device." Added `Ic.bookmark` (matches SaveButton's inline path `M6 21V5a2 2 0 012-2h8a2 2 0 012 2v16l-6-3.6L6 21z`); empty-state mark uses it instead of `Ic.flag`. `pages/Saved.tsx`, `shared/ui/Icon.tsx`.
+- **Bug #12:** rail-head read "{n} spots **nearby** · sorted by distance" even on the curated Tallinn-center default (no real GPS). Fix: noun conditional on existing `curated` boolean (`isCurated && status!=='locating'`) — "spots in view" when curated, "spots nearby" only with real GPS. DesktopExplore already had `curated`; threaded it from `Explore` into `MobileExplore` (new optional prop). `features/explore/DesktopExplore.tsx`, `MobileExplore.tsx`, `pages/Explore.tsx`.
+- **Verify:** no "stamp" wording remains in UI; label = "in view" on curated default, "nearby" only with real GPS. `npm run build` + `npm test` (5) green. v0.2.5→0.2.6. Copy/icon only — no new tokens, DTO/seam intact.
+
+## Polish pass #8 ("Near" geolocation: loading + denied states) — DONE 2026-06-08
+- **Bug #8 (fixes/5-review.md):** two inconsistent "near" controls. `.fg-geobanner` ("Use my location") called `request()` and showed "Locating…" — fine. The `.fg-rail-head` "Near" sort button had **no `onClick`** — dead click. And `geoStore.request()` fell back to Tallinn on denial **silently** (no error/denied flag, no user signal).
+- **Fix:** `geoStore` gained `denied: boolean` — set `true` on the `getCurrentPosition` error callback and the `geoUnsupported()` path (alongside the curated Tallinn fallback), reset `false` on locating/success. Both denial paths fire `useToastStore.getState().show(...)` with exact copy **"Location access denied — showing distances from Tallinn centre"** (toastStore already mounted in AppShell). The rail-head "Near" button in `DesktopExplore` + `MobileExplore` is wired to `onEnableLocation` (=`request()`), `disabled` while locating, label "Getting location…" when `status==='locating'` else "Near"; added `aria-label`. Threaded `onEnableLocation`/`locating` props from `Explore` into `MobileExplore` (DesktopExplore already had them). `shared/store/geoStore.ts`, `features/explore/DesktopExplore.tsx`, `MobileExplore.tsx`, `pages/Explore.tsx`.
+- **Note:** `Explore` already auto-calls `request()` on mount, so the denial toast can also surface on first load (acceptable — same copy). No new tokens/colors; DTO/seam intact.
+- **Verify:** `npm run build` + `npm test` (5) green. v0.2.6→0.2.7.
+
 Local-discovery map for Tallinn. Discovery product, not navigation. React frontend + Spring/Java backend.
 
 ## Canonical sources
@@ -173,3 +207,19 @@ Local-discovery map for Tallinn. Discovery product, not navigation. React fronte
 - **Geolocation**: real browser Geolocation + Permissions API now (no backend). Haversine distance client-side to mock coords. Denied/unavailable → fake origin Tallinn center (59.437, 24.745) + "location off → curated" state. Out-of-region = >~30km from center.
 - **Markers/clustering**: hybrid — GeoJSON source `cluster:true` (native clustering + zoom-to-bounds, popover only at max zoom) + HTML markers for individual pins and cluster count-pills (pixel-perfect fg disc/glyph/ink-stem, 4 states default/selected/saved/cluster).
 - **This-session deliverable** = vertical slice through Explore: scaffold → tokens → shell → chips+cards → Explore split (map+rail+markers+clustering+distance+location states) → Spot detail panel. Deferred: Add-a-spot, Home/Guides/Saved, account menu, backend.
+
+## Polish pass — #4 guide cover icons (v0.2.11)
+
+- **Cross-cut guide cover icon independent of category.** Sport guides already rendered the right `CategoryGlyph`; only the "Free to play" cross-cut guide was wrong — it has no sport category, so `coverCategory` fell back to `scenic` → scenic peak glyph. Added optional `coverIcon?: string` (an `Ic` key) to `GuideDto`. `buildGuides()` sets `coverIcon: 'ticket'` on the Free guide; new `Ic.ticket` in Icon.tsx. `Guides.tsx` renders `<Icon d={Ic[coverIcon]} size={34}>` (white, via cover `color:#fff`) when `coverIcon` present + known, else `CategoryGlyph`. Sport guides keep sport glyph; Viewpoint keeps scenic glyph. DTO additive (optional field, seam intact); no new tokens/colors. Build + 5 tests green.
+
+## Polish pass — #7 verified relative time (v0.2.10)
+
+- **Verified badge = live relative time.** `PlaceDetailDto.verifiedAt` refined from free-text to **ISO 8601 timestamp** (contract shape unchanged, only field semantics). `SpotDetail` renders `formatDistanceToNow(new Date(p.verifiedAt), { addSuffix:true })` (new `date-fns` dep) instead of printing the raw string. Existing `{p.verifiedAt && …}` guard kept → absent timestamp = no badge. Mock `RawPlace.verified` is now optional ISO: 8 spots carry real ISO dates, Löwenruh pitch + Pirita padel club left unset to demo the hidden-badge fallback. No new tokens/colors; placesApi/authApi seam untouched. Build + 5 tests green.
+
+## Polish pass — #10 "Open in full map" (v0.2.9)
+
+- **Detail → full map affordance.** `SpotDetail` gains an "Open in full map →" link (`.fg-report-link` + `Ic.pin`) → `navigate('/explore?focus='+slug)`. `Explore.tsx` reads `?focus=` and computes `focusSlug = detailSlug ?? params.get('focus')`, passed as a new `focusSlug` prop through Desktop/MobileExplore into `SpotMap` (previously `focusSlug={detailSlug}` inline). Reuses Block 1's `flyTo`/dim + cold-open load handler. `focus` is one-shot: stripped from the propagated nav `search` so it never sticks to spot links. Map confirmed interactive (no `interactive:false`/`scrollZoom.disable()`). No new tokens/colors; DTO/seam untouched. Build + 5 tests green.
+
+## Polish pass — #11 search empty state (v0.2.8)
+
+- **Search 0-results CTA + prefill.** `SearchBox` (AppShell.tsx) empty branch: "No results for '{q}'" + "Submit this spot →" button → `navigate('/add', { state:{ name:q }})`. `jump()` extended to take optional router state. `AddSpot.tsx` reads `useLocation().state.name` into initial `name` useState. New `.fg-search-cta` CSS (display font / `--ink` / underline — no new tokens). Build + 5 tests green.

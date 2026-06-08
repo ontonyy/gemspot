@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { formatDistanceToNow } from 'date-fns'
 import { catColor, CategoryGlyph } from '../../entities/place/categories'
 import { Photo } from '../../entities/place/Photo'
 import { ReportModal } from './ReportModal'
@@ -88,7 +89,7 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
   return (
     <aside className="fg-detail" style={{ '--cc': catColor(cat), ...mobileStyle } as CSSProperties}>
       <div className="fg-detail-hero">
-        <Photo cat={cat} glyph={!hasPhotos} url={hasPhotos ? photos[shot]?.url : undefined}
+        <Photo cat={cat} glyph={!hasPhotos} large url={hasPhotos ? photos[shot]?.url : undefined}
           label={hasPhotos ? undefined : p.category.label} />
         <div className="fg-detail-top">
           <button className="fg-iconbtn" onClick={onClose} aria-label="Back"><Icon d={Ic.back} size={18} /></button>
@@ -116,7 +117,7 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
           spotted by <b>@{p.contributor.name}</b>
           {p.verifiedAt && (
             <span className="fg-verified">
-              <span className="tick"><Icon d={Ic.check} size={8} sw={3.5} /></span>verified {p.verifiedAt}
+              <span className="tick"><Icon d={Ic.check} size={8} sw={3.5} /></span>verified {formatDistanceToNow(new Date(p.verifiedAt), { addSuffix: true })}
             </span>
           )}
         </div>
@@ -138,6 +139,10 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
             </div>
           </>
         )}
+
+        <button className="fg-report-link" onClick={() => navigate(`/explore?focus=${p.slug}`)}>
+          <Icon d={Ic.pin} size={13} />Open in full map →
+        </button>
 
         <button className="fg-report-link" onClick={() => requireAuth('Sign in to report a problem') && setReportOpen(true)}>
           <Icon d={Ic.flag} size={13} />Report a problem · outdated

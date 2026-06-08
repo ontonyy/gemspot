@@ -22,6 +22,8 @@ interface DesktopExploreProps {
   onHover: (slug: string | null) => void
   onSelect: (slug: string) => void
   detailSlug: string | null
+  /** Slug the map should fly to + isolate. Detail-open or ?focus= cold-open. */
+  focusSlug: string | null
   onCloseDetail: () => void
   onReset: () => void
   onEnableLocation?: () => void
@@ -58,12 +60,15 @@ export function DesktopExplore(s: DesktopExploreProps) {
 
         <div className="fg-rail-head">
           <div>
-            <div className="count"><b className="mono">{s.items.length}</b> spots nearby</div>
+            <div className="count"><b className="mono">{s.items.length}</b> {s.curated ? 'spots in view' : 'spots nearby'}</div>
             <div className="sub">
               {s.cat ? FG_CAT[s.cat].short : 'All categories'}{s.free ? ' · free only' : ''} · sorted by distance
             </div>
           </div>
-          <button className="fg-sort"><Icon d={Ic.sort} size={13} />Near</button>
+          <button className="fg-sort" onClick={s.onEnableLocation} disabled={s.locating}
+            aria-label="Sort by distance from my location">
+            <Icon d={Ic.sort} size={13} />{s.locating ? 'Getting location…' : 'Near'}
+          </button>
         </div>
 
         <div className="fg-rail-list">
@@ -87,7 +92,7 @@ export function DesktopExplore(s: DesktopExploreProps) {
 
       <div className="fg-mapwrap">
         {s.loading && <div className="fg-maploading"><span className="fg-pulse" />Loading Tallinn…</div>}
-        <SpotMap items={s.items} selectedSlug={mapSel} onSelect={s.onSelect} />
+        <SpotMap items={s.items} selectedSlug={mapSel} focusSlug={s.focusSlug} onSelect={s.onSelect} />
       </div>
     </div>
   )

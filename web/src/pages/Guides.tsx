@@ -4,6 +4,7 @@ import { AppShell } from '../app/AppShell'
 import { SkeletonList, ErrorState } from '../features/explore/RailStates'
 import { useGuides } from '../shared/api/queries'
 import { catColor, CategoryGlyph } from '../entities/place/categories'
+import { Ic, Icon } from '../shared/ui/Icon'
 
 /* Guides — curated collections derived from the place set (no CMS). Each card
    opens a GuideDetail list. Cover accent + glyph driven by coverCategory. */
@@ -37,8 +38,12 @@ export default function Guides() {
                   style={{ '--cc': catColor(g.coverCategory) } as CSSProperties}
                   onClick={() => navigate(`/guides/${g.id}`)}
                 >
-                  <div className="fg-guide-cover" style={{ background: catColor(g.coverCategory) }}>
-                    <CategoryGlyph cat={g.coverCategory} size={34} />
+                  <div className="fg-guide-cover" style={{ background: catColor(g.coverCategory), color: '#fff' }}>
+                    {g.coverIcon && Ic[g.coverIcon] ? (
+                      <Icon d={Ic[g.coverIcon]} size={34} />
+                    ) : (
+                      <CategoryGlyph cat={g.coverCategory} size={34} />
+                    )}
                   </div>
                   <div className="fg-guide-body">
                     <h3>{g.title}</h3>
