@@ -95,10 +95,10 @@ function SearchBox({ query, setQuery }: { query: string; setQuery: (q: string) =
   const open = focused && q.length > 0
   const hasHits = spotHits.length + guideHits.length + catHits.length > 0
 
-  const jump = (to: string) => {
+  const jump = (to: string, state?: unknown) => {
     setFocused(false)
     setQuery('')
-    navigate(to)
+    navigate(to, state ? { state } : undefined)
   }
 
   return (
@@ -114,7 +114,14 @@ function SearchBox({ query, setQuery }: { query: string; setQuery: (q: string) =
       {open && (
         <div className="fg-search-results" role="listbox">
           {!hasHits ? (
-            <div className="fg-search-empty">Nothing matches “{q}”.</div>
+            <div className="fg-search-empty">
+              <div>No results for “{q}”.</div>
+              <button type="button" className="fg-search-cta" role="option"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => jump('/add', { name: q })}>
+                Submit this spot →
+              </button>
+            </div>
           ) : (
             <>
               {spotHits.length > 0 && (

@@ -39,6 +39,10 @@ export interface SpotMapItem {
 interface SpotMapProps {
   items: SpotMapItem[]
   selectedSlug?: string | null
+  /** Slug from a *detail open* (route /spot/:slug) — flies the map to the spot
+      and dims the others. Distinct from selectedSlug (which also fires on hover)
+      so hover-only selection never moves the viewport. */
+  focusSlug?: string | null
   onSelect?: (slug: string) => void
 }
 
@@ -56,17 +60,20 @@ function SpotPin({
   name,
   selected,
   saved,
+  dim,
 }: {
   cat: CategoryId
   name: string
   selected: boolean
   saved: boolean
+  dim: boolean
 }) {
   return (
     <div
       className="fg-pin"
       data-sel={selected}
       data-saved={saved}
+      data-dim={dim}
       style={{ position: 'relative', '--pc': catColor(cat) } as React.CSSProperties}
     >
       <div className="fg-pinbtn">
@@ -85,13 +92,15 @@ function ClusterPill({
   count,
   dots,
   active,
+  dim,
 }: {
   count: number
   dots: CategoryId[]
   active: boolean
+  dim: boolean
 }) {
   return (
-    <div className="fg-cluster" data-active={active}>
+    <div className="fg-cluster" data-active={active} data-dim={dim}>
       <span className="fg-cluster-dots">
         {dots.slice(0, 3).map((c, i) => (
           <i key={i} style={{ '--dc': catColor(c) } as React.CSSProperties} />
@@ -108,16 +117,18 @@ interface MarkerRec {
   key: string
 }
 
-export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
+export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const markersRef = useRef<Map<string, MarkerRec>>(new Map())
   const onScreenRef = useRef<Set<string>>(new Set())
   // latest props read inside event handlers without re-binding listeners
   const selectedRef = useRef<string | null | undefined>(selectedSlug)
+  const focusRef = useRef<string | null | undefined>(focusSlug)
   const onSelectRef = useRef<typeof onSelect>(onSelect)
   const itemsRef = useRef<SpotMapItem[]>(items)
   selectedRef.current = selectedSlug
+  focusRef.current = focusSlug
   onSelectRef.current = onSelect
   itemsRef.current = items
 
@@ -177,6 +188,12 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
       })
       pushData() // feed whatever items exist now (query may already be settled)
       updateMarkers()
+      // Cold-load to /spot/:slug (e.g. a search-jump from another page) mounts
+      // this map with focusSlug already set — the [focusSlug] effect ran before
+      // the map existed and won't re-fire, so apply the initial focus here.
+      const focus = focusRef.current
+      const item = focus ? itemsRef.current.find((p) => p.slug === focus) : undefined
+      if (item) map.flyTo({ center: [item.lng, item.lat], zoom: 15.5, duration: 700 })
     })
     // container can mount before flex layout settles its height → keep the GL
     // canvas in sync with the host box (maplibre only auto-tracks window resize)
@@ -242,6 +259,17 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSlug])
 
+  // ── fly to the focused spot (detail open) + re-skin dim/enlarge ───────────
+  useEffect(() => {
+    updateMarkers() // refresh dim state on every focus change (set or clear)
+    if (!focusSlug) return
+    const map = mapRef.current
+    const item = itemsRef.current.find((p) => p.slug === focusSlug)
+    if (!map || !item) return
+    map.flyTo({ center: [item.lng, item.lat], zoom: 15.5, duration: 700 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusSlug])
+
   // ── marker sync: read visible features, diff against live markers ─────────
   function updateMarkers() {
     const map = mapRef.current
@@ -250,6 +278,7 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
     const features = map.querySourceFeatures(SOURCE)
     const next = new Set<string>()
     const sel = selectedRef.current
+    const focus = focusRef.current
 
     for (const f of features) {
       const props = f.properties ?? {}
@@ -282,7 +311,8 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
         next.add(id)
         const selected = sel === slug
         const saved = props.saved === 1 || props.saved === true
-        const key = `${selected}|${saved}`
+        const dim = !!focus && focus !== slug
+        const key = `${selected}|${saved}|${dim}`
         let rec = markersRef.current.get(id)
         if (!rec) {
           const el = document.createElement('div')
@@ -299,7 +329,7 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
         if (rec.key !== key) {
           rec.key = key
           rec.root.render(
-            <SpotPin cat={props.cat as CategoryId} name={String(props.name)} selected={selected} saved={saved} />,
+            <SpotPin cat={props.cat as CategoryId} name={String(props.name)} selected={selected} saved={saved} dim={dim} />,
           )
         }
       }
@@ -323,18 +353,22 @@ export function SpotMap({ items, selectedSlug, onSelect }: SpotMapProps) {
     count: number,
     sel: string | null | undefined,
   ) {
+    const focus = focusRef.current
     src.getClusterLeaves(clusterId, Infinity, 0).then((leaves) => {
       const cats: CategoryId[] = []
       let active = false
+      let hasFocus = false
       for (const l of leaves) {
         const p = l.properties ?? {}
         if (!cats.includes(p.cat as CategoryId)) cats.push(p.cat as CategoryId)
         if (sel && p.slug === sel) active = true
+        if (focus && p.slug === focus) hasFocus = true
       }
-      const key = `${count}|${active}|${cats.slice(0, 3).join(',')}`
+      const dim = !!focus && !hasFocus
+      const key = `${count}|${active}|${dim}|${cats.slice(0, 3).join(',')}`
       if (rec.key === key) return
       rec.key = key
-      rec.root.render(<ClusterPill count={count} dots={cats} active={active} />)
+      rec.root.render(<ClusterPill count={count} dots={cats} active={active} dim={dim} />)
     })
   }
 

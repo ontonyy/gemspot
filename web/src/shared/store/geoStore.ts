@@ -5,6 +5,7 @@
 import { create } from 'zustand'
 import { TALLINN_CENTER } from '../lib/geo'
 import type { LatLng } from '../lib/geo'
+import { useToastStore } from './toastStore'
 
 /** idle: not asked · locating: awaiting fix · real: live GPS origin ·
     curated: denied/unavailable, using Tallinn center. */
@@ -15,6 +16,8 @@ interface GeoState {
   origin: LatLng // always usable; Tallinn center until/unless a real fix lands
   /** true when origin is the curated fallback, not the user's real position. */
   isCurated: boolean
+  /** true once a geolocation request was denied/unavailable/timed out. */
+  denied: boolean
   permission: PermissionState | 'unsupported' | 'unknown'
   request: () => void
 }
@@ -27,17 +30,19 @@ export const useGeoStore = create<GeoState>((set, get) => ({
   status: 'idle',
   origin: TALLINN_CENTER,
   isCurated: true,
+  denied: false,
   permission: 'unknown',
 
   request: () => {
     if (get().status === 'locating') return
 
     if (geoUnsupported()) {
-      set({ status: 'curated', isCurated: true, origin: TALLINN_CENTER, permission: 'unsupported' })
+      set({ status: 'curated', isCurated: true, denied: true, origin: TALLINN_CENTER, permission: 'unsupported' })
+      useToastStore.getState().show('Location access denied — showing distances from Tallinn centre')
       return
     }
 
-    set({ status: 'locating' })
+    set({ status: 'locating', denied: false })
 
     // best-effort permission read (not all browsers expose it)
     navigator.permissions
@@ -50,11 +55,14 @@ export const useGeoStore = create<GeoState>((set, get) => ({
         set({
           status: 'real',
           isCurated: false,
+          denied: false,
           origin: { lat: pos.coords.latitude, lng: pos.coords.longitude },
         }),
-      () =>
+      () => {
         // denied / position-unavailable / timeout → curated fallback
-        set({ status: 'curated', isCurated: true, origin: TALLINN_CENTER }),
+        set({ status: 'curated', isCurated: true, denied: true, origin: TALLINN_CENTER })
+        useToastStore.getState().show('Location access denied — showing distances from Tallinn centre')
+      },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
     )
   },

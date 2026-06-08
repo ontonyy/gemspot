@@ -39,11 +39,11 @@ export default function Saved() {
           ) : saved.length === 0 ? (
             <div className="fg-empty">
               <div className="fg-empty-mark">
-                <span style={{ color: 'var(--ink-3)' }}><Icon d={Ic.flag} size={22} /></span>
+                <span style={{ color: 'var(--ink-3)' }}><Icon d={Ic.bookmark} size={22} /></span>
               </div>
               <div className="kicker">Nothing collected yet</div>
               <h3>No saved spots yet</h3>
-              <p>Tap the stamp on any specimen to save it here. Your collection lives on this device.</p>
+              <p>Tap the bookmark icon on any spot to save it here. Your collection lives on this device.</p>
               <div className="fg-empty-btns">
                 <button className="fg-btn" onClick={() => navigate('/explore')}>Explore spots</button>
               </div>
