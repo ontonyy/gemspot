@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Ported from Prisma migrations 0001_init + 0002_user_oauth (collapsed
+         to final state; greenfield DB, no existing data per D10). -->
+    <include file="db/changelog/0001-init.xml"/>
+    <!-- D4: refresh-token reuse detection. Net-new, not in Prisma schema. -->
+    <include file="db/changelog/0002-refresh-tokens.xml"/>
+
+</databaseChangeLog>
