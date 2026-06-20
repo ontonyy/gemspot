@@ -1,1 +1,8 @@
 .ai/
+
+# Cloud Run / Supabase secrets — never commit
+env.yaml
+keys/
+
+# Firebase deploy cache
+.firebase/

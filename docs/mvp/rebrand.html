@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GemSpot — Migration Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fcfcfa;
+    --desk:#eceae2;
+    --ink:#1a1f1c;
+    --ink-2:#444b46;
+    --ink-3:#727a73;
+    --line:#e2e3dd;
+    --line-2:#d3d5cd;
+    --accent:oklch(55% 0.11 155);      /* deep green — Spring/Cloud */
+    --accent-soft:oklch(95% 0.03 155);
+    --blue:oklch(55% 0.11 245);        /* Google/Cloud Run */
+    --blue-soft:oklch(95% 0.028 245);
+    --amber:oklch(58% 0.11 70);        /* gotchas */
+    --amber-soft:oklch(95% 0.035 80);
+    --code-bg:#1d211e;
+    --code-ink:#e7eae5;
+    --display:"Bricolage Grotesque",sans-serif;
+    --body:"Hanken Grotesk",sans-serif;
+    --mono:"Space Mono",monospace;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;background:var(--desk);color:var(--ink);
+    font-family:var(--body);font-size:15px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{
+    max-width:816px;margin:32px auto;background:var(--paper);
+    padding:72px 76px;border-radius:3px;
+    box-shadow:0 2px 14px rgba(0,0,0,0.09);
+  }
+  .page + .page{margin-top:0;}
+
+  /* ---------- type ---------- */
+  h1,h2,h3,h4{font-family:var(--display);font-weight:600;line-height:1.15;color:var(--ink);}
+  h1{font-size:38px;letter-spacing:-0.02em;margin:0 0 4px;}
+  h2{font-size:25px;letter-spacing:-0.015em;margin:48px 0 14px;padding-top:22px;border-top:2px solid var(--ink);}
+  h2:first-of-type{border-top:none;padding-top:0;margin-top:34px;}
+  h3{font-size:18px;letter-spacing:-0.01em;margin:30px 0 8px;}
+  h4{font-size:14px;margin:22px 0 6px;font-family:var(--body);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-2);}
+  p{margin:0 0 12px;text-wrap:pretty;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line-2);}
+  strong{font-weight:700;}
+  .lede{font-size:17px;color:var(--ink-2);line-height:1.55;}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);font-weight:700;}
+  .mono{font-family:var(--mono);}
+  small{font-size:12.5px;color:var(--ink-3);}
+
+  /* ---------- masthead ---------- */
+  .masthead{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:30px;padding-bottom:26px;border-bottom:2px solid var(--ink);}
+  .masthead .meta{font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--ink-3);text-align:right;white-space:nowrap;}
+  .masthead .meta b{color:var(--ink-2);}
+
+  /* ---------- lists ---------- */
+  ul,ol{margin:0 0 14px;padding-left:22px;}
+  li{margin:0 0 6px;}
+  ul.tight li,ol.tight li{margin-bottom:3px;}
+  ul.check{list-style:none;padding-left:0;}
+  ul.check li{padding-left:30px;position:relative;margin-bottom:9px;}
+  ul.check li::before{content:"";position:absolute;left:0;top:3px;width:16px;height:16px;border:1.5px solid var(--line-2);border-radius:4px;}
+
+  /* ---------- code ---------- */
+  code{font-family:var(--mono);font-size:0.86em;background:#eef0ea;padding:1px 5px;border-radius:4px;color:#26312b;}
+  pre{background:var(--code-bg);color:var(--code-ink);font-family:var(--mono);font-size:12px;line-height:1.65;
+      padding:16px 18px;border-radius:7px;overflow-x:auto;margin:12px 0 16px;}
+  pre code{background:none;padding:0;color:inherit;font-size:inherit;}
+  pre .c{color:#8b9a8e;}        /* comment */
+  pre .k{color:#9fd0a8;}        /* keyword/path */
+  pre .s{color:#e6c98a;}        /* string */
+
+  /* ---------- tables ---------- */
+  table{width:100%;border-collapse:collapse;margin:14px 0 18px;font-size:13px;}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3);font-weight:700;border-bottom:1.5px solid var(--line-2);}
+  td.mono,th.mono{font-family:var(--mono);font-size:12px;}
+  tbody tr:last-child td{border-bottom:none;}
+  .tag{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;letter-spacing:0.03em;white-space:nowrap;}
+  .tag.pub{background:var(--accent-soft);color:var(--accent);}
+  .tag.auth{background:var(--blue-soft);color:var(--blue);}
+  .tag.admin{background:#f3e4e0;color:oklch(52% 0.12 35);}
+
+  /* ---------- callouts ---------- */
+  .note{border-left:3px solid var(--blue);background:var(--blue-soft);padding:12px 16px;border-radius:0 6px 6px 0;margin:14px 0 18px;font-size:13.5px;}
+  .warn{border-left:3px solid var(--amber);background:var(--amber-soft);padding:12px 16px;border-radius:0 6px 6px 0;margin:14px 0 18px;font-size:13.5px;}
+  .note .lab,.warn .lab{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:3px;}
+  .note .lab{color:var(--blue);}
+  .warn .lab{color:var(--amber);}
+
+  /* ---------- phase header ---------- */
+  .phase{display:flex;align-items:baseline;gap:14px;margin:46px 0 4px;padding-top:24px;border-top:2px solid var(--ink);}
+  .phase:first-of-type{margin-top:30px;}
+  .phase .num{font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;background:var(--ink);width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;align-self:center;}
+  .phase h2{border:none;padding:0;margin:0;}
+  .est{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:auto;align-self:center;white-space:nowrap;}
+
+  /* ---------- arch diagram ---------- */
+  .arch{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:18px 0;}
+  .arch .box{border:1.5px solid var(--line-2);border-radius:9px;padding:14px;}
+  .arch .box h4{margin:0 0 6px;color:var(--ink);}
+  .arch .box .host{font-family:var(--mono);font-size:10.5px;color:var(--accent);font-weight:700;margin-bottom:8px;}
+  .arch .box ul{margin:0;padding-left:16px;font-size:12px;color:var(--ink-2);}
+  .arch .box li{margin-bottom:2px;}
+  .flowrow{display:flex;align-items:center;gap:8px;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--ink-3);margin:6px 0 2px;}
+
+  .twocol{column-count:2;column-gap:30px;}
+  .twocol li{margin-bottom:5px;}
+
+  hr.soft{border:none;border-top:1px solid var(--line);margin:22px 0;}
+
+  /* ---------- print ---------- */
+  @media print{
+    body{background:#fff;}
+    .page{box-shadow:none;border-radius:0;margin:0;max-width:none;padding:0;}
+    @page{margin:0.7in;}
+    h2,.phase{break-after:avoid;}
+    h3,h4{break-after:avoid;}
+    table,pre,.note,.warn,.arch{break-inside:avoid;}
+    tr,li{break-inside:avoid;}
+    pre{font-size:10.5px;}
+    a{color:var(--ink);border:none;}
+    .pagebreak{break-before:page;}
+    *{print-color-adjust:exact;-webkit-print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================ PAGE 1 ============================ -->
+<section class="page">
+  <div class="masthead">
+    <div>
+      <div class="kicker">Re-platforming &nbsp;·&nbsp; Engineering Plan</div>
+      <h1>GemSpot Migration Plan</h1>
+      <p class="lede" style="margin:6px 0 0;">NestJS&nbsp;+&nbsp;Render&nbsp;→&nbsp;<strong>Spring&nbsp;Boot</strong> on <strong>Google&nbsp;Cloud&nbsp;Run</strong>, data on <strong>Supabase</strong>, frontend on <strong>Firebase&nbsp;Hosting</strong>.</p>
+    </div>
+    <div class="meta">
+      <b>VERSION</b> 1.0<br>
+      <b>DATE</b> 2026-06-08<br>
+      <b>FOR</b> Claude Code<br>
+      <b>OWNER</b> ontony
+    </div>
+  </div>
+
+  <p class="lede">This is an execution plan, not a discussion. The frontend's typed DTO contract is the fixed point: the new Java backend must serve <strong>byte-identical JSON</strong> to today's Nest API and mock, so the React app changes only one environment variable. Everything below preserves that contract while swapping the runtime, database, storage, and hosting underneath it.</p>
+
+  <h2>What stays, what changes</h2>
+  <table>
+    <thead><tr><th style="width:24%">Layer</th><th style="width:33%">Today</th><th>After migration</th></tr></thead>
+    <tbody>
+      <tr><td>Frontend</td><td>React 19 + Vite 8 (unchanged)</td><td><strong>Unchanged</strong> — new <code>VITE_API_URL</code> only</td></tr>
+      <tr><td>Frontend host</td><td>GitHub Pages</td><td><strong>Firebase Hosting</strong> (europe-north1)</td></tr>
+      <tr><td>Backend framework</td><td>NestJS 10 (Node/TS)</td><td><strong>Spring Boot 3.5.x · Java 25 · Gradle</strong></td></tr>
+      <tr><td>Backend host</td><td>Render (Node web service)</td><td><strong>Cloud Run</strong> (container, scale-to-zero)</td></tr>
+      <tr><td>ORM</td><td>Prisma 5</td><td><strong>Spring Data JPA / Hibernate 6</strong></td></tr>
+      <tr><td>Migrations</td><td>Prisma Migrate</td><td><strong>Liquibase</strong> (XML changelogs)</td></tr>
+      <tr><td>Database</td><td>Render Postgres</td><td><strong>Supabase Postgres</strong> (eu-north-1)</td></tr>
+      <tr><td>Auth</td><td><code>@nestjs/jwt</code> + bcryptjs</td><td><strong>Spring Security + JJWT</strong> (1:1 port)</td></tr>
+      <tr><td>File storage</td><td>local disk (ephemeral)</td><td><strong>Supabase Storage</strong> (persistent)</td></tr>
+      <tr><td>Tests</td><td>Jest + ts-jest (33)</td><td><strong>JUnit 5 + Mockito</strong> (33 ported)</td></tr>
+      <tr><td>CI/CD</td><td>GitHub Actions → Pages</td><td><strong>GitHub Actions</strong> → Cloud Run + Firebase</td></tr>
+      <tr><td>Repo</td><td>mixed monorepo (+ empiregranit)</td><td><strong>clean GemSpot monorepo</strong>, kept &amp; tidied</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Decisions locked</h2>
+  <table>
+    <tbody>
+      <tr><td class="mono" style="width:42%">Repo</td><td>Monorepo, keep existing repo, cleaned up</td></tr>
+      <tr><td class="mono">Build tool</td><td>Gradle (Kotlin DSL)</td></tr>
+      <tr><td class="mono">Java</td><td>Java 25 (LTS)</td></tr>
+      <tr><td class="mono">Auth</td><td>Custom JWT in Spring Security — 1:1 port of Nest auth</td></tr>
+      <tr><td class="mono">Photos</td><td>Supabase Storage</td></tr>
+      <tr><td class="mono">Migrations</td><td>Liquibase</td></tr>
+      <tr><td class="mono">Frontend host</td><td>Firebase Hosting</td></tr>
+      <tr><td class="mono">Backend host</td><td>Cloud Run</td></tr>
+      <tr><td class="mono">Region</td><td>europe-north1 (Finland) · Supabase eu-north-1 (Stockholm)</td></tr>
+      <tr><td class="mono">CI/CD</td><td>GitHub Actions</td></tr>
+      <tr><td class="mono">Secrets</td><td>Cloud Run env vars (plain)</td></tr>
+      <tr><td class="mono">Tests</td><td>JUnit 5 + Mockito (mocked repositories)</td></tr>
+      <tr><td class="mono">Users table</td><td>Own <code>users</code> table in Supabase Postgres</td></tr>
+      <tr><td class="mono">Cutover</td><td>Hard replace — retire Nest immediately</td></tr>
+      <tr><td class="mono">Domain</td><td>None — default Firebase / Cloud Run URLs for now</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Target architecture</h2>
+  <div class="arch">
+    <div class="box">
+      <div class="host">FIREBASE HOSTING</div>
+      <h4>web/</h4>
+      <ul><li>React 19 SPA</li><li>HashRouter</li><li>MapLibre + OpenFreeMap</li><li>static, CDN-served</li></ul>
+    </div>
+    <div class="box">
+      <div class="host">CLOUD RUN · europe-north1</div>
+      <h4>backend/</h4>
+      <ul><li>Spring Boot 3.5</li><li>Java 25 container</li><li>REST API</li><li>scale-to-zero</li></ul>
+    </div>
+    <div class="box">
+      <div class="host">SUPABASE · eu-north-1</div>
+      <h4>data</h4>
+      <ul><li>Postgres (pooler)</li><li>Storage bucket</li><li>place photos</li></ul>
+    </div>
+  </div>
+  <div class="flowrow">browser &nbsp;→&nbsp; <code>*.web.app</code> &nbsp;——&nbsp; <code>fetch(VITE_API_URL)</code> &nbsp;——&nbsp; <code>*.run.app</code> &nbsp;——&nbsp; JDBC pooler&nbsp;:6543 &nbsp;→&nbsp; Supabase</div>
+  <p><small>The SPA already degrades gracefully: on a 5xx / network error to read endpoints it falls back to the bundled mock dataset and shows a one-time toast (<code>withMockFallback</code> in <code>placesApi.ts</code>). That safety net stays — it covers Cloud Run cold starts.</small></p>
+
+  <h2>How this document is organized</h2>
+  <p>Eleven phases, ordered for execution. Each is independently committable and verifiable. Phases 1–7 build the Spring backend with the contract as the test oracle; 8–11 containerize, provision Supabase, and deploy. The crosswalk tables and the verification checklist at the end are the acceptance gate.</p>
+  <ol class="tight">
+    <li><strong>Phase&nbsp;0</strong> — Repo cleanup &amp; structure</li>
+    <li><strong>Phase&nbsp;1</strong> — Spring scaffold (Gradle, Java 25) + package layout</li>
+    <li><strong>Phase&nbsp;2</strong> — Endpoint inventory (1:1 from Nest)</li>
+    <li><strong>Phase&nbsp;3</strong> — Data layer: JPA entities + Liquibase from Prisma</li>
+    <li><strong>Phase&nbsp;4</strong> — Services &amp; mappers (business logic port)</li>
+    <li><strong>Phase&nbsp;5</strong> — Auth: Spring Security + JWT</li>
+    <li><strong>Phase&nbsp;6</strong> — Supabase Storage adapter</li>
+    <li><strong>Phase&nbsp;7</strong> — Seed + tests (JUnit 5 + Mockito)</li>
+    <li><strong>Phase&nbsp;8</strong> — Containerize for Cloud Run</li>
+    <li><strong>Phase&nbsp;9</strong> — Supabase &amp; Cloud Run + Firebase deploy</li>
+    <li><strong>Phase&nbsp;10</strong> — GitHub Actions pipelines</li>
+    <li><strong>Phase&nbsp;11</strong> — Cutover, verification &amp; rollback</li>
+  </ol>
+</section>
+
+<!-- ============================ PAGE 2 ============================ -->
+<section class="page pagebreak">
+
+  <div class="phase"><span class="num">0</span><h2>Repo cleanup &amp; structure</h2><span class="est">~½ day</span></div>
+  <p>Keep the existing repo; make it a <strong>clean GemSpot-only monorepo</strong>. The current tree already separates <code>web/</code> and <code>backend/</code> — that split survives. Java replaces the Node backend in place.</p>
+
+  <h4>Remove / relocate</h4>
+  <ul class="tight">
+    <li>The unrelated <code>empiregranit.ee</code> content on <code>master</code> → move to its own repo. A GemSpot monorepo must contain only GemSpot, or the path-filtered CI fires on the wrong changes.</li>
+    <li><code>render.yaml</code> → delete (replaced by Cloud Run + Firebase configs).</li>
+    <li><code>backend/prisma/</code>, <code>backend/nest-cli.json</code>, <code>backend/jest.config.js</code>, <code>backend/tsconfig.json</code>, <code>backend/.node-version</code>, <code>backend/package*.json</code>, <code>backend/src/</code> (Node) → delete once the Java port is green.</li>
+    <li><code>web/.env.example</code> → keep; just update the example URL later.</li>
+  </ul>
+
+  <h4>Target monorepo layout</h4>
+<pre><code><span class="c"># gemspot/  (one repo, master)</span>
+<span class="k">web/</span>                      <span class="c"># React SPA — unchanged</span>
+<span class="k">backend/</span>                  <span class="c"># Spring Boot — replaces Nest</span>
+  build.gradle.kts
+  settings.gradle.kts
+  Dockerfile
+  src/main/java/ee/gemspot/api/...
+  src/main/resources/
+  src/test/java/ee/gemspot/api/...
+<span class="k">.github/workflows/</span>
+  deploy-web.yml          <span class="c"># Firebase  (paths: web/**)</span>
+  deploy-api.yml          <span class="c"># Cloud Run (paths: backend/**)</span>
+firebase.json  .firebaserc
+README.md  CONTEXT.md</code></pre>
+
+  <div class="note"><span class="lab">Why monorepo holds</span>The DTO contract spans both halves. A schema change touches the Java DTO <em>and</em> <code>web/src/shared/api/types.ts</code> in one PR — atomic, no cross-repo drift. Path filters give each half its own independent deploy, so you keep the only real benefit of splitting without paying its coordination cost.</div>
+
+  <div class="phase"><span class="num">1</span><h2>Spring scaffold &amp; package layout</h2><span class="est">~1 day</span></div>
+  <p>Initialize a Spring Boot 3.5.x project with Gradle (Kotlin DSL) and a Java 25 toolchain. Mirror the Nest layered structure (<code>api → application → contracts/infra</code>) onto idiomatic Spring packages so the port is a near-mechanical file-for-file move.</p>
+
+  <div class="warn"><span class="lab">Toolchain versions</span>Java 25 is new. Pin <strong>Gradle 9.x</strong> (first line with Java 25 support) via the wrapper, and a <strong>Spring Boot 3.5.x</strong> that targets Java 25. Set <code>java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }</code> so the build provisions the JDK regardless of the host.</p></div>
+
+  <h4>Dependencies (build.gradle.kts)</h4>
+  <table>
+    <thead><tr><th>Need</th><th>Starter / library</th></tr></thead>
+    <tbody>
+      <tr><td>Web / REST</td><td class="mono">spring-boot-starter-web</td></tr>
+      <tr><td>Persistence</td><td class="mono">spring-boot-starter-data-jpa</td></tr>
+      <tr><td>Validation</td><td class="mono">spring-boot-starter-validation</td></tr>
+      <tr><td>Security</td><td class="mono">spring-boot-starter-security</td></tr>
+      <tr><td>Migrations</td><td class="mono">liquibase-core</td></tr>
+      <tr><td>Postgres driver</td><td class="mono">org.postgresql:postgresql</td></tr>
+      <tr><td>JWT</td><td class="mono">io.jsonwebtoken:jjwt-{api,impl,jackson} 0.12.x</td></tr>
+      <tr><td>Password hash</td><td class="mono">spring-security-crypto (BCryptPasswordEncoder)</td></tr>
+      <tr><td>Supabase Storage</td><td class="mono">software.amazon.awssdk:s3 (S3-compatible)</td></tr>
+      <tr><td>Actuator (health)</td><td class="mono">spring-boot-starter-actuator</td></tr>
+      <tr><td>Test</td><td class="mono">spring-boot-starter-test (JUnit 5 + Mockito)</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Package map — Nest → Spring</h4>
+  <table>
+    <thead><tr><th>Nest (today)</th><th>Spring package <code>ee.gemspot.api.*</code></th></tr></thead>
+    <tbody>
+      <tr><td class="mono">main.ts / app.module.ts</td><td class="mono">GemSpotApplication.java</td></tr>
+      <tr><td class="mono">api/&#42;/&#42;.controller.ts</td><td class="mono">web/&#42;Controller.java</td></tr>
+      <tr><td class="mono">application/&#42;/&#42;.service.ts</td><td class="mono">service/&#42;Service.java</td></tr>
+      <tr><td class="mono">contracts/dto/&#42;.dto.ts</td><td class="mono">dto/&#42; (Java records)</td></tr>
+      <tr><td class="mono">prisma/schema.prisma (models)</td><td class="mono">domain/&#42; (@Entity) + repository/&#42;</td></tr>
+      <tr><td class="mono">place.mapper.ts</td><td class="mono">mapper/PlaceMapper.java</td></tr>
+      <tr><td class="mono">jwt-auth.guard.ts / admin-role.guard.ts</td><td class="mono">security/ (JwtAuthFilter, SecurityConfig)</td></tr>
+      <tr><td class="mono">infra/storage/storage.service.ts</td><td class="mono">storage/ (StorageService + SupabaseStorageService)</td></tr>
+      <tr><td class="mono">infra/prisma/prisma.service.ts</td><td class="mono">— (replaced by JPA repositories)</td></tr>
+      <tr><td class="mono">application/common/relative-time.ts</td><td class="mono">common/RelativeTime.java</td></tr>
+    </tbody>
+  </table>
+
+  <h4>config/ package</h4>
+  <ul class="tight">
+    <li><code>SecurityConfig</code> — stateless filter chain, public vs authenticated routes, BCrypt bean, method security for admin.</li>
+    <li><code>CorsConfig</code> — allowed origin from <code>CORS_ORIGIN</code> (Firebase domain), <code>allowCredentials=true</code>. Mirrors <code>main.ts</code>.</li>
+    <li><code>JacksonConfig</code> — <code>FAIL_ON_UNKNOWN_PROPERTIES=false</code> to match Nest's <code>ValidationPipe whitelist:true, forbidNonWhitelisted:false</code> (extra body fields ignored, never rejected).</li>
+  </ul>
+</section>
+
+<!-- ============================ PAGE 3 ============================ -->
+<section class="page pagebreak">
+
+  <div class="phase"><span class="num">2</span><h2>Endpoint inventory — 1:1</h2><span class="est">reference</span></div>
+  <p>Every route, status code, and auth requirement is preserved exactly. <span class="tag pub">PUBLIC</span> no token · <span class="tag auth">AUTH</span> valid access token · <span class="tag admin">ADMIN</span> token + ADMIN role.</p>
+
+  <table>
+    <thead><tr><th style="width:14%">Method</th><th style="width:34%">Path</th><th style="width:18%">Access</th><th>Spring controller</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">GET</td><td class="mono">/health</td><td><span class="tag pub">PUBLIC</span></td><td class="mono">HealthController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/places?cat=</td><td><span class="tag pub">PUBLIC</span></td><td class="mono">PlacesController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/places/{slug}</td><td><span class="tag pub">PUBLIC</span></td><td class="mono">PlacesController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/categories</td><td><span class="tag pub">PUBLIC</span></td><td class="mono">CategoriesController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/guides</td><td><span class="tag pub">PUBLIC</span></td><td class="mono">GuidesController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/guides/{id}</td><td><span class="tag pub">PUBLIC</span></td><td class="mono">GuidesController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/events &nbsp;<small>→ 202</small></td><td><span class="tag pub">PUBLIC</span></td><td class="mono">EventsController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/auth/register</td><td><span class="tag pub">PUBLIC</span></td><td class="mono">AuthController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/auth/login &nbsp;<small>→ 200</small></td><td><span class="tag pub">PUBLIC</span></td><td class="mono">AuthController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/auth/refresh &nbsp;<small>→ 200</small></td><td><span class="tag pub">PUBLIC</span></td><td class="mono">AuthController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/auth/oauth/google &nbsp;<small>→ 200</small></td><td><span class="tag pub">PUBLIC</span></td><td class="mono">AuthController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/auth/logout &nbsp;<small>→ 200</small></td><td><span class="tag pub">PUBLIC</span></td><td class="mono">AuthController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/auth/me</td><td><span class="tag auth">AUTH</span></td><td class="mono">AuthController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/saved</td><td><span class="tag auth">AUTH</span></td><td class="mono">SavedController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/saved &nbsp;<small>→ 200</small></td><td><span class="tag auth">AUTH</span></td><td class="mono">SavedController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/saved/merge &nbsp;<small>→ 200</small></td><td><span class="tag auth">AUTH</span></td><td class="mono">SavedController</td></tr>
+      <tr><td class="mono">DELETE</td><td class="mono">/saved/{placeId}</td><td><span class="tag auth">AUTH</span></td><td class="mono">SavedController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/submissions</td><td><span class="tag auth">AUTH</span></td><td class="mono">SubmissionsController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/submissions/mine</td><td><span class="tag auth">AUTH</span></td><td class="mono">SubmissionsController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/reports</td><td><span class="tag auth">AUTH</span></td><td class="mono">ReportsController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/reports/mine</td><td><span class="tag auth">AUTH</span></td><td class="mono">ReportsController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/uploads &nbsp;<small>multipart</small></td><td><span class="tag auth">AUTH</span></td><td class="mono">UploadsController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/admin/stats</td><td><span class="tag admin">ADMIN</span></td><td class="mono">AdminController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/admin/events</td><td><span class="tag admin">ADMIN</span></td><td class="mono">AdminController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/admin/submissions?status=</td><td><span class="tag admin">ADMIN</span></td><td class="mono">AdminController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/admin/submissions/{id}/approve <small>→200</small></td><td><span class="tag admin">ADMIN</span></td><td class="mono">AdminController</td></tr>
+      <tr><td class="mono">POST</td><td class="mono">/admin/submissions/{id}/reject <small>→200</small></td><td><span class="tag admin">ADMIN</span></td><td class="mono">AdminController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/admin/places</td><td><span class="tag admin">ADMIN</span></td><td class="mono">AdminController</td></tr>
+      <tr><td class="mono">PATCH</td><td class="mono">/admin/places/{id}/status</td><td><span class="tag admin">ADMIN</span></td><td class="mono">AdminController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/admin/reports?status=</td><td><span class="tag admin">ADMIN</span></td><td class="mono">AdminController</td></tr>
+      <tr><td class="mono">PATCH</td><td class="mono">/admin/reports/{id}/status</td><td><span class="tag admin">ADMIN</span></td><td class="mono">AdminController</td></tr>
+      <tr><td class="mono">GET</td><td class="mono">/admin/users</td><td><span class="tag admin">ADMIN</span></td><td class="mono">AdminController</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warn"><span class="lab">Status codes are part of the contract</span>Nest annotates non-default codes (<code>@HttpCode(200)</code> on login/refresh/oauth/logout/saved POSTs; <code>202</code> on events). Spring returns <code>200</code> for POST by default, so the only one needing an explicit <code>@ResponseStatus(HttpStatus.ACCEPTED)</code> is <code>POST /events</code>. Register returns <code>201</code> in Nest (default POST) — match it with <code>@ResponseStatus(HttpStatus.CREATED)</code> on register.</div>
+
+  <h4>No global path prefix</h4>
+  <p>Nest mounts controllers at the root (no <code>/api</code> prefix); the frontend calls <code>${VITE_API_URL}/places</code> etc. Keep Spring at the root too — do <strong>not</strong> set <code>server.servlet.context-path</code>. Health stays at <code>/health</code> (override Actuator or use a plain controller) because Cloud Run's health check and the frontend both expect that exact path returning <code>{"status":"ok"}</code>.</p>
+</section>
+
+<!-- ============================ PAGE 4 ============================ -->
+<section class="page pagebreak">
+
+  <div class="phase"><span class="num">3</span><h2>Data layer — JPA + Liquibase</h2><span class="est">~1.5 days</span></div>
+  <p>Translate the 11 Prisma models into JPA entities and a Liquibase changelog. Table and column names are already explicit in the schema (<code>@@map</code> / snake_case) — preserve them exactly so the Liquibase-built schema matches what the entities expect.</p>
+
+  <h4>Entity / table crosswalk</h4>
+  <table>
+    <thead><tr><th>Prisma model</th><th>Table</th><th>Spring entity notes</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">User</td><td class="mono">users</td><td>UUID String id; <code>passwordHash</code> nullable; <code>@Enumerated(STRING)</code> role; unique <code>email</code>, unique <code>(provider, providerId)</code></td></tr>
+      <tr><td class="mono">Profile</td><td class="mono">profiles</td><td>1:1 User, <code>onDelete CASCADE</code></td></tr>
+      <tr><td class="mono">Category</td><td class="mono">categories</td><td><strong>String id</strong> = CategoryId (<code>"tabletennis"</code>…), app-assigned — no generator</td></tr>
+      <tr><td class="mono">Place</td><td class="mono">places</td><td><strong>String id</strong> = zero-padded <code>"01".."10"</code>, app-assigned; <code>tags</code> → <code>text[]</code>; floats for lat/lng</td></tr>
+      <tr><td class="mono">PlaceCategory</td><td class="mono">place_categories</td><td>join + <code>primary</code> flag; unique <code>(placeId, categoryId)</code></td></tr>
+      <tr><td class="mono">PlacePhoto</td><td class="mono">place_photos</td><td>ordered by <code>sort</code></td></tr>
+      <tr><td class="mono">SavedPlace</td><td class="mono">saved_places</td><td>unique <code>(userId, placeId)</code></td></tr>
+      <tr><td class="mono">Submission</td><td class="mono">submissions</td><td>nullable userId (<code>SetNull</code>); <code>@Enumerated</code> status</td></tr>
+      <tr><td class="mono">SubmissionPhoto</td><td class="mono">submission_photos</td><td>ordered by <code>sort</code></td></tr>
+      <tr><td class="mono">Report</td><td class="mono">reports</td><td>nullable user/place; <code>reason</code> + <code>status</code> enums</td></tr>
+      <tr><td class="mono">Event</td><td class="mono">events</td><td><code>props</code> → <code>jsonb</code>; index on <code>name</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="warn"><span class="lab">Three Hibernate gotchas</span>
+    <strong>1. String arrays</strong> — <code>tags String[]</code> maps to Postgres <code>text[]</code>. Use <code>@JdbcTypeCode(SqlTypes.ARRAY) @Column(columnDefinition="text[]") List&lt;String&gt; tags</code> (Hibernate 6).<br>
+    <strong>2. JSON</strong> — <code>Event.props</code> is <code>jsonb</code>: <code>@JdbcTypeCode(SqlTypes.JSON) Map&lt;String,Object&gt; props</code>.<br>
+    <strong>3. Application-assigned IDs</strong> — <code>Place</code> and <code>Category</code> use meaningful string ids, <em>not</em> generated. Annotate <code>@Id</code> with no <code>@GeneratedValue</code>; on <code>save()</code> of a new row Hibernate will <code>INSERT</code> (use <code>persist</code> semantics / implement <code>Persistable</code> if you hit select-before-insert overhead). UUID-keyed entities use <code>@GeneratedValue(strategy=UUID)</code> or assign in code as today.</div>
+
+  <h4>Liquibase</h4>
+  <p>An exact baseline already exists: Prisma generated <code>backend/prisma/migrations/0001_init/migration.sql</code> (all enums + tables). Port it rather than reverse-engineering from entities.</p>
+  <ul class="tight">
+    <li>Master changelog <code>src/main/resources/db/changelog/db.changelog-master.xml</code> includes per-change files.</li>
+    <li><code>0001-init.xml</code> — translate the Prisma init SQL: create the four enum types (<code>UserRole</code>, <code>PlaceStatus</code>, <code>SubmissionStatus</code>, <code>ReportStatus</code>, <code>ReportReason</code>), all tables with their <code>@@map</code> names, FKs with the documented <code>onDelete</code> rules, and unique constraints / indexes.</li>
+    <li>Set <code>ddl-auto: validate</code> in JPA — Hibernate validates against the Liquibase-built schema and never mutates it. Liquibase owns DDL.</li>
+  </ul>
+  <div class="note"><span class="lab">Enums</span>Map Postgres enum types to JPA with <code>@Enumerated(EnumType.STRING)</code> backed by <code>columnDefinition</code>, or define the columns as <code>varchar</code> with a check constraint if native PG enums prove fiddly with Hibernate. Either way the <em>values</em> on the wire stay the uppercased strings (<code>ACTIVE</code>, <code>PENDING</code>, …) the admin DTOs expect.</div>
+
+  <div class="phase"><span class="num">4</span><h2>Services &amp; mappers</h2><span class="est">~2 days</span></div>
+  <p>Port each service method-for-method. The logic is small and pure; the work is translating Prisma calls to Spring Data repository calls. Below, the non-obvious ones.</p>
+
+  <table>
+    <thead><tr><th style="width:26%">Service</th><th>Port notes (preserve behavior exactly)</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">PlacesService<br>+ PlaceMapper</td><td>List filters <code>status=ACTIVE</code> (+ optional category) ordered by <code>sort</code>; detail by slug → 404 if missing. Mapper builds <code>appleMapsUrl</code>/<code>googleMapsUrl</code> from lat/lng and emits <code>{url:""}</code> photo placeholder when none — byte-identical to <code>place.mapper.ts</code>.</td></tr>
+      <tr><td class="mono">CategoriesService</td><td>All categories by <code>sort</code>; <code>color = cssvar</code>, <code>glyph = id</code>.</td></tr>
+      <tr><td class="mono">GuidesService</td><td>Derived, no table: one guide per category with ≥2 spots + a prepended <strong>"Free to play"</strong> cross-cut (<code>coverCategory:scenic</code>). <code>getById</code> resolves spot slugs against the live places. Mirror <code>buildGuides()</code>.</td></tr>
+      <tr><td class="mono">SavedService</td><td>Returns place-id list in place <code>sort</code> order. <code>add</code> upserts only if the place exists; <code>merge</code> inserts valid+new ids, skips unknown &amp; duplicates (never errors); <code>remove</code> = deleteAll matching.</td></tr>
+      <tr><td class="mono">SubmissionsService</td><td><code>create</code> → PENDING, persists photo rows, <code>photoCount = photoCount ?? urls.length</code>; <code>listMine</code> newest-first.</td></tr>
+      <tr><td class="mono">ReportsService</td><td>Front↔DB reason maps (<code>closed↔CLOSED</code> …). <code>create</code> echoes <code>reportedAt:"just now"</code>; <code>listMine</code> uses RelativeTime.</td></tr>
+      <tr><td class="mono">AdminService</td><td>Stats via 5 counts. <strong>approveSubmission</strong>: compute next padded id (<code>last.sort+1</code>, <code>padStart(2,'0')</code>), unique-slug loop, transactional create ACTIVE Place + flip submission APPROVED — port carefully (see slugify). 404 on missing.</td></tr>
+      <tr><td class="mono">EventsService</td><td><code>track</code> inserts; <code>counts</code> = group-by name desc (JPQL/<code>@Query</code> or Spring Data projection).</td></tr>
+      <tr><td class="mono">Common.RelativeTime</td><td>Direct port of <code>relative-time.ts</code> — "just now / N minutes/hours/days ago". <strong>Unit-test it.</strong></td></tr>
+    </tbody>
+  </table>
+  <div class="note"><span class="lab">@Transactional</span>The Prisma <code>$transaction</code> in <code>approveSubmission</code> becomes a <code>@Transactional</code> service method — the create-place + update-submission must be atomic, same as today.</div>
+</section>
+
+<!-- ============================ PAGE 5 ============================ -->
+<section class="page pagebreak">
+
+  <div class="phase"><span class="num">5</span><h2>Auth — Spring Security + JWT</h2><span class="est">~1.5 days</span></div>
+  <p>A faithful port of the stateless dual-token scheme. No sessions, no server-side token store; logout is client-side. Two separate secrets, two TTLs.</p>
+
+  <table>
+    <thead><tr><th style="width:40%">Nest mechanism</th><th>Spring equivalent</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">@nestjs/jwt signAsync</td><td class="mono">JJWT 0.12 — JwtService.issue()</td></tr>
+      <tr><td class="mono">bcryptjs hash/compare (rounds 10)</td><td class="mono">BCryptPasswordEncoder(10)</td></tr>
+      <tr><td class="mono">JwtAuthGuard (Bearer verify)</td><td class="mono">OncePerRequestFilter → JwtAuthFilter</td></tr>
+      <tr><td class="mono">@CurrentUser() decorator</td><td class="mono">SecurityContext principal / @AuthenticationPrincipal</td></tr>
+      <tr><td class="mono">AdminGuard (role check)</td><td class="mono">@PreAuthorize("hasRole('ADMIN')") / authorizeHttpRequests</td></tr>
+      <tr><td class="mono">UnauthorizedException → 401</td><td class="mono">AuthenticationEntryPoint → 401</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Token claims — keep identical</h4>
+  <ul class="tight">
+    <li><strong>Access</strong>: <code>{ sub:userId, email, role }</code>, signed with <code>JWT_SECRET</code>, TTL <code>JWT_ACCESS_TTL</code> (15m).</li>
+    <li><strong>Refresh</strong>: <code>{ sub:userId, typ:"refresh" }</code>, signed with <code>JWT_REFRESH_SECRET</code>, TTL <code>JWT_REFRESH_TTL</code> (30d). Refresh verifies <code>typ==="refresh"</code> and rotates both tokens.</li>
+    <li><code>AuthResponseDto</code> = <code>{ user:{id,email,name,role}, accessToken, refreshToken }</code> — the shape <code>authStore.ts</code> persists. Do not change field names or casing.</li>
+  </ul>
+
+  <h4>SecurityConfig route rules</h4>
+<pre><code><span class="c">// stateless, CSRF off (JWT bearer, no cookies)</span>
+permitAll: <span class="k">/health</span>, <span class="k">/places/**</span>, <span class="k">/categories</span>, <span class="k">/guides/**</span>,
+           <span class="k">/auth/**</span> (except /auth/me), POST <span class="k">/events</span>
+authenticated: <span class="k">/auth/me</span>, <span class="k">/saved/**</span>, <span class="k">/submissions/**</span>,
+               <span class="k">/reports/**</span>, <span class="k">/uploads</span>
+hasRole(ADMIN): <span class="k">/admin/**</span></code></pre>
+
+  <div class="warn"><span class="lab">Role mapping</span>Spring's <code>hasRole('ADMIN')</code> expects an authority named <code>ROLE_ADMIN</code>. When building the <code>Authentication</code> in the filter, grant <code>new SimpleGrantedAuthority("ROLE_" + claims.role)</code>. The role <em>value</em> in the JWT and DTOs stays the bare <code>"ADMIN"</code>/<code>"CLIENT"</code> the frontend reads.</div>
+
+  <h4>Google OAuth</h4>
+  <p>Port <code>oauthGoogle</code>: verify the ID token via <code>GET https://oauth2.googleapis.com/tokeninfo?id_token=</code> using Spring's <code>RestClient</code> (no extra dep), check <code>aud == GOOGLE_CLIENT_ID</code> and <code>email_verified</code>, then link-by-email (existing account gains the provider link, new email creates an OAuth-only account with null password). If <code>GOOGLE_CLIENT_ID</code> is unset, return 401 "not configured" — same as today.</p>
+
+  <h4>Validation crosswalk (class-validator → Jakarta)</h4>
+  <table>
+    <thead><tr><th>class-validator</th><th>Jakarta Bean Validation</th><th>Used on</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">@IsEmail</td><td class="mono">@Email</td><td>register/login email</td></tr>
+      <tr><td class="mono">@MinLength(n)</td><td class="mono">@Size(min=n) / @NotBlank</td><td>password (8–72), names</td></tr>
+      <tr><td class="mono">@IsIn([...])</td><td class="mono">@Pattern / custom @ValueOfEnum</td><td>categoryId, reason, statuses</td></tr>
+      <tr><td class="mono">@IsNumber</td><td class="mono">@NotNull on double</td><td>lat / lng</td></tr>
+      <tr><td class="mono">@IsInt @Min(0)</td><td class="mono">@Min(0) on Integer</td><td>photoCount</td></tr>
+      <tr><td class="mono">@ArrayMaxSize(n)</td><td class="mono">@Size(max=n)</td><td>photoUrls (6), placeIds (500)</td></tr>
+    </tbody>
+  </table>
+  <p>Use Java <strong>records</strong> for request DTOs with <code>@Valid</code> on the controller param; a <code>@RestControllerAdvice</code> maps validation failures to <code>400</code> (Nest's <code>ValidationPipe</code> behavior) and <code>NotFound</code>/<code>Conflict</code>/<code>Unauthorized</code> exceptions to <code>404</code>/<code>409</code>/<code>401</code>.</p>
+
+  <div class="phase"><span class="num">6</span><h2>Supabase Storage adapter</h2><span class="est">~1 day</span></div>
+  <p>Keep the storage <em>seam</em>: a <code>StorageService</code> interface (<code>StoredFile save(file)</code>) the <code>UploadsController</code> codes against, with a <code>SupabaseStorageService</code> implementation replacing local disk. Controller validation is unchanged: field name <code>file</code>, max 5&nbsp;MB, mime in <code>{jpeg,png,webp,gif}</code>, returns <code>{ url }</code>.</p>
+  <ul class="tight">
+    <li>Create a <strong>public</strong> bucket (e.g. <code>place-photos</code>) in Supabase Storage.</li>
+    <li>Supabase exposes an <strong>S3-compatible</strong> endpoint — use the AWS SDK v2 <code>S3Client</code> pointed at <code>https://&lt;project&gt;.supabase.co/storage/v1/s3</code>, region <code>eu-north-1</code>, path-style access, with the Supabase S3 access key/secret. Upload object <code>{uuid}.{ext}</code>.</li>
+    <li>Return the public URL: <code>https://&lt;project&gt;.supabase.co/storage/v1/object/public/place-photos/{name}</code>. This becomes the <code>url</code> stored on submission/place photo rows.</li>
+    <li>Delete the old <code>useStaticAssets('/uploads')</code> path and <code>ASSET_BASE_URL</code> — photos are no longer served by the API.</li>
+  </ul>
+  <div class="note"><span class="lab">Why this finally fixes photos</span>Render's free disk was ephemeral, so uploads vanished on redeploy. Supabase Storage is durable object storage — uploaded photos persist across Cloud Run revisions and cold starts.</div>
+</section>
+
+<!-- ============================ PAGE 6 ============================ -->
+<section class="page pagebreak">
+
+  <div class="phase"><span class="num">7</span><h2>Seed + tests</h2><span class="est">~1.5 days</span></div>
+
+  <h4>Seed</h4>
+  <p>Port <code>prisma/seed.ts</code> to an idempotent <code>ApplicationRunner</code> (or a Liquibase data changeSet). It must upsert the <strong>7 categories</strong>, <strong>10 places</strong> (the exact <code>RAW</code> dataset with their slugs, coords, tags, notes, field-note cells), and the <strong>admin user</strong> from <code>ADMIN_EMAIL</code>/<code>ADMIN_PASSWORD</code>. Idempotent = safe to run on every boot.</p>
+  <div class="warn"><span class="lab">verifiedLabel field</span>The seed/contract carries <code>verifiedLabel</code> as a string. Note the live frontend now expects <code>verifiedAt</code> as an <strong>ISO 8601 timestamp</strong> (rendered relative client-side via date-fns). Seed the 8 verified places with ISO timestamps (matching <code>placesApi.ts</code> RAW) and leave Löwenruh pitch + Pirita padel unset to demo the hidden-badge fallback. The mapper passes the value straight through as <code>verifiedAt</code>.</div>
+
+  <h4>Test suites — port the 33 Jest tests</h4>
+  <p>Same approach as today: <strong>pure unit tests with mocked repositories</strong> (<code>@Mock</code> Spring Data repos + <code>@InjectMocks</code> service), no database required, green in CI.</p>
+  <table>
+    <thead><tr><th>Jest suite</th><th>JUnit class</th><th>Covers</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">auth.service.spec</td><td class="mono">AuthServiceTest</td><td>register conflict/lowercase/hash/token; login unknown/wrong-pw/valid; refresh garbage/wrong-typ/rotate; me missing/ok. Use a <em>real</em> JwtService.</td></tr>
+      <tr><td class="mono">saved.service.spec</td><td class="mono">SavedServiceTest</td><td>list order; add known/unknown; merge valid+skip-unknown+skip-dupe+empty; remove.</td></tr>
+      <tr><td class="mono">submissions.service.spec</td><td class="mono">SubmissionsServiceTest</td><td>create PENDING + photoCount derive + no-photo; listMine newest-first.</td></tr>
+      <tr><td class="mono">admin.service.spec</td><td class="mono">AdminServiceTest</td><td>stats; approve 404/PENDING→ACTIVE place(padded id/sort/slug) + APPROVED; slug disambiguation; reject; setPlaceStatus; setReportStatus + enum→front map.</td></tr>
+      <tr><td class="mono">— (new)</td><td class="mono">RelativeTimeTest</td><td>boundaries (just now / minutes / hours / days).</td></tr>
+    </tbody>
+  </table>
+  <p><code>./gradlew test</code> must be green with no DB. (Geo tests live in the frontend — out of scope here.)</p>
+
+  <div class="phase"><span class="num">8</span><h2>Containerize for Cloud Run</h2><span class="est">~½ day</span></div>
+  <p>Multi-stage Dockerfile: Gradle build stage → slim JRE 25 runtime. Cloud Run injects <code>$PORT</code>; the app must bind it.</p>
+<pre><code><span class="c"># backend/Dockerfile</span>
+<span class="k">FROM</span> gradle:9-jdk25 <span class="k">AS</span> build
+WORKDIR /app
+COPY . .
+RUN gradle bootJar --no-daemon
+
+<span class="k">FROM</span> eclipse-temurin:25-jre
+WORKDIR /app
+COPY --from=build /app/build/libs/*.jar app.jar
+<span class="c"># Cloud Run sets $PORT (default 8080)</span>
+ENV PORT=8080
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","app.jar"]</code></pre>
+  <p>In <code>application.yml</code>: <code>server.port: ${PORT:8080}</code>. Expose health at <code>/health</code> (Cloud Run <code>--startup-probe</code> / liveness uses it). Keep the image lean so cold starts stay tolerable.</p>
+  <div class="note"><span class="lab">Cold start reality</span>Scale-to-zero means the first request after idle pays JVM + Spring startup (a few seconds). The SPA's <code>withMockFallback</code> masks this on read paths. If it bothers users, set Cloud Run <code>min-instances=1</code> later (small always-on cost) — not needed for launch.</div>
+</section>
+
+<!-- ============================ PAGE 7 ============================ -->
+<section class="page pagebreak">
+
+  <div class="phase"><span class="num">9</span><h2>Supabase, Cloud Run &amp; Firebase</h2><span class="est">~1 day</span></div>
+
+  <h4>9.1 Supabase project</h4>
+  <ul class="tight">
+    <li>Create project in <strong>eu-north-1 (Stockholm)</strong> — closest Supabase region to Tallinn.</li>
+    <li>Create the public <code>place-photos</code> Storage bucket; generate S3 access keys (Storage → Settings).</li>
+    <li>Grab two connection strings from <em>Connect</em>: the <strong>transaction pooler</strong> (<code>:6543</code>) for the app, and the <strong>session pooler / direct</strong> (<code>:5432</code>) for migrations.</li>
+  </ul>
+  <div class="warn"><span class="lab">Pooler vs direct — the #1 footgun</span>
+    Cloud Run scales horizontally; each instance opens a Hikari pool. Route the <strong>app</strong> through the <strong>transaction-mode pooler (6543)</strong> and keep <code>spring.datasource.hikari.maximum-pool-size</code> small (≈5). Transaction mode does not support server-side prepared statements, so add <code>?prepareThreshold=0</code> (and disable Hibernate statement caching) or you'll get errors under load.<br>
+    <strong>Run Liquibase on the direct/session connection (5432)</strong>, not the transaction pooler — DDL + advisory locks need a session. Point <code>spring.liquibase.url</code> at 5432 and <code>spring.datasource.url</code> at 6543.</div>
+
+  <h4>9.2 Cloud Run (europe-north1)</h4>
+<pre><code><span class="c"># one-time: APIs + Artifact Registry repo</span>
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com
+gcloud artifacts repositories create gemspot \
+  --repository-format=docker --location=europe-north1
+
+<span class="c"># build, push, deploy</span>
+gcloud builds submit backend --tag \
+  europe-north1-docker.pkg.dev/$PROJECT/gemspot/api:latest
+gcloud run deploy gemspot-api \
+  --image europe-north1-docker.pkg.dev/$PROJECT/gemspot/api:latest \
+  --region europe-north1 --allow-unauthenticated \
+  --port 8080 --min-instances 0 \
+  --set-env-vars "DATABASE_URL=...,JWT_SECRET=...,..."</code></pre>
+  <p>Note the assigned <code>https://gemspot-api-xxxxx.europe-north1.run.app</code> URL — it feeds <code>VITE_API_URL</code> and the CORS check.</p>
+
+  <h4>9.3 Firebase Hosting</h4>
+<pre><code><span class="c">// firebase.json</span>
+{ "hosting": {
+    "public": "web/dist",
+    "ignore": ["firebase.json","**/.*","**/node_modules/**"],
+    "rewrites": [{ "source": "**", "destination": "/index.html" }]
+}}</code></pre>
+  <ul class="tight">
+    <li>Build with the Cloud Run URL: <code>VITE_API_URL=&lt;run-url&gt; npm --prefix web run build</code>.</li>
+    <li>Drop <code>vite.config.ts base:'/gemspot/'</code> back to <code>'/'</code> (Firebase serves from root, not a project subpath). HashRouter still works; the SPA rewrite covers any path.</li>
+    <li><code>firebase deploy --only hosting</code> → <code>https://&lt;project&gt;.web.app</code>.</li>
+    <li>Set Cloud Run <code>CORS_ORIGIN</code> to that <code>web.app</code> origin.</li>
+  </ul>
+
+  <div class="phase"><span class="num">10</span><h2>GitHub Actions pipelines</h2><span class="est">~1 day</span></div>
+  <p>Two workflows, each path-filtered so a frontend change never redeploys the API and vice-versa. Replace the old <code>deploy.yml</code> (Pages).</p>
+  <table>
+    <thead><tr><th style="width:32%">Workflow</th><th>Trigger / steps</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">deploy-api.yml</td><td><code>on: push paths: ['backend/**']</code> → auth to GCP (Workload Identity Federation; or a service-account key in a secret) → <code>gcloud builds submit</code> → <code>gcloud run deploy</code>.</td></tr>
+      <tr><td class="mono">deploy-web.yml</td><td><code>on: push paths: ['web/**']</code> → <code>npm ci &amp;&amp; npm run build</code> (with <code>VITE_API_URL</code> secret) → <code>FirebaseExtended/action-hosting-deploy</code> (or <code>firebase deploy</code> with <code>FIREBASE_SERVICE_ACCOUNT</code>).</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><span class="lab">Secrets to add (GitHub repo)</span><code>GCP_PROJECT</code>, <code>GCP_WIF_PROVIDER</code> + <code>GCP_SA_EMAIL</code> (or <code>GCP_SA_KEY</code>), <code>FIREBASE_SERVICE_ACCOUNT</code>, <code>VITE_API_URL</code>. App runtime secrets (DB URL, JWT secrets, Supabase keys) live as Cloud Run env vars, set once at deploy — not in the repo.</div>
+</section>
+
+<!-- ============================ PAGE 8 ============================ -->
+<section class="page pagebreak">
+
+  <h2>Environment variable crosswalk</h2>
+  <p>Render → Cloud Run env vars. Bold names are new for the Supabase/Spring stack.</p>
+  <table>
+    <thead><tr><th style="width:30%">Variable</th><th style="width:34%">Value / source</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">DATABASE_URL</td><td>Supabase pooler :6543</td><td>JDBC; <code>?prepareThreshold=0</code></td></tr>
+      <tr><td class="mono"><strong>DATABASE_MIGRATION_URL</strong></td><td>Supabase direct :5432</td><td>Liquibase only</td></tr>
+      <tr><td class="mono">JWT_SECRET</td><td>long random</td><td>access signing</td></tr>
+      <tr><td class="mono">JWT_REFRESH_SECRET</td><td>long random</td><td>refresh signing</td></tr>
+      <tr><td class="mono">JWT_ACCESS_TTL</td><td>15m</td><td>unchanged</td></tr>
+      <tr><td class="mono">JWT_REFRESH_TTL</td><td>30d</td><td>unchanged</td></tr>
+      <tr><td class="mono">CORS_ORIGIN</td><td><code>https://&lt;project&gt;.web.app</code></td><td>was github.io</td></tr>
+      <tr><td class="mono">ADMIN_EMAIL</td><td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ff9e9b929691bf989a928c8f908bd19a9a">[email&#160;protected]</a></td><td>seed</td></tr>
+      <tr><td class="mono">ADMIN_PASSWORD</td><td><strong>set a real one</strong></td><td>was default <code>admin1234</code> — change!</td></tr>
+      <tr><td class="mono">GOOGLE_CLIENT_ID</td><td>OAuth client id</td><td>only if Google sign-in on</td></tr>
+      <tr><td class="mono"><strong>SUPABASE_S3_ENDPOINT</strong></td><td>storage/v1/s3</td><td>uploads</td></tr>
+      <tr><td class="mono"><strong>SUPABASE_S3_ACCESS_KEY</strong></td><td>Supabase Storage key</td><td>uploads</td></tr>
+      <tr><td class="mono"><strong>SUPABASE_S3_SECRET_KEY</strong></td><td>Supabase Storage secret</td><td>uploads</td></tr>
+      <tr><td class="mono"><strong>SUPABASE_BUCKET</strong></td><td>place-photos</td><td>uploads</td></tr>
+      <tr><td class="mono">PORT</td><td>set by Cloud Run</td><td>do not hardcode</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Dropped:</strong> <code>NODE_ENV</code>, <code>NODE_VERSION</code>, <code>UPLOADS_DIR</code>, <code>ASSET_BASE_URL</code> (no longer serving photos from the API). <strong>Frontend:</strong> the only change is <code>VITE_API_URL</code> → the Cloud Run URL (plus <code>vite base</code> back to <code>/</code>).</p>
+
+  <h2>API contract verification checklist</h2>
+  <p>The acceptance gate. The Spring API must be indistinguishable from the mock/Nest to the SPA. Verify against the deployed Cloud Run URL.</p>
+  <ul class="check">
+    <li><code>GET /health</code> → <code>{"status":"ok"}</code>, 200.</li>
+    <li><code>GET /categories</code> → 7 items, order tabletennis→sakura, each <code>{id,label,short,color,glyph}</code> with <code>color</code> = cssvar string, <code>glyph</code> = id.</li>
+    <li><code>GET /places</code> → 10 ACTIVE items, ids <code>"01".."10"</code> in sort order; each row has <code>lat/lng</code>, <code>category</code> object, <code>tags[]</code>, no <code>rating</code> field.</li>
+    <li><code>GET /places/{slug}</code> → detail with <code>note, photos[], viewsCount, sharesCount, contributor.name, verifiedAt (ISO or absent), fieldNotes{access,lit,best}, appleMapsUrl, googleMapsUrl</code>.</li>
+    <li><code>GET /guides</code> → "Free to play" first, then per-category guides with ≥2 spots; <code>getGuide</code> resolves spots.</li>
+    <li><code>POST /events</code> → 202.</li>
+    <li>Auth round-trip: register → 201 with tokens; login → 200; <code>/auth/me</code> with bearer → user; refresh rotates; bad refresh → 401.</li>
+    <li>Auth gating: unauth <code>POST /submissions|/reports|/saved</code> → 401.</li>
+    <li>Saved cross-device: save on device A, <code>GET /saved</code> on device B (same login) returns it; merge unions guest ids.</li>
+    <li>Submission lifecycle: <code>POST /submissions</code> → PENDING → admin <code>approve</code> → appears in public <code>GET /places</code> as ACTIVE with next padded id.</li>
+    <li>Upload: <code>POST /uploads</code> (image) → <code>{url}</code> on Supabase; URL persists after a Cloud Run redeploy.</li>
+    <li>Admin gating: non-admin token on <code>/admin/**</code> → 403; admin token → data.</li>
+    <li><strong>End-to-end:</strong> point a local web build at the Cloud Run URL — Explore, detail, guides, save, submit, login all work with <strong>zero frontend code changes</strong>.</li>
+  </ul>
+
+  <h2>Cutover &amp; rollback</h2>
+  <ol class="tight">
+    <li>Build the Spring backend in the monorepo; <code>./gradlew test</code> green.</li>
+    <li>Provision Supabase (DB + bucket); run Liquibase against :5432; seed.</li>
+    <li>Deploy the container to Cloud Run; verify the checklist against the <code>run.app</code> URL directly.</li>
+    <li>Deploy the web build to Firebase with <code>VITE_API_URL</code> = Cloud Run URL; set <code>CORS_ORIGIN</code> to the <code>web.app</code> origin.</li>
+    <li>Re-run the end-to-end checklist against the live <code>web.app</code> site.</li>
+    <li><strong>Retire Nest:</strong> delete the Render web service + Render Postgres, the old Pages workflow, and <code>backend/</code> Node files + <code>render.yaml</code>. Tag the cutover commit (e.g. <code>v0.3.0</code>).</li>
+  </ol>
+  <div class="warn"><span class="lab">Real data on Render?</span>The seed data is static, so the only data worth keeping is any <em>production</em> users / saves / submissions created on the live Render DB. If there is any, <code>pg_dump</code> the Render Postgres and restore the relevant tables into Supabase <strong>before</strong> deleting Render. If Render only ever held seed data, skip this — the Supabase seed reproduces it.</div>
+  <p><strong>Rollback:</strong> until you delete Render, rollback is a one-line revert of the <code>VITE_API_URL</code> secret + a Pages redeploy — the old stack is still live. After deletion, rollback means redeploying the tagged Nest commit. Keep Render running for a short bake period before pulling it.</p>
+
+  <hr class="soft">
+  <p style="text-align:center;"><small class="mono">GemSpot · Migration Plan v1.0 · 2026-06-08 · hand to Claude Code phase by phase</small></p>
+</section>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>

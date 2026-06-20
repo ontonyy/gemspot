@@ -4,7 +4,7 @@ import pkg from './package.json'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/gemspot/',
+  base: '/',
   plugins: [react()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
