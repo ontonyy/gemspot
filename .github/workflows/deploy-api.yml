@@ -30,11 +30,15 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
-      - name: Build & push image (Cloud Build)
+      # Build in-runner with Docker (avoids Cloud Build's staging bucket +
+      # serviceusage.services.use perms). Only needs Artifact Registry writer.
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker europe-north1-docker.pkg.dev --quiet
+
+      - name: Build & push image
         run: |
-          gcloud builds submit backend \
-            --tag "$IMAGE:${{ github.sha }}" \
-            --project "$PROJECT_ID"
+          docker build -t "$IMAGE:${{ github.sha }}" backend
+          docker push "$IMAGE:${{ github.sha }}"
 
       # Plain (non-secret) runtime env. Sensitive values arrive via --set-secrets
       # (Secret Manager). SUPABASE_S3_ACCESS_KEY is a GH secret because, in this
