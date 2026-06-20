@@ -1,0 +1,22 @@
+# Keep build context (and image) lean → faster build, smaller layers, better cold start.
+.gradle/
+build/
+.git/
+.idea/
+*.iml
+
+# Node backend (retired at B11) — not part of the Spring build.
+node_modules/
+prisma/
+test/
+nest-cli.json
+jest.config.js
+tsconfig.json
+package.json
+package-lock.json
+.node-version
+
+# Local env / docs
+.env
+.env.*
+README.md

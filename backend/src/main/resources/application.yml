@@ -1,0 +1,92 @@
+spring:
+  application:
+    name: gemspot-api
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+
+  # Photo upload limits. Raised above the 5 MB business cap so UploadsController
+  # owns the over-size rejection (clean 400) instead of a multipart 413.
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  # Runtime app traffic → Supabase transaction pooler (:6543). prepareThreshold=0
+  # disables server-side prepared statements (pooler footgun — wired fully in B9).
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:6543/postgres?prepareThreshold=0}
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+
+  jpa:
+    hibernate:
+      # Liquibase owns DDL; Hibernate only validates the mapping against it.
+      ddl-auto: validate
+      naming:
+        # Preserve entity/field names verbatim — Prisma kept camelCase columns
+        # (only table names are snake_case @@map). Default strategy would snake_case them.
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    open-in-view: false
+    properties:
+      hibernate:
+        # Prisma created case-sensitive camelCase columns ("createdAt", …). Quote
+        # all identifiers so emitted DML matches; unquoted refs fold to lowercase
+        # and break writes (validate is case-insensitive and missed this).
+        globally_quoted_identifiers: true
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    # Migrations run on the direct (session) connection (:5432), NOT the pooler.
+    url: ${DATABASE_MIGRATION_URL:jdbc:postgresql://localhost:5432/postgres}
+    user: ${DATABASE_MIGRATION_USER:${DATABASE_USER:postgres}}
+    password: ${DATABASE_MIGRATION_PASSWORD:${DATABASE_PASSWORD:postgres}}
+
+server:
+  port: ${PORT:8080}
+  # No context-path: controllers are mounted at root (parity with Nest).
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # health = container/load-balancer probes; prometheus = Micrometer scrape
+        # endpoint for Cloud Monitoring (D8). /health (root) stays the plain contract.
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  # Tag every metric with the app + environment so Cloud Monitoring can slice.
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# D8: Sentry error tracking. No-op when SENTRY_DSN is unset (empty dsn disables
+# the SDK), so local boot and tests stay clean. DSN arrives via Secret Manager (B9).
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:local}
+  release: ${SENTRY_RELEASE:gemspot-api@0.3.0-SNAPSHOT}
+  # Capture 5xx / unhandled exceptions; no PII (no request bodies / user data).
+  send-default-pii: false
+  exception-resolver-order: -2147483648
+
+# CORS origin injected at runtime (Block 9). Comma-separated allowed.
+app:
+  cors:
+    origin: ${CORS_ORIGIN:http://localhost:5173}
+
+# Supabase Storage (S3-compatible). Secret key via Secret Manager (D5); the rest
+# are plain env. Endpoint shape: https://<proj>.supabase.co/storage/v1/s3
+supabase:
+  s3:
+    endpoint: ${SUPABASE_S3_ENDPOINT:https://localhost/storage/v1/s3}
+    region: ${SUPABASE_S3_REGION:eu-north-1}
+    bucket: ${SUPABASE_BUCKET:place-photos}
+    access-key: ${SUPABASE_S3_ACCESS_KEY:dev}
+    secret-key: ${SUPABASE_S3_SECRET_KEY:dev}
