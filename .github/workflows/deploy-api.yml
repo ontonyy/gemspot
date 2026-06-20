@@ -1,0 +1,74 @@
+name: Deploy API (Cloud Run)
+
+# Builds the Spring backend image with Cloud Build and deploys it to Cloud Run.
+# One-time bootstrap (APIs, secrets, Artifact Registry repo, IAM) is NOT here —
+# this workflow is the idempotent per-commit path. Liquibase + seed run on boot.
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: gemspot-498821
+  REGION: europe-north1
+  SERVICE: gemspot-api
+  IMAGE: europe-north1-docker.pkg.dev/gemspot-498821/gemspot/gemspot-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build & push image (Cloud Build)
+        run: |
+          gcloud builds submit backend \
+            --tag "$IMAGE:${{ github.sha }}" \
+            --project "$PROJECT_ID"
+
+      # Plain (non-secret) runtime env. Sensitive values arrive via --set-secrets
+      # (Secret Manager). SUPABASE_S3_ACCESS_KEY is a GH secret because, in this
+      # project, it currently equals the S3 secret key (regenerate a distinct pair).
+      - name: Write env.yaml
+        run: |
+          cat > env.yaml <<EOF
+          DATABASE_URL: "${{ vars.DATABASE_URL }}"
+          DATABASE_MIGRATION_URL: "${{ vars.DATABASE_MIGRATION_URL }}"
+          DATABASE_USER: "${{ vars.DATABASE_USER }}"
+          JWT_ACCESS_TTL: "15m"
+          JWT_REFRESH_TTL: "30d"
+          SUPABASE_BUCKET: "place-photos"
+          SUPABASE_S3_ENDPOINT: "${{ vars.SUPABASE_S3_ENDPOINT }}"
+          SUPABASE_S3_REGION: "eu-north-1"
+          SUPABASE_S3_ACCESS_KEY: "${{ secrets.SUPABASE_S3_ACCESS_KEY }}"
+          GOOGLE_CLIENT_ID: "${{ vars.GOOGLE_CLIENT_ID }}"
+          ADMIN_EMAIL: "${{ vars.ADMIN_EMAIL }}"
+          SENTRY_ENVIRONMENT: "production"
+          SENTRY_RELEASE: "gemspot-api@${{ github.sha }}"
+          CORS_ORIGIN: "${{ vars.CORS_ORIGIN }}"
+          EOF
+
+      - name: Deploy Cloud Run
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --image "$IMAGE:${{ github.sha }}" \
+            --region "$REGION" --project "$PROJECT_ID" \
+            --allow-unauthenticated --port 8080 --min-instances 1 \
+            --env-vars-file env.yaml \
+            --set-secrets "JWT_SECRET=JWT_SECRET:latest,JWT_REFRESH_SECRET=JWT_REFRESH_SECRET:latest,ADMIN_PASSWORD=ADMIN_PASSWORD:latest,DATABASE_PASSWORD=DATABASE_PASSWORD:latest,SUPABASE_S3_SECRET_KEY=SUPABASE_S3_SECRET_KEY:latest,SENTRY_DSN=SENTRY_DSN:latest"
+
+      - name: Smoke test /health
+        run: |
+          URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT_ID" --format='value(status.url)')
+          echo "Service: $URL"
+          curl -fsS "$URL/health"
