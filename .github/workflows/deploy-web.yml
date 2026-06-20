@@ -1,0 +1,40 @@
+name: Deploy Web (Firebase Hosting)
+
+# Builds the Vite SPA against the live API and deploys to Firebase Hosting
+# (site "gemspot" → https://gemspot.web.app). Site/firebase.json are bootstrap.
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'web/**'
+      - 'firebase.json'
+      - '.github/workflows/deploy-web.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+        working-directory: web
+
+      - run: npm run build
+        working-directory: web
+        env:
+          # Live Cloud Run origin. Unset → app falls back to the in-app mock.
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: gemspot-498821
+          channelId: live
