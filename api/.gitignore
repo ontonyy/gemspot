@@ -1,0 +1,10 @@
+.env
+*.log
+
+# uploaded photos (local-disk storage backend)
+/uploads/
+
+# Gradle / Spring Boot
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
