@@ -31,6 +31,9 @@ jobs:
         env:
           # Live Cloud Run origin. Unset → app falls back to the in-app mock.
           VITE_API_URL: ${{ vars.VITE_API_URL }}
+          # Map provider canary. Unset → app defaults to openfreemap (OFM stays permanent fallback in code).
+          VITE_MAP_PROVIDER: ${{ vars.VITE_MAP_PROVIDER }}
+          VITE_MAPTILER_KEY: ${{ secrets.VITE_MAPTILER_KEY }}
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
