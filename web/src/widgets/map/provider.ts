@@ -52,3 +52,68 @@ export const ACTIVE: Provider =
 export const provider: MapProvider = PROVIDERS[ACTIVE]
 
 export const FALLBACK: MapProvider = PROVIDERS.openfreemap
+
+// ── Option A: MapTiler hosted styles ──────────────────────────────────────
+// Ready-made full style.json from MapTiler (basemap colors + layers baked in).
+// When VITE_MAP_STYLE names one of these, the map loads the hosted style URL
+// instead of the custom monochrome base palette (map-style.base.json). Branded
+// HTML markers are independent of the basemap, so they render on any style.
+// Requires VITE_MAPTILER_KEY. Falls back to the custom palette if unset.
+export const MAPTILER_STYLES = {
+  streets: 'streets-v2',
+  outdoor: 'outdoor-v2',
+  satellite: 'hybrid',
+} as const
+export type MaptilerStyle = keyof typeof MAPTILER_STYLES
+
+/** Selected hosted style, or 'custom'/undefined to keep the fg palette. */
+export const STYLE = import.meta.env.VITE_MAP_STYLE as
+  | MaptilerStyle
+  | 'custom'
+  | undefined
+
+export const hasMaptilerKey = MAPTILER_KEY !== ''
+
+export function maptilerStyleUrl(s: MaptilerStyle): string {
+  return `https://api.maptiler.com/maps/${MAPTILER_STYLES[s]}/style.json?key=${MAPTILER_KEY}`
+}
+
+// ── Runtime style switcher (persisted choice) ─────────────────────────────
+// The user can swap the basemap live (SpotMap switcher). 'custom' = the fg
+// monochrome palette; a MaptilerStyle = a hosted style. The pick is stored so
+// it survives reloads and overrides VITE_MAP_STYLE on the next mount.
+export type StyleChoice = 'custom' | MaptilerStyle
+
+const STYLE_STORAGE_KEY = 'gemspot:map-style'
+
+function isMaptilerStyle(s: string): s is MaptilerStyle {
+  return Object.prototype.hasOwnProperty.call(MAPTILER_STYLES, s)
+}
+
+/** Stored choice, or null when none/invalid/hosted-without-key. */
+export function loadStyleChoice(): StyleChoice | null {
+  try {
+    const v = localStorage.getItem(STYLE_STORAGE_KEY)
+    if (v === 'custom') return 'custom'
+    if (v && isMaptilerStyle(v) && hasMaptilerKey) return v
+  } catch {
+    // ignore unavailable/blocked storage
+  }
+  return null
+}
+
+export function saveStyleChoice(c: StyleChoice): void {
+  try {
+    localStorage.setItem(STYLE_STORAGE_KEY, c)
+  } catch {
+    // ignore unavailable/blocked storage
+  }
+}
+
+// Effective initial choice: stored pick wins, else VITE_MAP_STYLE, else custom.
+export function initialStyleChoice(): StyleChoice {
+  const stored = loadStyleChoice()
+  if (stored) return stored
+  if (STYLE && STYLE !== 'custom' && hasMaptilerKey) return STYLE
+  return 'custom'
+}
