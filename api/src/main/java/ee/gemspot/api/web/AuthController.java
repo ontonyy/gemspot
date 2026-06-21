@@ -3,6 +3,7 @@ package ee.gemspot.api.web;
 import ee.gemspot.api.common.CurrentUser;
 import ee.gemspot.api.dto.AuthResponseDto;
 import ee.gemspot.api.dto.AuthUserDto;
+import ee.gemspot.api.dto.FacebookOAuthDto;
 import ee.gemspot.api.dto.GoogleOAuthDto;
 import ee.gemspot.api.dto.LoginDto;
 import ee.gemspot.api.dto.OkDto;
@@ -49,6 +50,11 @@ public class AuthController {
     @PostMapping("/oauth/google")
     public AuthResponseDto oauthGoogle(@Valid @RequestBody GoogleOAuthDto input) {
         return auth.oauthGoogle(input.idToken());
+    }
+
+    @PostMapping("/oauth/facebook")
+    public AuthResponseDto oauthFacebook(@Valid @RequestBody FacebookOAuthDto input) {
+        return auth.oauthFacebook(input.accessToken());
     }
 
     // Stateless logout — SPA discards tokens. Parity endpoint.
