@@ -7,7 +7,7 @@ on:
   push:
     branches: [master]
     paths:
-      - 'backend/**'
+      - 'api/**'
       - '.github/workflows/deploy-api.yml'
   workflow_dispatch:
 
@@ -37,7 +37,7 @@ jobs:
 
       - name: Build & push image
         run: |
-          docker build -t "$IMAGE:${{ github.sha }}" backend
+          docker build -t "$IMAGE:${{ github.sha }}" api
           docker push "$IMAGE:${{ github.sha }}"
 
       # Plain (non-secret) runtime env. Sensitive values arrive via --set-secrets
