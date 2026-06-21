@@ -39,7 +39,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokens;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwt;
-    private final RestClient restClient = RestClient.create();
+    private RestClient restClient = RestClient.create();
 
     public AuthService(
             UserRepository users,
@@ -52,6 +52,16 @@ public class AuthService {
         this.refreshTokens = refreshTokens;
         this.passwordEncoder = passwordEncoder;
         this.jwt = jwt;
+    }
+
+    /** Test seam: inject a RestClient bound to MockRestServiceServer. */
+    void setRestClient(RestClient restClient) {
+        this.restClient = restClient;
+    }
+
+    /** Test seam: overridable env read (Mockito spy) — prod returns System.getenv. */
+    protected String env(String key) {
+        return System.getenv(key);
     }
 
     @Transactional
@@ -93,7 +103,7 @@ public class AuthService {
        (passwordHash null). Issue our own JWT. */
     @Transactional
     public AuthResponseDto oauthGoogle(String idToken) {
-        String clientId = System.getenv("GOOGLE_CLIENT_ID");
+        String clientId = env("GOOGLE_CLIENT_ID");
         if (clientId == null || clientId.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Google sign-in is not configured");
         }
@@ -144,6 +154,96 @@ public class AuthService {
         User user = new User();
         user.setEmail(email);
         user.setProvider("google");
+        user.setProviderId(providerId);
+        user = users.save(user);
+
+        Profile profile = new Profile();
+        profile.setUserId(user.getId());
+        profile.setName(name);
+        profiles.save(profile);
+
+        return session(user.getId(), user.getEmail(), user.getRole(), name, UUID.randomUUID().toString());
+    }
+
+    /* Facebook sign-in. Mirrors oauthGoogle: verify the user access token against
+       the Graph API, require a verified email, then link by verified email — an
+       existing account gains the provider link; a new email creates an OAuth-only
+       account (passwordHash null). Issue our own JWT.
+
+       Verification: GET /debug_token with an app access token (APP_ID|APP_SECRET)
+       and confirm data.is_valid + data.app_id == our APP_ID; then GET /me for the
+       profile. Facebook only returns `email` for accounts with a confirmed email,
+       so a present, non-empty email is our verified-email signal. */
+    @Transactional
+    public AuthResponseDto oauthFacebook(String accessToken) {
+        String appId = env("FACEBOOK_APP_ID");
+        String appSecret = env("FACEBOOK_APP_SECRET");
+        if (appId == null || appId.isEmpty() || appSecret == null || appSecret.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Facebook sign-in is not configured");
+        }
+
+        String appToken = appId + "|" + appSecret;
+        Map<String, Object> debug;
+        try {
+            Map<String, Object> resp = restClient.get()
+                    .uri("https://graph.facebook.com/debug_token?input_token="
+                            + URLEncoder.encode(accessToken, StandardCharsets.UTF_8)
+                            + "&access_token=" + URLEncoder.encode(appToken, StandardCharsets.UTF_8))
+                    .retrieve()
+                    .body(Map.class);
+            Object data = resp != null ? resp.get("data") : null;
+            debug = data instanceof Map ? (Map<String, Object>) data : null;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Could not verify Facebook sign-in");
+        }
+        if (debug == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Could not verify Facebook sign-in");
+        }
+        Object isValid = debug.get("is_valid");
+        boolean valid = Boolean.TRUE.equals(isValid) || "true".equals(isValid);
+        if (!valid || !appId.equals(String.valueOf(debug.get("app_id")))) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Could not verify Facebook sign-in");
+        }
+
+        Map<String, Object> me;
+        try {
+            me = restClient.get()
+                    .uri("https://graph.facebook.com/me?fields=id,email,name&access_token="
+                            + URLEncoder.encode(accessToken, StandardCharsets.UTF_8))
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Could not verify Facebook sign-in");
+        }
+        if (me == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Could not verify Facebook sign-in");
+        }
+
+        Object id = me.get("id");
+        Object emailClaim = me.get("email");
+        if (id == null || emailClaim == null || emailClaim.toString().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Facebook account email is not verified");
+        }
+        String email = emailClaim.toString().toLowerCase().trim();
+        String providerId = id.toString();
+
+        User existing = users.findByEmail(email).orElse(null);
+        if (existing != null) {
+            if (!"facebook".equals(existing.getProvider())) {
+                existing.setProvider("facebook");
+                existing.setProviderId(providerId);
+                users.save(existing);
+            }
+            return session(existing.getId(), existing.getEmail(), existing.getRole(),
+                    nameOf(existing.getId()), UUID.randomUUID().toString());
+        }
+
+        Object nameClaim = me.get("name");
+        String name = nameClaim != null && !nameClaim.toString().trim().isEmpty()
+                ? nameClaim.toString().trim() : null;
+        User user = new User();
+        user.setEmail(email);
+        user.setProvider("facebook");
         user.setProviderId(providerId);
         user = users.save(user);
 
