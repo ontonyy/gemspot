@@ -15,8 +15,24 @@ import { createRoot, type Root } from 'react-dom/client'
 import { CategoryGlyph, catColor, type CategoryId } from '../../entities/place/categories'
 import { TALLINN_CENTER } from '../../shared/lib/geo'
 import { track } from '../../shared/api/track'
-import { buildStyle } from './buildStyle'
-import { ACTIVE, FALLBACK } from './provider'
+import { buildStyle, resolveStyle, styleForChoice } from './buildStyle'
+import {
+  ACTIVE,
+  FALLBACK,
+  hasMaptilerKey,
+  initialStyleChoice,
+  saveStyleChoice,
+  type StyleChoice,
+} from './provider'
+
+// Runtime basemap switcher options. Hosted entries need a MapTiler key and are
+// disabled without one; 'custom' is the always-available fg monochrome palette.
+const STYLE_OPTIONS: { id: StyleChoice; label: string; hosted: boolean }[] = [
+  { id: 'custom', label: 'Field guide', hosted: false },
+  { id: 'streets', label: 'Streets', hosted: true },
+  { id: 'outdoor', label: 'Outdoor', hosted: true },
+  { id: 'satellite', label: 'Satellite', hosted: true },
+]
 
 /** Browser WebGL capability — maplibre needs it; without it the canvas is a
     silent white box. Detect up-front so we can show a fallback instead. */
@@ -131,6 +147,8 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
   const itemsRef = useRef<SpotMapItem[]>(items)
   // one-shot: if a non-OFM provider errors, swap to OFM style exactly once
   const triedFallback = useRef(false)
+  // live basemap choice (switcher) — ref mirrors it for the error handler
+  const styleChoiceRef = useRef<StyleChoice>(initialStyleChoice())
   selectedRef.current = selectedSlug
   focusRef.current = focusSlug
   onSelectRef.current = onSelect
@@ -140,6 +158,7 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
   // load timeout → render a visible fallback instead of a silent white box.
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [retry, setRetry] = useState(0)
+  const [styleChoice, setStyleChoice] = useState<StyleChoice>(() => initialStyleChoice())
 
   // ── init map once (re-runs on retry) ─────────────────────────────────────
   useEffect(() => {
@@ -151,7 +170,7 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
     try {
       map = new maplibregl.Map({
         container: hostRef.current,
-        style: buildStyle(),
+        style: resolveStyle(),
         center: CENTER,
         zoom: 12.4,
         minZoom: 10,
@@ -172,8 +191,11 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
       // One-shot fallback: a non-OFM provider failed (bad key, blocked tiles) →
       // swap the style to OpenFreeMap. setStyle re-fires 'style.load', which
       // re-runs onStyleReady to rebuild the source/probe/markers on the new style.
-      if (ACTIVE !== 'openfreemap' && !triedFallback.current) {
+      // Fallback applies when the live style isn't already plain OFM-custom: a
+      // hosted style is active, or the provider seam is non-OFM.
+      if ((ACTIVE !== 'openfreemap' || styleChoiceRef.current !== 'custom') && !triedFallback.current) {
         triedFallback.current = true
+        styleChoiceRef.current = 'custom'
         map.setStyle(buildStyle(FALLBACK))
       }
     })
@@ -392,9 +414,44 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
     })
   }
 
+  // ── runtime basemap swap ──────────────────────────────────────────────────
+  // setStyle wipes GL sources/layers; the 'style.load' handler (onStyleReady)
+  // re-adds the spots source/probe and rebuilds markers. Reset triedFallback so
+  // the one-shot error→OFM fallback still arms for the newly-chosen style.
+  function chooseStyle(c: StyleChoice) {
+    if (c === styleChoice) return
+    const map = mapRef.current
+    if (!map) return
+    setStyleChoice(c)
+    styleChoiceRef.current = c
+    saveStyleChoice(c)
+    triedFallback.current = false
+    map.setStyle(styleForChoice(c))
+  }
+
   return (
     <div className="fg-mapcanvas">
       <div ref={hostRef} style={{ position: 'absolute', inset: 0 }} />
+      {status !== 'error' && (
+        <div className="fg-styleswitch" role="group" aria-label="Basemap style">
+          {STYLE_OPTIONS.map((o) => {
+            const disabled = o.hosted && !hasMaptilerKey
+            return (
+              <button
+                key={o.id}
+                type="button"
+                data-on={styleChoice === o.id}
+                disabled={disabled}
+                aria-pressed={styleChoice === o.id}
+                title={disabled ? 'Needs a MapTiler key' : undefined}
+                onClick={() => chooseStyle(o.id)}
+              >
+                {o.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
       {status === 'error' && (
         <div className="fg-maperr">
           <div className="fg-maperr-box">
