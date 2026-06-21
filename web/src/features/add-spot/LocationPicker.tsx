@@ -3,11 +3,12 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { Icon, Ic } from '../../shared/ui/Icon'
 import type { LatLng } from '../../shared/lib/geo'
+import { buildStyle } from '../../widgets/map/buildStyle'
+import { provider } from '../../widgets/map/provider'
 
 /* Map location picker for Add-a-spot. Fixed crosshair pin at map center;
-   the picked coords = map center, reported on every moveend. Reuses the
-   vendored fg basemap style, bounded to Tallinn (same frame as SpotMap). */
-const STYLE = `${import.meta.env.BASE_URL}map-style.json`
+   the picked coords = map center, reported on every moveend. Uses the shared
+   provider style seam, bounded to Tallinn (same frame as SpotMap). */
 const MAX_BOUNDS: maplibregl.LngLatBoundsLike = [[24.55, 59.36], [24.95, 59.5]]
 
 export function LocationPicker({ value, onChange }: { value: LatLng; onChange: (c: LatLng) => void }) {
@@ -20,7 +21,7 @@ export function LocationPicker({ value, onChange }: { value: LatLng; onChange: (
     if (!hostRef.current) return
     const map = new maplibregl.Map({
       container: hostRef.current,
-      style: STYLE,
+      style: buildStyle(),
       center: [value.lng, value.lat],
       zoom: 13,
       minZoom: 10,
@@ -44,6 +45,24 @@ export function LocationPicker({ value, onChange }: { value: LatLng; onChange: (
     <div className="fg-pickmap">
       <div ref={hostRef} style={{ position: 'absolute', inset: 0 }} />
       <span className="fg-pick-pin"><Icon d={Ic.pin} size={30} sw={2} /></span>
+      {/* attributionControl is off on this mini-map, but provider ToS (MapTiler/
+          OSM) still requires visible credit — static caption covers it. */}
+      <span
+        className="fg-pick-attrib"
+        style={{
+          position: 'absolute',
+          right: 4,
+          bottom: 2,
+          fontSize: 9,
+          lineHeight: 1.3,
+          padding: '0 4px',
+          borderRadius: 3,
+          background: 'rgba(255,255,255,0.7)',
+          color: '#333',
+          pointerEvents: 'none',
+        }}
+        dangerouslySetInnerHTML={{ __html: provider.attribution }}
+      />
     </div>
   )
 }

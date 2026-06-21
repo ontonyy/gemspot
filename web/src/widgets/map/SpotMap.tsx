@@ -15,6 +15,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import { CategoryGlyph, catColor, type CategoryId } from '../../entities/place/categories'
 import { TALLINN_CENTER } from '../../shared/lib/geo'
 import { track } from '../../shared/api/track'
+import { buildStyle } from './buildStyle'
+import { ACTIVE, FALLBACK } from './provider'
 
 /** Browser WebGL capability — maplibre needs it; without it the canvas is a
     silent white box. Detect up-front so we can show a fallback instead. */
@@ -127,6 +129,8 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
   const focusRef = useRef<string | null | undefined>(focusSlug)
   const onSelectRef = useRef<typeof onSelect>(onSelect)
   const itemsRef = useRef<SpotMapItem[]>(items)
+  // one-shot: if a non-OFM provider errors, swap to OFM style exactly once
+  const triedFallback = useRef(false)
   selectedRef.current = selectedSlug
   focusRef.current = focusSlug
   onSelectRef.current = onSelect
@@ -147,7 +151,7 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
     try {
       map = new maplibregl.Map({
         container: hostRef.current,
-        style: `${import.meta.env.BASE_URL}map-style.json`,
+        style: buildStyle(),
         center: CENTER,
         zoom: 12.4,
         minZoom: 10,
@@ -163,29 +167,44 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
     mapRef.current = map
     // fallback if the style never finishes (blocked tiles, offline, slow CDN)
     const loadTimer = setTimeout(() => setStatus((s) => (s === 'loading' ? 'error' : s)), 10_000)
-    map.on('error', (e) => console.warn('[SpotMap]', (e as { error?: Error }).error?.message))
+    map.on('error', (e) => {
+      console.warn('[SpotMap]', (e as { error?: Error }).error?.message)
+      // One-shot fallback: a non-OFM provider failed (bad key, blocked tiles) →
+      // swap the style to OpenFreeMap. setStyle re-fires 'style.load', which
+      // re-runs onStyleReady to rebuild the source/probe/markers on the new style.
+      if (ACTIVE !== 'openfreemap' && !triedFallback.current) {
+        triedFallback.current = true
+        map.setStyle(buildStyle(FALLBACK))
+      }
+    })
 
-    map.on('load', () => {
+    // Bind to 'style.load' (not one-shot 'load') so the full source/marker setup
+    // re-runs after a setStyle() fallback swap, which wipes sources/layers.
+    function onStyleReady() {
       clearTimeout(loadTimer)
       setStatus('ready')
       map.resize() // container may have settled its flex height after init
-      map.addSource(SOURCE, {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-        cluster: true,
-        clusterRadius: 52,
-        clusterMaxZoom: 15,
-      })
-      // Invisible layer: MapLibre only tiles a source that at least one layer
-      // references. We render pins/clusters as HTML markers (not GL layers), so
-      // without this the source is never tiled and querySourceFeatures() returns
-      // nothing → no markers ever. radius/opacity 0 keeps it visually inert.
-      map.addLayer({
-        id: `${SOURCE}-probe`,
-        type: 'circle',
-        source: SOURCE,
-        paint: { 'circle-radius': 0, 'circle-opacity': 0 },
-      })
+      // Guard: setStyle preserves nothing, but on the first style.load the source
+      // is absent; on a fallback re-fire we only re-add if it was dropped.
+      if (!map.getSource(SOURCE)) {
+        map.addSource(SOURCE, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+          cluster: true,
+          clusterRadius: 52,
+          clusterMaxZoom: 15,
+        })
+        // Invisible layer: MapLibre only tiles a source that at least one layer
+        // references. We render pins/clusters as HTML markers (not GL layers), so
+        // without this the source is never tiled and querySourceFeatures() returns
+        // nothing → no markers ever. radius/opacity 0 keeps it visually inert.
+        map.addLayer({
+          id: `${SOURCE}-probe`,
+          type: 'circle',
+          source: SOURCE,
+          paint: { 'circle-radius': 0, 'circle-opacity': 0 },
+        })
+      }
       pushData() // feed whatever items exist now (query may already be settled)
       updateMarkers()
       // Cold-load to /spot/:slug (e.g. a search-jump from another page) mounts
@@ -194,7 +213,8 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
       const focus = focusRef.current
       const item = focus ? itemsRef.current.find((p) => p.slug === focus) : undefined
       if (item) map.flyTo({ center: [item.lng, item.lat], zoom: 15.5, duration: 700 })
-    })
+    }
+    map.on('style.load', onStyleReady)
     // container can mount before flex layout settles its height → keep the GL
     // canvas in sync with the host box (maplibre only auto-tracks window resize)
     const ro = new ResizeObserver(() => map.resize())
