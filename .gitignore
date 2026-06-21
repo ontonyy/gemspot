@@ -6,3 +6,6 @@ keys/
 
 # Firebase deploy cache
 .firebase/
+
+# JetBrains IDEA
+.idea/
