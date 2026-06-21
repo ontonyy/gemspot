@@ -17,7 +17,6 @@ import { TALLINN_CENTER } from '../../shared/lib/geo'
 import { track } from '../../shared/api/track'
 import { buildStyle, resolveStyle, styleForChoice } from './buildStyle'
 import {
-  ACTIVE,
   FALLBACK,
   hasMaptilerKey,
   initialStyleChoice,
@@ -147,6 +146,10 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
   const itemsRef = useRef<SpotMapItem[]>(items)
   // one-shot: if a non-OFM provider errors, swap to OFM style exactly once
   const triedFallback = useRef(false)
+  // watchdog per style swap: if the chosen style.json never loads, fall back to
+  // the fg palette. Tied to the swap (not stray tile errors) so rapid switching
+  // and transient tile/sprite errors don't hijack the basemap to Field guide.
+  const styleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // live basemap choice (switcher) — ref mirrors it for the error handler
   const styleChoiceRef = useRef<StyleChoice>(initialStyleChoice())
   selectedRef.current = selectedSlug
@@ -186,24 +189,22 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
     mapRef.current = map
     // fallback if the style never finishes (blocked tiles, offline, slow CDN)
     const loadTimer = setTimeout(() => setStatus((s) => (s === 'loading' ? 'error' : s)), 10_000)
+    // Log only — never fall back here. maplibre emits 'error' for transient,
+    // non-fatal things (aborted tile fetches during a rapid style swap, a
+    // missing sprite icon); reacting to those used to hijack the basemap to the
+    // fg palette. Genuine "style never loaded" is handled by the watchdog below.
     map.on('error', (e) => {
       console.warn('[SpotMap]', (e as { error?: Error }).error?.message)
-      // One-shot fallback: a non-OFM provider failed (bad key, blocked tiles) →
-      // swap the style to OpenFreeMap. setStyle re-fires 'style.load', which
-      // re-runs onStyleReady to rebuild the source/probe/markers on the new style.
-      // Fallback applies when the live style isn't already plain OFM-custom: a
-      // hosted style is active, or the provider seam is non-OFM.
-      if ((ACTIVE !== 'openfreemap' || styleChoiceRef.current !== 'custom') && !triedFallback.current) {
-        triedFallback.current = true
-        styleChoiceRef.current = 'custom'
-        map.setStyle(buildStyle(FALLBACK))
-      }
     })
 
     // Bind to 'style.load' (not one-shot 'load') so the full source/marker setup
     // re-runs after a setStyle() fallback swap, which wipes sources/layers.
+    // Initial style may be hosted (stored pick / VITE_MAP_STYLE) — guard it too.
+    if (initialStyleChoice() !== 'custom') armStyleWatchdog()
+
     function onStyleReady() {
       clearTimeout(loadTimer)
+      if (styleTimer.current) { clearTimeout(styleTimer.current); styleTimer.current = null }
       setStatus('ready')
       map.resize() // container may have settled its flex height after init
       // Guard: setStyle preserves nothing, but on the first style.load the source
@@ -252,6 +253,7 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
 
     return () => {
       clearTimeout(loadTimer)
+      if (styleTimer.current) clearTimeout(styleTimer.current)
       ro.disconnect()
       markersRef.current.forEach((r) => {
         r.root.unmount()
@@ -426,7 +428,28 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
     styleChoiceRef.current = c
     saveStyleChoice(c)
     triedFallback.current = false
+    // Only hosted styles fetch a remote style.json that can fail; the fg palette
+    // is a local object and always loads, so it needs no watchdog.
+    if (c !== 'custom') armStyleWatchdog()
+    else if (styleTimer.current) { clearTimeout(styleTimer.current); styleTimer.current = null }
     map.setStyle(styleForChoice(c))
+  }
+
+  // Fall back to the fg palette only if the chosen style never finishes loading
+  // within the grace window — not on stray tile/sprite errors. Re-armed on each
+  // swap; cleared by onStyleReady. Keeps React state + ref in sync so the button
+  // highlight matches what's actually painted and re-selection isn't blocked.
+  function armStyleWatchdog() {
+    if (styleTimer.current) clearTimeout(styleTimer.current)
+    styleTimer.current = setTimeout(() => {
+      const map = mapRef.current
+      if (!map || triedFallback.current || map.isStyleLoaded()) return
+      triedFallback.current = true
+      styleChoiceRef.current = 'custom'
+      setStyleChoice('custom')
+      saveStyleChoice('custom')
+      map.setStyle(buildStyle(FALLBACK))
+    }, 6000)
   }
 
   return (
