@@ -47,7 +47,7 @@ public class AuthService {
     private final SessionService sessions;
     private final MailService mail;
     private final String webUrl;
-    private final RestClient restClient = RestClient.create();
+    private RestClient restClient = RestClient.create();
 
     /** Email-change links live for 24h. */
     private static final Duration EMAIL_CHANGE_TTL = Duration.ofHours(24);
@@ -251,8 +251,7 @@ public class AuthService {
                 existing.setProviderId(providerId);
                 users.save(existing);
             }
-            return session(existing.getId(), existing.getEmail(), existing.getRole(),
-                    nameOf(existing.getId()), UUID.randomUUID().toString());
+            return session(existing, UUID.randomUUID().toString());
         }
 
         Object nameClaim = me.get("name");
@@ -269,7 +268,7 @@ public class AuthService {
         profile.setName(name);
         profiles.save(profile);
 
-        return session(user.getId(), user.getEmail(), user.getRole(), name, UUID.randomUUID().toString());
+        return session(user, UUID.randomUUID().toString());
     }
 
     /* D4 reuse detection. NOT @Transactional: the family-revoke delete must
