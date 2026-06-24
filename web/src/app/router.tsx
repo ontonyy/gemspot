@@ -6,6 +6,8 @@ import Guides from '../pages/Guides'
 import GuideDetail from '../pages/GuideDetail'
 import AddSpot from '../pages/AddSpot'
 import Auth from '../pages/Auth'
+import Account from '../pages/Account'
+import VerifyEmail from '../pages/VerifyEmail'
 import AdminLayout from '../pages/admin/AdminLayout'
 import AdminDashboard from '../pages/admin/AdminDashboard'
 import AdminModeration from '../pages/admin/AdminModeration'
@@ -24,6 +26,8 @@ export const router = createHashRouter([
   { path: '/guides/:id', element: <GuideDetail /> },
   { path: '/add', element: <AddSpot /> },
   { path: '/auth', element: <Auth /> },
+  { path: '/account', element: <Account /> },
+  { path: '/account/verify-email', element: <VerifyEmail /> },
   // role-gated admin panel — own chrome (AdminLayout), not the consumer AppShell
   {
     path: '/admin',
