@@ -12,6 +12,8 @@ import { useGuides, useCategories } from '../shared/api/queries'
 import { useToastStore } from '../shared/store/toastStore'
 import { useUiStore } from '../shared/store/uiStore'
 import { useSavedStore } from '../shared/store/savedStore'
+import { useAuthStore } from '../shared/store/authStore'
+import { avatarFor } from '../shared/lib/avatar'
 import { useIsMobile } from '../shared/lib/useViewport'
 
 /* App chrome shared by every screen: top bar (brand/nav/search/add/avatar) +
@@ -32,6 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const toggleAccount = useUiStore((s) => s.toggleAccount)
   const accountOpen = useUiStore((s) => s.accountOpen)
   const savedCount = useSavedStore((s) => s.ids.length)
+  const user = useAuthStore((s) => s.user)
   const isMobile = useIsMobile()
 
   const active = (to: string) =>
@@ -57,7 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SearchBox query={query} setQuery={setQuery} />
         <div className="fg-top-r">
           <Button variant="solid" onClick={() => navigate('/add')}><Icon d={Ic.plus} size={16} sw={2} />Add a spot</Button>
-          <Avatar initials="M" on={accountOpen} onClick={toggleAccount} aria-label="Account" />
+          <Avatar {...avatarFor(user)} on={accountOpen} onClick={toggleAccount} aria-label="Account" />
         </div>
       </header>
       <div className="fg-body">{children}</div>

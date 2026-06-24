@@ -51,6 +51,10 @@ public class SecurityConfig {
                 .requestMatchers("/guides/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/events").permitAll()
                 .requestMatchers("/auth/me").authenticated()
+                .requestMatchers("/auth/password", "/auth/logout-all").authenticated()
+                // Re-auth required to request a change; /auth/email/verify stays
+                // public (token in the link is the bearer of authority).
+                .requestMatchers("/auth/email/change-request").authenticated()
                 .requestMatchers("/auth/**").permitAll()
                 // Authenticated user surface.
                 .requestMatchers("/saved/**").authenticated()
