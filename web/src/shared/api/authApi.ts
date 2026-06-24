@@ -62,6 +62,7 @@ export interface AuthApi {
   register(input: RegisterInput): Promise<AuthResponse>
   login(input: LoginInput): Promise<AuthResponse>
   oauthGoogle(idToken: string): Promise<AuthResponse>
+  oauthFacebook(accessToken: string): Promise<AuthResponse>
   refresh(refreshToken: string): Promise<AuthResponse>
   logout(): Promise<void>
   me(accessToken: string): Promise<AuthUser>
@@ -114,6 +115,8 @@ const httpAuthApi: AuthApi = {
   login: (input) => call<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
   oauthGoogle: (idToken) =>
     call<AuthResponse>('/auth/oauth/google', { method: 'POST', body: JSON.stringify({ idToken }) }),
+  oauthFacebook: (accessToken) =>
+    call<AuthResponse>('/auth/oauth/facebook', { method: 'POST', body: JSON.stringify({ accessToken }) }),
   refresh: (refreshToken) =>
     call<AuthResponse>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
   logout: () => call<void>('/auth/logout', { method: 'POST', body: '{}' }),
@@ -251,6 +254,19 @@ function mockAuthApi(): AuthApi {
           id: `u-${seq}`, name, password: '', role: 'CLIENT', avatarUrl: null, provider: 'google',
           createdAt: nowIso(), pendingEmail: null, pendingExpiresAt: null, pendingToken: null,
         }
+        users.set(email, u)
+      }
+      return delay(respond(email))
+    },
+    async oauthFacebook(_accessToken) {
+      // Mock mode has no backend / Graph API to verify against. A FB user access
+      // token is opaque (not a JWT), so we can't decode a profile — use a stable
+      // placeholder demo user. Links by email like the real flow.
+      const email = 'facebook-user@example.com'
+      let u = users.get(email)
+      if (!u) {
+        seq += 1
+        u = { id: `u-${seq}`, name: 'Facebook User', password: '', role: 'CLIENT' }
         users.set(email, u)
       }
       return delay(respond(email))
