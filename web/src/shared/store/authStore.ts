@@ -32,6 +32,7 @@ interface AuthState {
   verifyEmailChange: (token: string) => Promise<void>
   deleteAccount: (input: DeleteAccountInput) => Promise<void>
   logoutAll: () => Promise<void>
+  loginWithFacebook: (accessToken: string) => Promise<AuthUser>
   logout: () => void
   bootstrap: () => Promise<void>
 }

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { AppShell } from '../app/AppShell'
 import { Button } from '../shared/ui/Button'
 import { GoogleButton } from '../features/auth/GoogleButton'
+import { FacebookButton } from '../features/auth/FacebookButton'
 import { useAuthStore } from '../shared/store/authStore'
 import { useSavedStore } from '../shared/store/savedStore'
 import { useToastStore } from '../shared/store/toastStore'
@@ -25,6 +26,7 @@ export default function Auth() {
   const login = useAuthStore((s) => s.login)
   const register = useAuthStore((s) => s.register)
   const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle)
+  const loginWithFacebook = useAuthStore((s) => s.loginWithFacebook)
   const busy = useAuthStore((s) => s.busy)
   const user = useAuthStore((s) => s.user)
   const showToast = useToastStore((s) => s.show)
@@ -113,6 +115,16 @@ export default function Auth() {
     }
   }
 
+  const onFacebook = async (accessToken: string) => {
+    setError(null)
+    try {
+      await loginWithFacebook(accessToken)
+      await finish('Signed in with Facebook')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Facebook sign-in failed')
+    }
+  }
+
   return (
     <AppShell>
       <div className="fg-page">
@@ -128,14 +140,7 @@ export default function Auth() {
           </div>
 
           <GoogleButton onCredential={onGoogle} disabled={busy} />
-
-          <div className="fg-social">
-            <button type="button" className="fg-social-btn" disabled aria-disabled
-              title="Facebook login is in test mode — pending Meta app review for the email scope.">
-              <span aria-hidden style={{ fontWeight: 700, color: '#1877F2' }}>f</span> Continue with Facebook
-            </button>
-            <div className="hint">Facebook is in test mode (pending app review).</div>
-          </div>
+          <FacebookButton onCredential={onFacebook} disabled={busy} />
 
           <div className="fg-or"><span>or use email</span></div>
 
