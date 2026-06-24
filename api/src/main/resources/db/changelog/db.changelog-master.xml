@@ -10,5 +10,7 @@
     <include file="db/changelog/0001-init.xml"/>
     <!-- D4: refresh-token reuse detection. Net-new, not in Prisma schema. -->
     <include file="db/changelog/0002-refresh-tokens.xml"/>
+    <!-- Account/profile: verified email-change tokens. Net-new. -->
+    <include file="db/changelog/0003-email-change-tokens.xml"/>
 
 </databaseChangeLog>

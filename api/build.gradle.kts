@@ -27,6 +27,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     // Validation
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    // Mail (SMTP) — verified email-change links. Dev falls back to log/MailHog.
+    implementation("org.springframework.boot:spring-boot-starter-mail")
     // Security
     implementation("org.springframework.boot:spring-boot-starter-security")
     // Migrations

@@ -10,6 +10,7 @@ import java.util.Optional;
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, String> {
     Optional<RefreshToken> findByJti(String jti);
     List<RefreshToken> findByFamilyId(String familyId);
+    List<RefreshToken> findByUserId(String userId);
 
     // Self-transactional: AuthService.refresh runs without a surrounding tx so the
     // family-revoke commits before the 401 is thrown (D4 reuse detection).

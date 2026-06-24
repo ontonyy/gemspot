@@ -9,6 +9,7 @@ import { useReportsStore } from '../../shared/store/reportsStore'
 import { useAuthStore } from '../../shared/store/authStore'
 import { useToastStore } from '../../shared/store/toastStore'
 import { clearMine } from '../../shared/api/hydrateMine'
+import { avatarFor } from '../../shared/lib/avatar'
 import { FG_CAT } from '../../entities/place/categories'
 import type { CategoryId } from '../../entities/place/categories'
 import type { ReportReason } from '../../shared/api/types'
@@ -54,7 +55,7 @@ export function AccountMenu() {
       <div className="fg-acct-scrim" onClick={close} />
       <div className="fg-acct" role="menu" aria-label="Account">
         <div className="fg-acct-head">
-          <Avatar initials={(user?.name ?? user?.email ?? 'M').slice(0, 1).toUpperCase()} />
+          <Avatar {...avatarFor(user)} />
           <div>
             <div className="n">{user ? (user.name ?? user.email) : 'You'}</div>
             <div className="s">{user ? user.email : 'Guest · browsing'}</div>
@@ -108,6 +109,13 @@ export function AccountMenu() {
           Saved
           <span className="c">{savedCount}</span>
         </button>
+
+        {user && (
+          <button className="fg-acct-item" onClick={() => go('/account')}>
+            <Icon d={Ic.user} size={16} />
+            Settings
+          </button>
+        )}
 
         {user?.role === 'ADMIN' && (
           <button className="fg-acct-item" onClick={() => go('/admin')}>
