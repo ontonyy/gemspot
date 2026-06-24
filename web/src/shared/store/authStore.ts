@@ -25,6 +25,7 @@ interface AuthState {
   register: (input: RegisterInput) => Promise<AuthUser>
   login: (input: LoginInput) => Promise<AuthUser>
   loginWithGoogle: (idToken: string) => Promise<AuthUser>
+  loginWithFacebook: (accessToken: string) => Promise<AuthUser>
   updateProfile: (input: UpdateProfileInput) => Promise<AuthUser>
   uploadAvatar: (file: File) => Promise<string>
   changePassword: (input: ChangePasswordInput) => Promise<void>
@@ -71,6 +72,15 @@ export const useAuthStore = create<AuthState>()(
           set({ busy: true })
           try {
             return apply(await authApi.oauthGoogle(idToken))
+          } finally {
+            set({ busy: false })
+          }
+        },
+
+        async loginWithFacebook(accessToken) {
+          set({ busy: true })
+          try {
+            return apply(await authApi.oauthFacebook(accessToken))
           } finally {
             set({ busy: false })
           }
