@@ -266,7 +266,11 @@ function mockAuthApi(): AuthApi {
       let u = users.get(email)
       if (!u) {
         seq += 1
-        u = { id: `u-${seq}`, name: 'Facebook User', password: '', role: 'CLIENT' }
+        u = {
+          id: `u-${seq}`, name: 'Facebook User', password: '', role: 'CLIENT',
+          avatarUrl: null, provider: 'facebook', createdAt: nowIso(),
+          pendingEmail: null, pendingExpiresAt: null, pendingToken: null,
+        }
         users.set(email, u)
       }
       return delay(respond(email))
