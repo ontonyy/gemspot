@@ -8,6 +8,14 @@ export interface AuthUser {
   email: string
   name: string | null
   role: 'CLIENT' | 'ADMIN'
+  avatarUrl?: string | null
+  provider?: string | null
+  createdAt?: string | null
+  hasPassword?: boolean
+  // Derived email-change state (formalized server-side, not guessed here).
+  pendingEmail?: string | null
+  pendingExpiresAt?: string | null
+  emailChangeStatus?: 'none' | 'pending' | 'expired'
 }
 
 export interface AuthResponse {
@@ -27,6 +35,29 @@ export interface LoginInput {
   password: string
 }
 
+export interface UpdateProfileInput {
+  name?: string | null
+  avatarUrl?: string | null
+}
+
+export interface ChangePasswordInput {
+  // Required only for accounts that already have a local password. OAuth-only
+  // accounts set an initial password without one.
+  currentPassword?: string
+  newPassword: string
+}
+
+export interface EmailChangeRequestInput {
+  newEmail: string
+  // Required only for accounts with a local password (re-auth).
+  currentPassword?: string
+}
+
+export interface DeleteAccountInput {
+  // Required only for accounts with a local password (re-auth).
+  currentPassword?: string
+}
+
 export interface AuthApi {
   register(input: RegisterInput): Promise<AuthResponse>
   login(input: LoginInput): Promise<AuthResponse>
@@ -34,6 +65,18 @@ export interface AuthApi {
   refresh(refreshToken: string): Promise<AuthResponse>
   logout(): Promise<void>
   me(accessToken: string): Promise<AuthUser>
+  // own-profile edit (authed): PATCH /auth/me + multipart POST /uploads
+  updateProfile(accessToken: string, input: UpdateProfileInput): Promise<AuthUser>
+  uploadAvatar(accessToken: string, file: File): Promise<string>
+  // security (authed): set/change local password (returns fresh tokens for the
+  // acting device; other sessions revoked) + sign out everywhere
+  changePassword(accessToken: string, input: ChangePasswordInput): Promise<AuthResponse>
+  logoutAll(accessToken: string): Promise<void>
+  // verified email change (authed request → mail link → public verify)
+  requestEmailChange(accessToken: string, input: EmailChangeRequestInput): Promise<AuthUser>
+  verifyEmailChange(token: string): Promise<void>
+  // account lifecycle (authed): permanently delete the acting account
+  deleteAccount(accessToken: string, input: DeleteAccountInput): Promise<void>
   // server-backed saved sync (authed)
   listSaved(accessToken: string): Promise<string[]>
   addSaved(accessToken: string, placeId: string): Promise<string[]>
@@ -75,6 +118,42 @@ const httpAuthApi: AuthApi = {
     call<AuthResponse>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
   logout: () => call<void>('/auth/logout', { method: 'POST', body: '{}' }),
   me: (accessToken) => call<AuthUser>('/auth/me', { method: 'GET' }, accessToken),
+  updateProfile: (accessToken, input) =>
+    call<AuthUser>('/auth/me', { method: 'PATCH', body: JSON.stringify(input) }, accessToken),
+  uploadAvatar: async (accessToken, file) => {
+    // multipart: let the browser set the boundary content-type, so no JSON header here.
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch(`${BASE}/uploads`, {
+      method: 'POST',
+      body: form,
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (!res.ok) {
+      let message = `${res.status} ${res.statusText}`
+      try {
+        const body = (await res.json()) as { message?: string | string[] }
+        if (body?.message) message = Array.isArray(body.message) ? body.message.join(', ') : body.message
+      } catch {
+        /* non-JSON error body */
+      }
+      const err = new Error(message) as Error & { status?: number }
+      err.status = res.status
+      throw err
+    }
+    const body = (await res.json()) as { url: string }
+    return body.url
+  },
+  changePassword: (accessToken, input) =>
+    call<AuthResponse>('/auth/password', { method: 'POST', body: JSON.stringify(input) }, accessToken),
+  logoutAll: (accessToken) =>
+    call<void>('/auth/logout-all', { method: 'POST', body: '{}' }, accessToken),
+  requestEmailChange: (accessToken, input) =>
+    call<AuthUser>('/auth/email/change-request', { method: 'POST', body: JSON.stringify(input) }, accessToken),
+  verifyEmailChange: (token) =>
+    call<void>('/auth/email/verify', { method: 'POST', body: JSON.stringify({ token }) }),
+  deleteAccount: (accessToken, input) =>
+    call<void>('/auth/me', { method: 'DELETE', body: JSON.stringify(input) }, accessToken),
   listSaved: (accessToken) => call<string[]>('/saved', { method: 'GET' }, accessToken),
   addSaved: (accessToken, placeId) =>
     call<string[]>('/saved', { method: 'POST', body: JSON.stringify({ placeId }) }, accessToken),
@@ -88,27 +167,62 @@ const httpAuthApi: AuthApi = {
    gating work in `npm run dev` with no backend. Saved sync is an echo (the real
    server set lives only when VITE_API_URL points at the NestJS API). */
 function mockAuthApi(): AuthApi {
-  const users = new Map<string, { id: string; name: string | null; password: string; role: AuthUser['role'] }>()
+  interface MockUser {
+    id: string
+    name: string | null
+    password: string
+    role: AuthUser['role']
+    avatarUrl: string | null
+    provider: string | null
+    createdAt: string
+    // pending verified email change (mirrors email_change_tokens)
+    pendingEmail: string | null
+    pendingExpiresAt: string | null
+    pendingToken: string | null
+  }
+  const users = new Map<string, MockUser>()
   // Seed an admin so the role-gated panel is demoable offline (mirrors the
   // backend's prisma seed admin). Real creds come from the API when wired.
-  users.set('admin@gemspot.ee', { id: 'u-admin', name: 'GemSpot Admin', password: 'admin1234', role: 'ADMIN' })
+  users.set('admin@gemspot.ee', {
+    id: 'u-admin', name: 'GemSpot Admin', password: 'admin1234', role: 'ADMIN',
+    avatarUrl: null, provider: null, createdAt: '2025-01-01T00:00:00.000Z',
+    pendingEmail: null, pendingExpiresAt: null, pendingToken: null,
+  })
   let seq = 0
   const tok = (id: string, kind: string) => `mock.${kind}.${id}`
+  const view = (email: string, u: MockUser): AuthUser => {
+    const status: AuthUser['emailChangeStatus'] = !u.pendingEmail
+      ? 'none'
+      : u.pendingExpiresAt && new Date(u.pendingExpiresAt).getTime() > Date.now()
+        ? 'pending'
+        : 'expired'
+    return {
+      id: u.id, email, name: u.name, role: u.role,
+      avatarUrl: u.avatarUrl, provider: u.provider, createdAt: u.createdAt,
+      hasPassword: u.password !== '',
+      pendingEmail: u.pendingEmail, pendingExpiresAt: u.pendingExpiresAt, emailChangeStatus: status,
+    }
+  }
   const respond = (email: string): AuthResponse => {
     const u = users.get(email)!
     return {
-      user: { id: u.id, email, name: u.name, role: u.role },
+      user: view(email, u),
       accessToken: tok(u.id, 'access'),
       refreshToken: tok(u.id, 'refresh'),
     }
   }
+  const nowIso = () => new Date().toISOString()
   const delay = <T>(v: T, ms = 200) => new Promise<T>((r) => setTimeout(() => r(v), ms))
   return {
     async register(input) {
       const email = input.email.toLowerCase().trim()
       if (users.has(email)) throw new Error('Email already registered')
       seq += 1
-      users.set(email, { id: `u-${seq}`, name: input.name?.trim() || null, password: input.password, role: 'CLIENT' })
+      users.set(email, {
+        id: `u-${seq}`, name: input.name?.trim() || null, password: input.password, role: 'CLIENT',
+        avatarUrl: null, provider: null, createdAt: nowIso(),
+        pendingEmail: null, pendingExpiresAt: null, pendingToken: null,
+      })
       return delay(respond(email))
     },
     async login(input) {
@@ -133,7 +247,10 @@ function mockAuthApi(): AuthApi {
       let u = users.get(email)
       if (!u) {
         seq += 1
-        u = { id: `u-${seq}`, name, password: '', role: 'CLIENT' }
+        u = {
+          id: `u-${seq}`, name, password: '', role: 'CLIENT', avatarUrl: null, provider: 'google',
+          createdAt: nowIso(), pendingEmail: null, pendingExpiresAt: null, pendingToken: null,
+        }
         users.set(email, u)
       }
       return delay(respond(email))
@@ -151,7 +268,84 @@ function mockAuthApi(): AuthApi {
       const id = accessToken.split('.')[2]
       const entry = [...users.entries()].find(([, u]) => u.id === id)
       if (!entry) throw new Error('Account not found')
-      return { id, email: entry[0], name: entry[1].name, role: entry[1].role }
+      return delay(view(entry[0], entry[1]))
+    },
+    async updateProfile(accessToken, input) {
+      const id = accessToken.split('.')[2]
+      const entry = [...users.entries()].find(([, u]) => u.id === id)
+      if (!entry) throw new Error('Account not found')
+      const u = entry[1]
+      if (input.name !== undefined) u.name = input.name?.trim() || null
+      if (input.avatarUrl !== undefined) u.avatarUrl = input.avatarUrl?.trim() || null
+      return delay(view(entry[0], u))
+    },
+    async uploadAvatar(_accessToken, file) {
+      // No real storage offline — hand back a local object URL for a believable demo.
+      return delay(URL.createObjectURL(file))
+    },
+    async changePassword(accessToken, input) {
+      const id = accessToken.split('.')[2]
+      const entry = [...users.entries()].find(([, u]) => u.id === id)
+      if (!entry) throw new Error('Account not found')
+      const [email, u] = entry
+      // Local account: require a matching current password. OAuth-only (password
+      // === '') may set one without it.
+      if (u.password !== '' && u.password !== input.currentPassword) {
+        throw new Error('Current password is incorrect')
+      }
+      u.password = input.newPassword
+      // Fresh tokens for the acting device (mirrors backend revoke-all + re-mint).
+      return delay(respond(email))
+    },
+    async requestEmailChange(accessToken, input) {
+      const id = accessToken.split('.')[2]
+      const entry = [...users.entries()].find(([, u]) => u.id === id)
+      if (!entry) throw new Error('Account not found')
+      const [email, u] = entry
+      const newEmail = input.newEmail.toLowerCase().trim()
+      // Re-auth for local accounts.
+      if (u.password !== '' && u.password !== input.currentPassword) {
+        throw new Error('Current password is incorrect')
+      }
+      if (newEmail === email) throw new Error('That is already your email')
+      if (users.has(newEmail)) throw new Error('Email already registered')
+      seq += 1
+      u.pendingEmail = newEmail
+      u.pendingToken = `mock.ect.${seq}`
+      u.pendingExpiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString()
+      return delay(view(email, u))
+    },
+    async verifyEmailChange(token) {
+      const entry = [...users.entries()].find(([, u]) => u.pendingToken === token)
+      if (!entry) throw new Error('Invalid or expired link')
+      const [oldEmail, u] = entry
+      if (!u.pendingEmail || !u.pendingExpiresAt
+          || new Date(u.pendingExpiresAt).getTime() <= Date.now()) {
+        throw new Error('Invalid or expired link')
+      }
+      // Swap the map key to the new email; clear pending state.
+      const newEmail = u.pendingEmail
+      users.delete(oldEmail)
+      u.pendingEmail = null
+      u.pendingToken = null
+      u.pendingExpiresAt = null
+      users.set(newEmail, u)
+      return delay(undefined)
+    },
+    async deleteAccount(accessToken, input) {
+      const id = accessToken.split('.')[2]
+      const entry = [...users.entries()].find(([, u]) => u.id === id)
+      if (!entry) throw new Error('Account not found')
+      const [email, u] = entry
+      // Re-auth for local accounts (OAuth-only password === '' deletes via session).
+      if (u.password !== '' && u.password !== input.currentPassword) {
+        throw new Error('Current password is incorrect')
+      }
+      users.delete(email)
+      return delay(undefined)
+    },
+    async logoutAll() {
+      return delay(undefined)
     },
     async listSaved() {
       return delay([])

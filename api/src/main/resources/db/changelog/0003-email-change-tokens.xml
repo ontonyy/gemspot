@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+      Verified email-change flow. Net-new table (not in Prisma schema). token = PK
+      (opaque secret in the verify link); new_email is the requested address; on
+      verify users.email is swapped and the row marked used. One active row per
+      user is enforced in the service layer. snake_case columns.
+    -->
+    <changeSet id="0003-email-change-tokens" author="gemspot">
+        <sql splitStatements="true" endDelimiter=";"><![CDATA[
+            CREATE TABLE "email_change_tokens" (
+                "token" TEXT NOT NULL,
+                "user_id" TEXT NOT NULL,
+                "new_email" TEXT NOT NULL,
+                "used" BOOLEAN NOT NULL DEFAULT false,
+                "expires_at" TIMESTAMP(3) NOT NULL,
+                "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT "email_change_tokens_pkey" PRIMARY KEY ("token")
+            );
+
+            CREATE INDEX "email_change_tokens_user_id_idx" ON "email_change_tokens"("user_id");
+
+            -- user_id -> users.id (CASCADE: tokens die with the user)
+            ALTER TABLE "email_change_tokens" ADD CONSTRAINT "email_change_tokens_user_id_fkey"
+                FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        ]]></sql>
+        <rollback>
+            <sql>DROP TABLE "email_change_tokens";</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

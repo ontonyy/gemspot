@@ -1,5 +1,6 @@
 package ee.gemspot.api.service;
 
+import ee.gemspot.api.domain.EmailChangeToken;
 import ee.gemspot.api.domain.Profile;
 import ee.gemspot.api.domain.RefreshToken;
 import ee.gemspot.api.domain.User;
@@ -31,6 +32,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,6 +50,8 @@ class AuthServiceTest {
     @Mock UserRepository users;
     @Mock ProfileRepository profiles;
     @Mock RefreshTokenRepository refreshTokens;
+    @Mock ee.gemspot.api.repository.EmailChangeTokenRepository emailChangeTokens;
+    @Mock MailService mail;
 
     private final JwtService jwt = new JwtService(
             "test-access-secret", "test-refresh-secret", "15m", "30d");
@@ -55,7 +60,8 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        svc = new AuthService(users, profiles, refreshTokens, encoder, jwt);
+        svc = new AuthService(users, profiles, refreshTokens, emailChangeTokens, encoder, jwt,
+                new SessionService(refreshTokens), mail, "http://localhost:5173");
         when(users.save(any(User.class))).thenAnswer(inv -> {
             User u = inv.getArgument(0);
             if (u.getId() == null) u.setId("u1");
@@ -83,11 +89,13 @@ class AuthServiceTest {
         @Test
         void lowercasesTrimsHashesAndReturnsSession() {
             when(users.existsByEmail("a@b.com")).thenReturn(false);
+            when(profiles.findByUserId("u1")).thenReturn(Optional.of(profile("Ann")));
 
             AuthResponseDto res = svc.register("  A@B.com ", "pw123456", " Ann ");
 
             verify(users).existsByEmail("a@b.com");
-            assertThat(res.user()).isEqualTo(new AuthUserDto("u1", "a@b.com", "Ann", "CLIENT"));
+            assertThat(res.user())
+                    .isEqualTo(new AuthUserDto("u1", "a@b.com", "Ann", "CLIENT", null, null, null, true, null, null, "none"));
             assertThat(res.accessToken()).isNotBlank();
             assertThat(res.refreshToken()).isNotBlank();
 
@@ -181,7 +189,209 @@ class AuthServiceTest {
             when(users.findById("u1")).thenReturn(Optional.of(
                     user("u1", "a@b.com", "x", UserRole.CLIENT)));
             when(profiles.findByUserId("u1")).thenReturn(Optional.of(profile("Ann")));
-            assertThat(svc.me("u1")).isEqualTo(new AuthUserDto("u1", "a@b.com", "Ann", "CLIENT"));
+            assertThat(svc.me("u1"))
+                    .isEqualTo(new AuthUserDto("u1", "a@b.com", "Ann", "CLIENT", null, null, null, true, null, null, "none"));
+        }
+
+        @Test
+        void exposesProviderAvatarAndNoPasswordForOauthOnly() {
+            User oauth = user("u1", "a@b.com", null, UserRole.CLIENT); // null hash = OAuth-only
+            oauth.setProvider("google");
+            when(users.findById("u1")).thenReturn(Optional.of(oauth));
+            Profile p = profile("Ann");
+            p.setAvatarUrl("https://cdn/avatar.png");
+            when(profiles.findByUserId("u1")).thenReturn(Optional.of(p));
+
+            AuthUserDto dto = svc.me("u1");
+            assertThat(dto.hasPassword()).isFalse();
+            assertThat(dto.provider()).isEqualTo("google");
+            assertThat(dto.avatarUrl()).isEqualTo("https://cdn/avatar.png");
+        }
+    }
+
+    @Nested
+    class UpdateProfile {
+        @Test
+        void updatesNameTrimmed() {
+            when(users.findById("u1")).thenReturn(Optional.of(
+                    user("u1", "a@b.com", "x", UserRole.CLIENT)));
+            Profile p = profile("Old");
+            when(profiles.findByUserId("u1")).thenReturn(Optional.of(p));
+
+            AuthUserDto dto = svc.updateProfile("u1", "  New Name ", null);
+            assertThat(dto.name()).isEqualTo("New Name");
+            assertThat(p.getName()).isEqualTo("New Name");
+            verify(profiles).save(p);
+        }
+
+        @Test
+        void updatesAvatarUrl() {
+            when(users.findById("u1")).thenReturn(Optional.of(
+                    user("u1", "a@b.com", "x", UserRole.CLIENT)));
+            Profile p = profile("Ann");
+            when(profiles.findByUserId("u1")).thenReturn(Optional.of(p));
+
+            AuthUserDto dto = svc.updateProfile("u1", "Ann", "https://cdn/a.png");
+            assertThat(dto.avatarUrl()).isEqualTo("https://cdn/a.png");
+            assertThat(p.getAvatarUrl()).isEqualTo("https://cdn/a.png");
+        }
+
+        @Test
+        void blankAvatarRemovesIt() {
+            when(users.findById("u1")).thenReturn(Optional.of(
+                    user("u1", "a@b.com", "x", UserRole.CLIENT)));
+            Profile p = profile("Ann");
+            p.setAvatarUrl("https://cdn/old.png");
+            when(profiles.findByUserId("u1")).thenReturn(Optional.of(p));
+
+            AuthUserDto dto = svc.updateProfile("u1", "Ann", "   ");
+            assertThat(dto.avatarUrl()).isNull();
+            assertThat(p.getAvatarUrl()).isNull();
+        }
+
+        @Test
+        void blankNameClearsIt() {
+            when(users.findById("u1")).thenReturn(Optional.of(
+                    user("u1", "a@b.com", "x", UserRole.CLIENT)));
+            Profile p = profile("Ann");
+            when(profiles.findByUserId("u1")).thenReturn(Optional.of(p));
+
+            AuthUserDto dto = svc.updateProfile("u1", "   ", null);
+            assertThat(dto.name()).isNull();
+            assertThat(p.getName()).isNull();
+        }
+
+        @Test
+        void throwsWhenAccountGone() {
+            when(users.findById("missing")).thenReturn(Optional.empty());
+            expectStatus(HttpStatus.UNAUTHORIZED,
+                    () -> svc.updateProfile("missing", "x", null));
+        }
+    }
+
+    @Nested
+    class ChangePassword {
+        @Test
+        void setsPasswordForOauthOnlyAccountWithoutCurrent() {
+            User oauth = user("u1", "a@b.com", null, UserRole.CLIENT); // no local password
+            when(users.findById("u1")).thenReturn(Optional.of(oauth));
+            when(profiles.findByUserId("u1")).thenReturn(Optional.empty());
+
+            AuthResponseDto res = svc.changePassword("u1", null, "newpw12345");
+
+            assertThat(encoder.matches("newpw12345", oauth.getPasswordHash())).isTrue();
+            assertThat(res.accessToken()).isNotBlank();
+            assertThat(res.refreshToken()).isNotBlank();
+        }
+
+        @Test
+        void changesPasswordWithCorrectCurrent() {
+            User u = user("u1", "a@b.com", encoder.encode("oldpw1234"), UserRole.CLIENT);
+            when(users.findById("u1")).thenReturn(Optional.of(u));
+            when(profiles.findByUserId("u1")).thenReturn(Optional.empty());
+
+            svc.changePassword("u1", "oldpw1234", "newpw5678");
+
+            assertThat(encoder.matches("newpw5678", u.getPasswordHash())).isTrue();
+            assertThat(encoder.matches("oldpw1234", u.getPasswordHash())).isFalse();
+        }
+
+        @Test
+        void rejectsIncorrectCurrentPassword() {
+            User u = user("u1", "a@b.com", encoder.encode("oldpw1234"), UserRole.CLIENT);
+            when(users.findById("u1")).thenReturn(Optional.of(u));
+
+            expectStatus(HttpStatus.BAD_REQUEST,
+                    () -> svc.changePassword("u1", "wrongpw", "newpw5678"));
+            verify(refreshTokens, never()).deleteByUserId(any());
+        }
+
+        @Test
+        void rejectsMissingCurrentForLocalAccount() {
+            User u = user("u1", "a@b.com", encoder.encode("oldpw1234"), UserRole.CLIENT);
+            when(users.findById("u1")).thenReturn(Optional.of(u));
+
+            expectStatus(HttpStatus.BAD_REQUEST,
+                    () -> svc.changePassword("u1", null, "newpw5678"));
+        }
+
+        @Test
+        void revokesOtherSessionsButKeepsActingDevice() {
+            User u = user("u1", "a@b.com", encoder.encode("oldpw1234"), UserRole.CLIENT);
+            when(users.findById("u1")).thenReturn(Optional.of(u));
+            when(profiles.findByUserId("u1")).thenReturn(Optional.empty());
+
+            AuthResponseDto res = svc.changePassword("u1", "oldpw1234", "newpw5678");
+
+            // All existing families revoked...
+            verify(refreshTokens).deleteByUserId("u1");
+            // ...then a fresh session minted for the acting device (new tokens returned).
+            verify(refreshTokens).save(any(RefreshToken.class));
+            assertThat(res.refreshToken()).isNotBlank();
+        }
+
+        @Test
+        void throwsWhenAccountGone() {
+            when(users.findById("missing")).thenReturn(Optional.empty());
+            expectStatus(HttpStatus.UNAUTHORIZED,
+                    () -> svc.changePassword("missing", "x", "newpw5678"));
+        }
+    }
+
+    @Nested
+    class LogoutAll {
+        @Test
+        void revokesAllFamilies() {
+            svc.logoutAll("u1");
+            verify(refreshTokens).deleteByUserId("u1");
+        }
+    }
+
+    @Nested
+    class DeleteAccount {
+        @Test
+        void deletesLocalAccountWithCorrectPassword() {
+            User u = user("u1", "a@b.com", encoder.encode("pw12345678"), UserRole.CLIENT);
+            when(users.findById("u1")).thenReturn(Optional.of(u));
+
+            svc.deleteAccount("u1", "pw12345678");
+
+            verify(refreshTokens).deleteByUserId("u1"); // sessions revoked first
+            verify(users).deleteById("u1");             // then the user (DB cascades children)
+        }
+
+        @Test
+        void deletesOauthOnlyAccountWithoutCurrentPassword() {
+            User oauth = user("u1", "a@b.com", null, UserRole.CLIENT);
+            when(users.findById("u1")).thenReturn(Optional.of(oauth));
+
+            svc.deleteAccount("u1", null);
+
+            verify(users).deleteById("u1");
+        }
+
+        @Test
+        void rejectsWrongCurrentPasswordForLocalAccount() {
+            User u = user("u1", "a@b.com", encoder.encode("pw12345678"), UserRole.CLIENT);
+            when(users.findById("u1")).thenReturn(Optional.of(u));
+
+            expectStatus(HttpStatus.BAD_REQUEST, () -> svc.deleteAccount("u1", "wrong"));
+            verify(users, never()).deleteById(any());
+        }
+
+        @Test
+        void rejectsMissingCurrentForLocalAccount() {
+            User u = user("u1", "a@b.com", encoder.encode("pw12345678"), UserRole.CLIENT);
+            when(users.findById("u1")).thenReturn(Optional.of(u));
+
+            expectStatus(HttpStatus.BAD_REQUEST, () -> svc.deleteAccount("u1", null));
+            verify(users, never()).deleteById(any());
+        }
+
+        @Test
+        void throwsWhenAccountGone() {
+            when(users.findById("missing")).thenReturn(Optional.empty());
+            expectStatus(HttpStatus.UNAUTHORIZED, () -> svc.deleteAccount("missing", "x"));
         }
     }
 
@@ -193,6 +403,157 @@ class AuthServiceTest {
             Assumptions.assumeTrue(System.getenv("GOOGLE_CLIENT_ID") == null);
             expectStatus(HttpStatus.UNAUTHORIZED, () -> svc.oauthGoogle("tok"));
         }
+    }
+
+    @Nested
+    class RequestEmailChange {
+        @Test
+        void issuesTokenAndMailsNewAddressForLocalAccount() {
+            User u = user("u1", "old@b.com", encoder.encode("pw12345678"), UserRole.CLIENT);
+            when(users.findById("u1")).thenReturn(Optional.of(u));
+            when(users.existsByEmail("new@b.com")).thenReturn(false);
+            when(profiles.findByUserId("u1")).thenReturn(Optional.empty());
+
+            svc.requestEmailChange("u1", "pw12345678", "  New@B.com ");
+
+            verify(emailChangeTokens).deleteByUserId("u1"); // one active per user
+            ArgumentCaptor<EmailChangeToken> saved = ArgumentCaptor.forClass(EmailChangeToken.class);
+            verify(emailChangeTokens).save(saved.capture());
+            EmailChangeToken t = saved.getValue();
+            assertThat(t.getNewEmail()).isEqualTo("new@b.com"); // lowercased + trimmed
+            assertThat(t.getUserId()).isEqualTo("u1");
+            assertThat(t.isUsed()).isFalse();
+            assertThat(t.getExpiresAt()).isAfter(Instant.now());
+
+            ArgumentCaptor<String> link = ArgumentCaptor.forClass(String.class);
+            verify(mail).sendEmailChangeVerification(eq("new@b.com"), link.capture());
+            assertThat(link.getValue()).contains(t.getToken());
+            assertThat(link.getValue()).contains("/#/account/verify-email?token=");
+        }
+
+        @Test
+        void oauthOnlyAccountNeedsNoCurrentPassword() {
+            User oauth = user("u1", "old@b.com", null, UserRole.CLIENT);
+            when(users.findById("u1")).thenReturn(Optional.of(oauth));
+            when(users.existsByEmail("new@b.com")).thenReturn(false);
+            when(profiles.findByUserId("u1")).thenReturn(Optional.empty());
+
+            svc.requestEmailChange("u1", null, "new@b.com");
+
+            verify(emailChangeTokens).save(any(EmailChangeToken.class));
+            verify(mail).sendEmailChangeVerification(eq("new@b.com"), anyString());
+        }
+
+        @Test
+        void rejectsWrongCurrentPasswordForLocalAccount() {
+            User u = user("u1", "old@b.com", encoder.encode("pw12345678"), UserRole.CLIENT);
+            when(users.findById("u1")).thenReturn(Optional.of(u));
+
+            expectStatus(HttpStatus.BAD_REQUEST,
+                    () -> svc.requestEmailChange("u1", "wrong", "new@b.com"));
+            verify(emailChangeTokens, never()).save(any());
+            verify(mail, never()).sendEmailChangeVerification(any(), any());
+        }
+
+        @Test
+        void rejectsAlreadyTakenEmail() {
+            User u = user("u1", "old@b.com", encoder.encode("pw12345678"), UserRole.CLIENT);
+            when(users.findById("u1")).thenReturn(Optional.of(u));
+            when(users.existsByEmail("taken@b.com")).thenReturn(true);
+
+            expectStatus(HttpStatus.CONFLICT,
+                    () -> svc.requestEmailChange("u1", "pw12345678", "taken@b.com"));
+            verify(emailChangeTokens, never()).save(any());
+        }
+
+        @Test
+        void exposesPendingStateInUserView() {
+            when(users.findById("u1")).thenReturn(Optional.of(
+                    user("u1", "old@b.com", "x", UserRole.CLIENT)));
+            when(profiles.findByUserId("u1")).thenReturn(Optional.empty());
+            when(emailChangeTokens.findFirstByUserIdAndUsedFalseOrderByCreatedAtDesc("u1"))
+                    .thenReturn(Optional.of(changeToken("tk", "u1", "new@b.com", false,
+                            Instant.now().plusSeconds(3600))));
+
+            AuthUserDto dto = svc.me("u1");
+            assertThat(dto.pendingEmail()).isEqualTo("new@b.com");
+            assertThat(dto.emailChangeStatus()).isEqualTo("pending");
+        }
+
+        @Test
+        void exposesExpiredStateInUserView() {
+            when(users.findById("u1")).thenReturn(Optional.of(
+                    user("u1", "old@b.com", "x", UserRole.CLIENT)));
+            when(profiles.findByUserId("u1")).thenReturn(Optional.empty());
+            when(emailChangeTokens.findFirstByUserIdAndUsedFalseOrderByCreatedAtDesc("u1"))
+                    .thenReturn(Optional.of(changeToken("tk", "u1", "new@b.com", false,
+                            Instant.now().minusSeconds(60))));
+
+            AuthUserDto dto = svc.me("u1");
+            assertThat(dto.emailChangeStatus()).isEqualTo("expired");
+        }
+    }
+
+    @Nested
+    class VerifyEmailChange {
+        @Test
+        void swapsEmailMarksUsedAndRevokesSessions() {
+            EmailChangeToken t = changeToken("tk", "u1", "new@b.com", false,
+                    Instant.now().plusSeconds(3600));
+            User u = user("u1", "old@b.com", "x", UserRole.CLIENT);
+            when(emailChangeTokens.findById("tk")).thenReturn(Optional.of(t));
+            when(users.findById("u1")).thenReturn(Optional.of(u));
+            when(users.existsByEmail("new@b.com")).thenReturn(false);
+
+            svc.verifyEmailChange("tk");
+
+            assertThat(u.getEmail()).isEqualTo("new@b.com");
+            assertThat(t.isUsed()).isTrue();
+            verify(refreshTokens).deleteByUserId("u1"); // all sessions revoked
+        }
+
+        @Test
+        void rejectsUnknownToken() {
+            when(emailChangeTokens.findById("nope")).thenReturn(Optional.empty());
+            expectStatus(HttpStatus.BAD_REQUEST, () -> svc.verifyEmailChange("nope"));
+        }
+
+        @Test
+        void rejectsUsedToken() {
+            when(emailChangeTokens.findById("tk")).thenReturn(Optional.of(
+                    changeToken("tk", "u1", "new@b.com", true, Instant.now().plusSeconds(3600))));
+            expectStatus(HttpStatus.BAD_REQUEST, () -> svc.verifyEmailChange("tk"));
+            verify(users, never()).save(any());
+        }
+
+        @Test
+        void rejectsExpiredToken() {
+            when(emailChangeTokens.findById("tk")).thenReturn(Optional.of(
+                    changeToken("tk", "u1", "new@b.com", false, Instant.now().minusSeconds(60))));
+            expectStatus(HttpStatus.BAD_REQUEST, () -> svc.verifyEmailChange("tk"));
+        }
+
+        @Test
+        void rejectsWhenNewEmailTakenSinceRequest() {
+            when(emailChangeTokens.findById("tk")).thenReturn(Optional.of(
+                    changeToken("tk", "u1", "new@b.com", false, Instant.now().plusSeconds(3600))));
+            when(users.findById("u1")).thenReturn(Optional.of(
+                    user("u1", "old@b.com", "x", UserRole.CLIENT)));
+            when(users.existsByEmail("new@b.com")).thenReturn(true);
+
+            expectStatus(HttpStatus.CONFLICT, () -> svc.verifyEmailChange("tk"));
+        }
+    }
+
+    private static EmailChangeToken changeToken(String token, String userId, String newEmail,
+                                                boolean used, Instant expiresAt) {
+        EmailChangeToken t = new EmailChangeToken();
+        t.setToken(token);
+        t.setUserId(userId);
+        t.setNewEmail(newEmail);
+        t.setUsed(used);
+        t.setExpiresAt(expiresAt);
+        return t;
     }
 
     private static User user(String id, String email, String hash, UserRole role) {

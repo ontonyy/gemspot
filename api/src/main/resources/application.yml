@@ -35,6 +35,21 @@ spring:
         # and break writes (validate is case-insensitive and missed this).
         globally_quoted_identifiers: true
 
+  # SMTP for verified email-change links. Dev default points at MailHog
+  # (localhost:1025, no auth); prod injects host/port/creds via Secret Manager.
+  # MailService logs the link as a fallback regardless, so dev works without SMTP.
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:false}
+          starttls:
+            enable: ${SMTP_STARTTLS:false}
+
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
     # Migrations run on the direct (session) connection (:5432), NOT the pooler.
@@ -80,6 +95,12 @@ sentry:
 app:
   cors:
     origin: ${CORS_ORIGIN:http://localhost:5173}
+  # Mail sender + SPA base URL. The verify link is built as
+  # <web-url>/#/account/verify-email?token=<token> (HashRouter). web-url defaults
+  # to the first CORS origin host in dev.
+  mail:
+    from: ${MAIL_FROM:no-reply@gemspot.local}
+  web-url: ${WEB_URL:http://localhost:5173}
 
 # Supabase Storage (S3-compatible). Secret key via Secret Manager (D5); the rest
 # are plain env. Endpoint shape: https://<proj>.supabase.co/storage/v1/s3
