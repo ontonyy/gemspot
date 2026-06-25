@@ -17,7 +17,15 @@ interface AuthState {
   loginWithGoogle: (idToken: string) => Promise<AuthUser>
   logout: () => void
   bootstrap: () => Promise<void>
+  /** Trade the stored refresh token for a fresh access token. Returns true on
+      success. Concurrent callers share one in-flight request. Clears session on
+      failure so a dead refresh token can't loop. */
+  refreshSession: () => Promise<boolean>
 }
+
+/* Module-level dedupe: many 401s can fire at once (parallel requests); they must
+   all await the same single /auth/refresh, not stampede it. */
+let refreshInFlight: Promise<boolean> | null = null
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -74,6 +82,24 @@ export const useAuthStore = create<AuthState>()(
           } catch {
             set({ user: null, accessToken: null, refreshToken: null })
           }
+        },
+
+        refreshSession() {
+          if (refreshInFlight) return refreshInFlight
+          refreshInFlight = (async () => {
+            const rt = get().refreshToken
+            if (!rt) return false
+            try {
+              apply(await authApi.refresh(rt))
+              return true
+            } catch {
+              set({ user: null, accessToken: null, refreshToken: null })
+              return false
+            } finally {
+              refreshInFlight = null
+            }
+          })()
+          return refreshInFlight
         },
       }
     },
