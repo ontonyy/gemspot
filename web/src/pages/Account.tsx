@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AppShell } from '../app/AppShell'
 import { Button } from '../shared/ui/Button'
 import { Avatar } from '../shared/ui/Avatar'
+import { AvatarPreview } from '../shared/ui/AvatarPreview'
 import { useAuthStore } from '../shared/store/authStore'
 import { useToastStore } from '../shared/store/toastStore'
 import { avatarFor } from '../shared/lib/avatar'
@@ -44,6 +45,7 @@ export default function Account() {
   const showToast = useToastStore((s) => s.show)
 
   const [name, setName] = useState(user?.name ?? '')
+  const [previewing, setPreviewing] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   // Security form state.
@@ -188,7 +190,11 @@ export default function Account() {
             <h2>Profile</h2>
 
             <div className="fg-acct-avatar-row">
-              <Avatar {...avatarFor(user)} />
+              <Avatar
+                {...avatarFor(user)}
+                onClick={() => user.avatarUrl && setPreviewing(true)}
+                aria-label={user.avatarUrl ? 'View profile photo' : undefined}
+              />
               <div className="fg-acct-avatar-btns">
                 <Button onClick={pickFile} disabled={busy}>Upload photo</Button>
                 {user.avatarUrl && (
@@ -442,6 +448,14 @@ export default function Account() {
           </section>
         </div>
       </div>
+
+      {previewing && user.avatarUrl && (
+        <AvatarPreview
+          src={user.avatarUrl}
+          alt={user.name ?? 'Profile photo'}
+          onClose={() => setPreviewing(false)}
+        />
+      )}
     </AppShell>
   )
 }
