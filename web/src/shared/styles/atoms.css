@@ -590,6 +590,14 @@
 @keyframes fg-fade{from{opacity:0;}to{opacity:1;}}
 @keyframes fg-modal-in{from{opacity:0;transform:translate(-50%,-46%) scale(.97);}to{opacity:1;transform:translate(-50%,-50%) scale(1);}}
 
+/* ===== avatar preview popup (Account settings) ===== */
+.fg-avatar-modal{position:fixed;z-index:61;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(420px,calc(100vw - 32px));background:var(--paper);border:1.5px solid var(--ink);
+  box-shadow:8px 8px 0 var(--ink);padding:14px;animation:fg-modal-in .24s var(--ease-out);}
+.fg-avatar-modal-x{position:absolute;top:10px;right:10px;z-index:1;}
+.fg-avatar-modal-img{display:block;width:100%;height:auto;max-height:calc(100vh - 120px);
+  object-fit:contain;border:1.25px solid var(--line-2);}
+
 /* ===== add-a-spot form — Block 10 ===== */
 .fg-form{max-width:620px;}
 .fg-field{margin-bottom:20px;}
