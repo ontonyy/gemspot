@@ -1,4 +1,4 @@
-import { useState, type ButtonHTMLAttributes } from 'react'
+import { useState, type ButtonHTMLAttributes, type MouseEvent } from 'react'
 
 interface AvatarProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   initials: string
@@ -8,12 +8,18 @@ interface AvatarProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   small?: boolean
 }
 
-export function Avatar({ initials, src, on, small, className = '', ...rest }: AvatarProps) {
+export function Avatar({ initials, src, on, small, className = '', onClick, ...rest }: AvatarProps) {
   const [broken, setBroken] = useState(false)
   const cls = ['fg-avatar', small && 'fg-avatar-sm', className].filter(Boolean).join(' ')
   const showImg = src && !broken
+  const handleClick = showImg
+    ? (e: MouseEvent<HTMLButtonElement>) => {
+        onClick?.(e)
+        window.open(src, '_blank', 'noopener')
+      }
+    : onClick
   return (
-    <button className={cls} data-on={on} {...rest}>
+    <button className={cls} data-on={on} onClick={handleClick} {...rest}>
       {showImg ? (
         <img className="fg-avatar-img" src={src} alt="" onError={() => setBroken(true)} />
       ) : (
