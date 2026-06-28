@@ -6,13 +6,16 @@ interface AvatarProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   src?: string
   on?: boolean
   small?: boolean
+  /** Opt-in: clicking the avatar opens the full image in a new tab. Only used in
+      the Account settings; the topbar/menu avatars stay plain triggers. */
+  openFullOnClick?: boolean
 }
 
-export function Avatar({ initials, src, on, small, className = '', onClick, ...rest }: AvatarProps) {
+export function Avatar({ initials, src, on, small, className = '', openFullOnClick, onClick, ...rest }: AvatarProps) {
   const [broken, setBroken] = useState(false)
   const cls = ['fg-avatar', small && 'fg-avatar-sm', className].filter(Boolean).join(' ')
   const showImg = src && !broken
-  const handleClick = showImg
+  const handleClick = openFullOnClick && showImg
     ? (e: MouseEvent<HTMLButtonElement>) => {
         onClick?.(e)
         window.open(src, '_blank', 'noopener')
