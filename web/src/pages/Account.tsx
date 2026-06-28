@@ -188,7 +188,7 @@ export default function Account() {
             <h2>Profile</h2>
 
             <div className="fg-acct-avatar-row">
-              <Avatar {...avatarFor(user)} />
+              <Avatar {...avatarFor(user)} openFullOnClick />
               <div className="fg-acct-avatar-btns">
                 <Button onClick={pickFile} disabled={busy}>Upload photo</Button>
                 {user.avatarUrl && (
