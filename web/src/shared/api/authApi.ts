@@ -3,6 +3,8 @@
    backend. Tokens are opaque strings the SPA stores in authStore (localStorage).
    Authed methods take the access token explicitly — no hidden global. */
 
+import { useAuthStore } from '../store/authStore'
+
 export interface AuthUser {
   id: string
   email: string
@@ -87,25 +89,56 @@ export interface AuthApi {
 
 const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 
+/* The access token is short-lived (15m); an open tab outlives it, so any authed
+   call can 401 mid-session. authedFetch attaches the current token and, on a 401,
+   trades the (30d) refresh token for a fresh access token and retries once before
+   giving up. `build` is re-run per attempt so the retry uses the new token and a
+   fresh request body (FormData/streams are single-use). Mirrors httpPlacesApi. */
+async function authedFetch(
+  build: (token: string | null) => { url: string; init: RequestInit },
+): Promise<Response> {
+  const attempt = (token: string | null) => {
+    const { url, init } = build(token)
+    return fetch(url, init)
+  }
+  let res = await attempt(useAuthStore.getState().accessToken)
+  if (res.status === 401 && useAuthStore.getState().refreshToken) {
+    const ok = await useAuthStore.getState().refreshSession()
+    if (ok) res = await attempt(useAuthStore.getState().accessToken)
+  }
+  return res
+}
+
+async function throwHttp(res: Response): Promise<never> {
+  let message = `${res.status} ${res.statusText}`
+  try {
+    const body = (await res.json()) as { message?: string | string[] }
+    if (body?.message) message = Array.isArray(body.message) ? body.message.join(', ') : body.message
+  } catch {
+    /* non-JSON error body */
+  }
+  const err = new Error(message) as Error & { status?: number }
+  err.status = res.status
+  throw err
+}
+
+/* When `token` is passed the path is authed: route through authedFetch so a stale
+   access token is refreshed-and-retried once (the per-attempt token from the store
+   overrides the caller's, which may be the expired one). Unauthed calls fetch plain. */
 async function call<T>(path: string, init: RequestInit, token?: string): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(init.headers as Record<string, string> | undefined),
-  }
-  if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(`${BASE}${path}`, { ...init, headers })
-  if (!res.ok) {
-    let message = `${res.status} ${res.statusText}`
-    try {
-      const body = (await res.json()) as { message?: string | string[] }
-      if (body?.message) message = Array.isArray(body.message) ? body.message.join(', ') : body.message
-    } catch {
-      /* non-JSON error body */
-    }
-    const err = new Error(message) as Error & { status?: number }
-    err.status = res.status
-    throw err
-  }
+  const baseHeaders = init.headers as Record<string, string> | undefined
+  const buildInit = (t: string | null): RequestInit => ({
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...baseHeaders,
+      ...(t ? { Authorization: `Bearer ${t}` } : {}),
+    },
+  })
+  const res = token
+    ? await authedFetch((t) => ({ url: `${BASE}${path}`, init: buildInit(t) }))
+    : await fetch(`${BASE}${path}`, buildInit(null))
+  if (!res.ok) return throwHttp(res)
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
@@ -123,27 +156,22 @@ const httpAuthApi: AuthApi = {
   me: (accessToken) => call<AuthUser>('/auth/me', { method: 'GET' }, accessToken),
   updateProfile: (accessToken, input) =>
     call<AuthUser>('/auth/me', { method: 'PATCH', body: JSON.stringify(input) }, accessToken),
-  uploadAvatar: async (accessToken, file) => {
+  uploadAvatar: async (_accessToken, file) => {
     // multipart: let the browser set the boundary content-type, so no JSON header here.
-    const form = new FormData()
-    form.append('file', file)
-    const res = await fetch(`${BASE}/uploads`, {
-      method: 'POST',
-      body: form,
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-    if (!res.ok) {
-      let message = `${res.status} ${res.statusText}`
-      try {
-        const body = (await res.json()) as { message?: string | string[] }
-        if (body?.message) message = Array.isArray(body.message) ? body.message.join(', ') : body.message
-      } catch {
-        /* non-JSON error body */
+    // FormData is single-use; rebuild it per attempt so the 401 retry resends.
+    const res = await authedFetch((token) => {
+      const form = new FormData()
+      form.append('file', file)
+      return {
+        url: `${BASE}/uploads`,
+        init: {
+          method: 'POST',
+          body: form,
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        },
       }
-      const err = new Error(message) as Error & { status?: number }
-      err.status = res.status
-      throw err
-    }
+    })
+    if (!res.ok) return throwHttp(res)
     const body = (await res.json()) as { url: string }
     return body.url
   },

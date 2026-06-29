@@ -2,6 +2,7 @@ package ee.gemspot.api.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ee.gemspot.api.security.JwtAuthFilter;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,6 +43,13 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // ERROR dispatch must not re-authenticate: JwtAuthFilter is a
+                // OncePerRequestFilter and is skipped on the error dispatch, so the
+                // context is empty there. Without this, any 4xx/5xx on an authed
+                // route (e.g. a 500 from storage on /uploads) is re-dispatched to
+                // /error, fails authorization, and is masked as a misleading 401
+                // "Authentication required". Permit ERROR so the real status/body shows.
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 // Public reads + auth endpoints (except /auth/me).
                 .requestMatchers("/health").permitAll()
                 // Actuator probes + Prometheus scrape (D8). Network-scoped in prod.

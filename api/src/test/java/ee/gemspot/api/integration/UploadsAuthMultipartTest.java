@@ -46,6 +46,24 @@ class UploadsAuthMultipartTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.url").value("https://x/y.jpg"));
     }
 
+    /**
+     * Regression: a 5xx thrown inside an authed handler must surface as the real
+     * status, not be masked as 401. Spring re-dispatches the error to /error; the
+     * JwtAuthFilter (OncePerRequestFilter) is skipped there, so without permitAll
+     * on the ERROR dispatch the empty context fails authorization and the entry
+     * point overwrites the response with a bogus 401 "Authentication required".
+     */
+    @Test
+    void authedHandlerThrowsSurfacesRealStatusNot401() throws Exception {
+        when(storage.save(any())).thenThrow(new RuntimeException("storage boom"));
+        String token = clientToken();
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "y.jpg", "image/jpeg", new byte[]{1, 2, 3});
+        mvc.perform(multipart("/uploads").file(file)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().is5xxServerError());
+    }
+
     @Test
     void unauthMultipartUpload401() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
