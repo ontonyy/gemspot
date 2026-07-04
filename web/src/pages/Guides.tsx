@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { AppShell } from '../app/AppShell'
 import { SkeletonList, ErrorState } from '../features/explore/RailStates'
 import { useGuides } from '../shared/api/queries'
+import { usePageTitle } from '../shared/lib/pageTitle'
+import { pluralize } from '../shared/lib/pluralize'
 import { catColor, CategoryGlyph } from '../entities/place/categories'
 import { Ic, Icon } from '../shared/ui/Icon'
 
@@ -11,6 +13,7 @@ import { Ic, Icon } from '../shared/ui/Icon'
 export default function Guides() {
   const navigate = useNavigate()
   const { data: guides, isLoading, isError, refetch } = useGuides()
+  usePageTitle('Guides')
 
   return (
     <AppShell>
@@ -22,7 +25,7 @@ export default function Guides() {
               <h1>Guides</h1>
               <div className="sub">Hand-picked routes through the field guide — by sport, by season, by access.</div>
             </div>
-            <div className="sub mono">{guides?.length ?? 0} guides</div>
+            <div className="sub mono">{pluralize(guides?.length ?? 0, 'guide')}</div>
           </div>
 
           {isLoading ? (
@@ -39,7 +42,9 @@ export default function Guides() {
                   onClick={() => navigate(`/guides/${g.id}`)}
                 >
                   <div className="fg-guide-cover" style={{ background: catColor(g.coverCategory), color: '#fff' }}>
-                    {g.coverIcon && Ic[g.coverIcon] ? (
+                    {g.coverImage ? (
+                      <img src={g.coverImage} alt="" className="fg-guide-cover-img" />
+                    ) : g.coverIcon && Ic[g.coverIcon] ? (
                       <Icon d={Ic[g.coverIcon]} size={34} />
                     ) : (
                       <CategoryGlyph cat={g.coverCategory} size={34} />
@@ -48,7 +53,7 @@ export default function Guides() {
                   <div className="fg-guide-body">
                     <h3>{g.title}</h3>
                     <div className="sub">{g.subtitle}</div>
-                    <div className="fg-guide-count">{g.count} spots</div>
+                    <div className="fg-guide-count">{pluralize(g.count, 'spot')}</div>
                   </div>
                 </button>
               ))}

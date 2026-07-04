@@ -44,12 +44,27 @@ public class GuidesService {
         return mapper.primaryCategory(p).getId();
     }
 
+    /** Cover photo = first non-empty photo url among the guide's member spots. */
+    private static String coverImage(Map<String, Place> bySlug, List<String> slugs) {
+        for (String slug : slugs) {
+            Place p = bySlug.get(slug);
+            if (p == null) continue;
+            for (var ph : p.getPhotos()) {
+                if (ph.getUrl() != null && !ph.getUrl().isEmpty()) return ph.getUrl();
+            }
+        }
+        return null;
+    }
+
     /** Build result mirroring Nest's { guides, places } so getById does not re-query. */
     private record Built(List<GuideDto> guides, List<Place> places) {}
 
     private Built build() {
         List<Category> cats = categoryRepository.findAllByOrderBySortAsc();
         List<Place> places = placeRepository.findAllByOrderBySortAsc();
+
+        Map<String, Place> bySlug = new LinkedHashMap<>();
+        for (Place p : places) bySlug.put(p.getSlug(), p);
 
         List<GuideDto> byCat = new ArrayList<>();
         for (Category c : cats) {
@@ -63,6 +78,7 @@ public class GuidesService {
                     "Every " + c.getShortLabel().toLowerCase() + " spot in the field guide",
                     c.getId(),
                     null,
+                    coverImage(bySlug, slugs),
                     slugs.size(),
                     slugs
             );
@@ -79,6 +95,7 @@ public class GuidesService {
                 "No booking, no fee — just show up",
                 "scenic",
                 null,
+                coverImage(bySlug, freeSlugs),
                 freeSlugs.size(),
                 freeSlugs
         );
