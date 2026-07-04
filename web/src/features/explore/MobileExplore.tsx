@@ -6,6 +6,7 @@ import { SpotDetail } from '../place-detail/SpotDetail'
 import { Icon, Ic } from '../../shared/ui/Icon'
 import type { CategoryId } from '../../entities/place/categories'
 import type { ExploreCard } from './useExploreList'
+import { pluralNoun } from '../../shared/lib/pluralize'
 
 type SheetState = 'peek' | 'half' | 'full'
 
@@ -19,6 +20,8 @@ interface MobileExploreProps {
   onCat: (cat: CategoryId | null) => void
   free: boolean
   onFree: (next: boolean) => void
+  /** How many spots the "free" toggle removed — shown as applied-filter feedback. */
+  freeHidden?: number
   selected: string | null
   onSelect: (slug: string) => void
   detailSlug: string | null
@@ -96,9 +99,16 @@ export function MobileExplore(s: MobileExploreProps) {
           <div className="fg-sheet-head">
             <div>
               <div className="count" style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>
-                <b className="mono">{s.items.length}</b> {s.curated ? 'spots in view' : 'spots nearby'}
+                {/* no count until data resolves — avoids the "0 spots" flash */}
+                <b className="mono">{s.loading ? '–' : s.items.length}</b>{' '}
+                {s.loading ? 'spots' : pluralNoun(s.items.length, 'spot')} {s.curated ? 'in view' : 'nearby'}
               </div>
-              <div className="sub kicker" style={{ marginTop: 3 }}>Sorted by distance</div>
+              <div className="sub kicker" style={{ marginTop: 3 }}>
+                {s.free && !s.loading && (
+                  <span className="fg-filter-note">Free only{s.freeHidden ? ` — ${s.freeHidden} hidden` : ' — all free'} · </span>
+                )}
+                Sorted by distance
+              </div>
             </div>
             <button className="fg-sort" onClick={s.onEnableLocation} disabled={s.locating}
               aria-label="Sort by distance from my location">

@@ -7,10 +7,12 @@ import { useExploreList } from '../features/explore/useExploreList'
 import { Icon, Ic } from '../shared/ui/Icon'
 import { useGatedSave } from '../shared/store/useGatedSave'
 import { useGeoStore } from '../shared/store/geoStore'
+import { usePageTitle } from '../shared/lib/pageTitle'
 
 /* Saved specimens — everything bookmarked via savedStore (persisted to
    localStorage). Reuses the Explore RailCard; unsave removes the row live. */
 export default function Saved() {
+  usePageTitle('Saved spots')
   const navigate = useNavigate()
   const requestGeo = useGeoStore((s) => s.request)
   useEffect(() => { requestGeo() }, [requestGeo])

@@ -7,6 +7,7 @@ import { AvatarPreview } from '../shared/ui/AvatarPreview'
 import { useAuthStore } from '../shared/store/authStore'
 import { useToastStore } from '../shared/store/toastStore'
 import { avatarFor } from '../shared/lib/avatar'
+import { usePageTitle } from '../shared/lib/pageTitle'
 
 /* Account settings — three sections: Profile (live this block), Security and
    Connected (stubs, filled in later blocks). Profile edits go through the
@@ -34,6 +35,7 @@ function expiresInHint(iso?: string | null): string | null {
 }
 
 export default function Account() {
+  usePageTitle('Settings')
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const busy = useAuthStore((s) => s.busy)
@@ -348,8 +350,15 @@ export default function Account() {
               open it; verifying signs you out of all devices.
             </div>
 
-            <div className="fg-acct-divider" />
-            <div className="fg-acct-meta">Sign out of all devices, including this one.</div>
+          </section>
+
+          {/* ===== Sessions — destructive session control, kept out of the Security forms ===== */}
+          <section className="fg-acct-sec">
+            <h2>Sessions</h2>
+            <div className="fg-acct-warn">
+              Signs you out of all devices, including this one. You'll need to sign in again
+              everywhere.
+            </div>
             <div className="fg-form-actions">
               <Button onClick={signOutEverywhere} disabled={busy}>Sign out everywhere</Button>
             </div>
@@ -385,7 +394,7 @@ export default function Account() {
             </div>
 
             <div className="fg-acct-meta">
-              Linking and unlinking providers arrives in a later update.
+              Linking and unlinking providers is coming soon.
             </div>
           </section>
 
@@ -407,7 +416,7 @@ export default function Account() {
 
             {!confirmingDelete ? (
               <div className="fg-form-actions">
-                <Button onClick={() => setConfirmingDelete(true)} disabled={busy}>
+                <Button variant="danger" onClick={() => setConfirmingDelete(true)} disabled={busy}>
                   Delete account
                 </Button>
               </div>
@@ -427,7 +436,7 @@ export default function Account() {
                 )}
                 <div className="fg-form-actions">
                   <Button
-                    variant="solid"
+                    variant="danger"
                     onClick={confirmDelete}
                     disabled={busy || (hasPassword && deletePw.length === 0)}
                   >

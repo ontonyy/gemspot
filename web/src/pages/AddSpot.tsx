@@ -12,6 +12,7 @@ import { useSubmissionsStore } from '../shared/store/submissionsStore'
 import { useToastStore } from '../shared/store/toastStore'
 import { useAuthStore } from '../shared/store/authStore'
 import { track } from '../shared/api/track'
+import { usePageTitle } from '../shared/lib/pageTitle'
 
 /* Add-a-spot — client form → createSubmission (PENDING). Photos upload to object
    storage via placesApi.uploadPhoto (returns a public URL); the URLs ride along
@@ -21,6 +22,7 @@ type Errors = { name?: string; category?: string; note?: string }
 const MAX_PHOTOS = 6
 
 export default function AddSpot() {
+  usePageTitle('Add a spot')
   const navigate = useNavigate()
   const prefillName = (useLocation().state as { name?: string } | null)?.name ?? ''
   const addSubmission = useSubmissionsStore((s) => s.add)
@@ -113,14 +115,14 @@ export default function AddSpot() {
 
           <div className="fg-form">
             <div className="fg-field" data-err={!!errors.name}>
-              <label htmlFor="add-name">Name</label>
+              <label htmlFor="add-name">Name <span className="fg-req" aria-hidden="true">*</span></label>
               <input id="add-name" type="text" value={name} placeholder="e.g. Kalamaja ping-pong tables"
                 onChange={(e) => setName(e.target.value)} />
               {errors.name && <div className="err">{errors.name}</div>}
             </div>
 
             <div className="fg-field" data-err={!!errors.category}>
-              <label>Category</label>
+              <label>Category <span className="fg-req" aria-hidden="true">*</span> <span style={{ textTransform: 'none', letterSpacing: 0 }}>(required)</span></label>
               <Legend active={category} onSelect={setCategory} allowAll={false} />
               {errors.category && <div className="err">{errors.category}</div>}
             </div>
