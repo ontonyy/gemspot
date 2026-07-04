@@ -5,6 +5,7 @@ import { SpotDetail } from '../place-detail/SpotDetail'
 import { Icon, Ic } from '../../shared/ui/Icon'
 import { FG_CAT, type CategoryId } from '../../entities/place/categories'
 import type { ExploreCard } from './useExploreList'
+import { pluralNoun } from '../../shared/lib/pluralize'
 
 interface DesktopExploreProps {
   items: ExploreCard[]
@@ -16,6 +17,8 @@ interface DesktopExploreProps {
   onCat: (cat: CategoryId | null) => void
   free: boolean
   onFree: (next: boolean) => void
+  /** How many spots the "free" toggle removed — shown as applied-filter feedback. */
+  freeHidden?: number
   curated?: boolean
   hover: string | null
   selected: string | null
@@ -60,9 +63,17 @@ export function DesktopExplore(s: DesktopExploreProps) {
 
         <div className="fg-rail-head">
           <div>
-            <div className="count"><b className="mono">{s.items.length}</b> {s.curated ? 'spots in view' : 'spots nearby'}</div>
+            <div className="count">
+              {/* no count until data resolves — avoids the "0 spots" flash */}
+              <b className="mono">{s.loading ? '–' : s.items.length}</b>{' '}
+              {s.loading ? 'spots' : pluralNoun(s.items.length, 'spot')} {s.curated ? 'in view' : 'nearby'}
+            </div>
             <div className="sub">
-              {s.cat ? FG_CAT[s.cat].short : 'All categories'}{s.free ? ' · free only' : ''} · sorted by distance
+              {s.cat ? FG_CAT[s.cat].short : 'All categories'}
+              {s.free && !s.loading && (
+                <span className="fg-filter-note"> · Free only{s.freeHidden ? ` — ${s.freeHidden} hidden` : ' — all free'}</span>
+              )}
+              {' '}· sorted by distance
             </div>
           </div>
           <button className="fg-sort" onClick={s.onEnableLocation} disabled={s.locating}

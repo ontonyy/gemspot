@@ -9,10 +9,12 @@ import { useIsMobile } from '../shared/lib/useViewport'
 import { useUiStore } from '../shared/store/uiStore'
 import { useGeoStore } from '../shared/store/geoStore'
 import { track } from '../shared/api/track'
+import { usePageTitle } from '../shared/lib/pageTitle'
 
 /* Explore screen — URL-driven (?cat= filter). Rail + map on desktop, full-bleed
    map + bottom sheet on mobile. Single source of list = useExploreList. */
 export default function Explore() {
+  usePageTitle('Explore')
   const [params, setParams] = useSearchParams()
   const rawCat = params.get('cat')
   const cat: CategoryId | null = rawCat && rawCat in FG_CAT ? (rawCat as CategoryId) : null
@@ -47,11 +49,27 @@ export default function Explore() {
   const geoStatus = useGeoStore((s) => s.status)
   useEffect(() => { requestGeo() }, [requestGeo])
 
-  const { items, isLoading, isError, refetch } = useExploreList({ cat, query: searchQuery, free })
+  const { items, isLoading, isError, refetch, freeHidden } = useExploreList({ cat, query: searchQuery, free })
 
   const [hover, setHover] = useState<string | null>(null)
 
   const searching = searchQuery.trim().length > 0
+
+  // Header search is global (its dropdown spans all categories), so an active
+  // ?cat= filter would silently narrow the rail to a contradictory subset.
+  // Searching clears the category filter to keep both surfaces in agreement.
+  useEffect(() => {
+    if (!searching) return
+    setParams(
+      (prev) => {
+        if (!prev.has('cat')) return prev
+        const p = new URLSearchParams(prev)
+        p.delete('cat')
+        return p
+      },
+      { replace: true },
+    )
+  }, [searching, setParams])
   const curated = isCurated && geoStatus !== 'locating'
 
   const setCat = (next: CategoryId | null) => {
@@ -98,6 +116,7 @@ export default function Explore() {
           onCat={setCat}
           free={free}
           onFree={setFree}
+          freeHidden={freeHidden}
           selected={detailSlug ?? hover}
           onSelect={openSpot}
           detailSlug={detailSlug ?? null}
@@ -119,6 +138,7 @@ export default function Explore() {
           onCat={setCat}
           free={free}
           onFree={setFree}
+          freeHidden={freeHidden}
           curated={curated}
           hover={hover}
           selected={detailSlug ?? hover}

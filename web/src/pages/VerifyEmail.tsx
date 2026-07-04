@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../app/AppShell'
 import { Button } from '../shared/ui/Button'
 import { useAuthStore } from '../shared/store/authStore'
+import { usePageTitle } from '../shared/lib/pageTitle'
 
 /* Landing for the email-change verification link
    (<web-url>/#/account/verify-email?token=…). Consumes the token once on mount:
@@ -11,6 +12,7 @@ import { useAuthStore } from '../shared/store/authStore'
    (the token is the bearer of authority). */
 
 export default function VerifyEmail() {
+  usePageTitle('Verify email')
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const verifyEmailChange = useAuthStore((s) => s.verifyEmailChange)
