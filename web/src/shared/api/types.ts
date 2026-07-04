@@ -37,6 +37,7 @@ export interface GuideDto {
   subtitle: string
   coverCategory: CategoryId // drives accent + glyph
   coverIcon?: string // optional Ic key for cross-cut guides w/o a sport category
+  coverImage?: string // real cover photo url; absent → accent+glyph fallback
   count: number
   spotSlugs: string[]
 }
