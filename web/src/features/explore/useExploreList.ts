@@ -31,9 +31,9 @@ export function useExploreList(filters: ExploreFilters = {}) {
   const origin = useGeoStore((s) => s.origin)
   const savedIds = useSavedStore((s) => s.ids)
 
-  const items = useMemo<ExploreCard[]>(() => {
+  const { items, freeHidden } = useMemo(() => {
     const rows = places.data ?? []
-    return rows
+    const base = rows
       .map((p) => {
         const km = roundKm(haversineKm(origin, { lat: p.lat, lng: p.lng }))
         return {
@@ -44,7 +44,6 @@ export function useExploreList(filters: ExploreFilters = {}) {
         }
       })
       .filter((p) => (cat ? p.category.id === cat : true))
-      .filter((p) => (free ? p.isFree : true))
       .filter((p) =>
         query
           ? p.name.toLowerCase().includes(query) ||
@@ -52,8 +51,11 @@ export function useExploreList(filters: ExploreFilters = {}) {
             p.tags.some((t) => t.toLowerCase().includes(query))
           : true,
       )
+    const items: ExploreCard[] = (free ? base.filter((p) => p.isFree) : base)
       .sort((a, b) => a.distanceKm - b.distanceKm)
+    // count of spots the "free" toggle removed — surfaced as filter feedback
+    return { items, freeHidden: free ? base.length - items.length : 0 }
   }, [places.data, origin, savedIds, cat, query, free])
 
-  return { ...places, items }
+  return { ...places, items, freeHidden }
 }
