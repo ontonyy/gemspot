@@ -1,5 +1,6 @@
 import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../shared/store/authStore'
+import { usePageTitle } from '../../shared/lib/pageTitle'
 
 /* Admin shell — role-gated chrome SEPARATE from the consumer AppShell. Guests
    bounce to /auth, signed-in non-admins bounce to /explore. Sidebar + content
@@ -12,6 +13,7 @@ const LINKS = [
 ]
 
 export default function AdminLayout() {
+  usePageTitle('Admin')
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()

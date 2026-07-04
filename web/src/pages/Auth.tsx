@@ -9,6 +9,7 @@ import { useSavedStore } from '../shared/store/savedStore'
 import { useToastStore } from '../shared/store/toastStore'
 import { authApi } from '../shared/api/authApi'
 import { hydrateMine } from '../shared/api/hydrateMine'
+import { usePageTitle } from '../shared/lib/pageTitle'
 
 /* Email + password / Google sign-in / register screen. On success the guest's
    local saved set is merged into the server (saved_places) and the reconciled
@@ -19,6 +20,7 @@ type Mode = 'login' | 'register'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function Auth() {
+  usePageTitle('Sign in')
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as { from?: string } | null)?.from ?? '/explore'

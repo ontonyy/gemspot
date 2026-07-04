@@ -60,6 +60,8 @@
 .fg-btn:active{transform:scale(0.975);}
 .fg-btn-solid{background:var(--ink);color:var(--paper);}
 .fg-btn-solid:hover{background:var(--ink-2);}
+.fg-btn-danger{border-color:var(--danger);color:var(--danger);}
+.fg-btn-danger:hover{background:var(--danger);color:var(--paper);}
 .fg-btn-block{width:100%;}
 .fg-btn-lg{height:48px;padding:0 22px;font-size:14.5px;}
 .fg-btn:disabled{opacity:0.4;cursor:not-allowed;}
@@ -113,6 +115,8 @@
   border:1.5px solid var(--ink-3);color:transparent;transition:background .14s,border-color .14s,color .14s;}
 .fg-freetoggle[data-on="true"]{color:var(--ink);}
 .fg-freetoggle[data-on="true"] .fg-freetoggle-box{background:var(--ink);border-color:var(--ink);color:var(--paper);}
+/* applied-filter feedback in the rail-head subtitle (U2) */
+.fg-filter-note{color:var(--ink);font-weight:700;}
 
 /* ===== tags ===== */
 .fg-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:1px;}
@@ -284,6 +288,17 @@
 .fg-me span{display:block;width:13px;height:13px;border-radius:50%;background:var(--ink);
   border:2.5px solid var(--paper);box-shadow:0 0 0 5px color-mix(in oklch,var(--ink) 16%,transparent);}
 
+/* ===== guide route mini-map ===== */
+.fg-guidemap{position:relative;height:240px;margin:14px 0 18px;border:1.25px solid var(--ink);
+  background:var(--paper-2);box-shadow:0 3px 10px rgba(20,30,30,.10);overflow:hidden;}
+.fg-guidemap .maplibregl-ctrl-attrib{font-family:var(--font-mono);font-size:9px;}
+.fg-minipin{width:26px;height:26px;border-radius:50%;background:var(--pc);
+  border:1.5px solid var(--ink);display:flex;align-items:center;justify-content:center;
+  color:#fff;font-family:var(--font-mono);font-size:12px;font-weight:700;cursor:pointer;
+  box-shadow:0 2px 0 var(--ink),0 4px 9px rgba(20,30,30,.22);
+  transition:transform .16s var(--ease-out),box-shadow .16s;}
+.fg-minipin:hover{transform:translateY(-2px);box-shadow:0 3px 0 var(--ink),0 7px 14px rgba(20,30,30,.26);}
+
 /* ===== map controls + corner stamp ===== */
 .fg-mapctl{position:absolute;right:16px;bottom:18px;display:flex;flex-direction:column;z-index:30;
   border:1.25px solid var(--ink);background:var(--paper);box-shadow:0 3px 10px rgba(20,30,30,.14);}
@@ -365,6 +380,8 @@
 @keyframes fg-slide{from{transform:translateX(-14px);opacity:0;}to{transform:none;opacity:1;}}
 .fg-detail-hero{position:relative;flex:0 0 auto;height:208px;border-bottom:1px solid var(--ink);}
 .fg-detail-hero .fg-photo{height:100%;}
+/* U4 interim: photo-less spots get a compact hero so the placeholder doesn't read as a load error */
+.fg-detail-hero-nophoto{height:120px;}
 .fg-detail-top{position:absolute;top:13px;left:13px;right:13px;display:flex;justify-content:space-between;z-index:3;}
 .fg-iconbtn{width:36px;height:36px;border:1.25px solid var(--ink);background:var(--paper);
   display:flex;align-items:center;justify-content:center;color:var(--ink);
@@ -564,8 +581,17 @@
 .fg-acct-item .c{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
 @media (max-width:980px){.fg-acct{right:10px;left:10px;width:auto;top:auto;bottom:70px;}}
 
+/* ===== detail footer actions — primary nav vs secondary report ===== */
+.fg-detail-actions{display:flex;flex-direction:column;align-items:flex-start;gap:14px;margin-top:24px;
+  padding-top:18px;border-top:1px solid var(--line);}
+.fg-openmap-link{display:inline-flex;align-items:center;gap:8px;background:none;cursor:pointer;white-space:nowrap;
+  padding:9px 14px;border:1.5px solid var(--ink);font-family:var(--font-mono);font-size:11.5px;
+  letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--ink);
+  transition:background .15s,color .15s;}
+.fg-openmap-link:hover{background:var(--ink);color:var(--paper);}
+
 /* ===== report-a-problem modal (Block CW) ===== */
-.fg-report-link{display:inline-flex;align-items:center;gap:7px;margin-top:22px;background:none;border:none;cursor:pointer;
+.fg-report-link{display:inline-flex;align-items:center;gap:7px;background:none;border:none;cursor:pointer;
   padding:0;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);}
 .fg-report-link:hover{color:var(--ink);}
 .fg-modal-scrim{position:fixed;inset:0;z-index:60;background:color-mix(in oklch,var(--ink) 24%,transparent);
@@ -610,6 +636,7 @@
 .fg-field[data-err=true] input,.fg-field[data-err=true] textarea{border-color:var(--stamp);}
 .fg-field .err{margin-top:6px;font-family:var(--font-ui);font-size:12px;color:var(--stamp);}
 .fg-field .hint{margin-top:6px;font-family:var(--font-ui);font-size:12px;color:var(--ink-3);}
+.fg-req{color:var(--stamp);letter-spacing:0;margin-left:2px;}
 .fg-pickmap{height:240px;border:1.5px solid var(--line-2);position:relative;overflow:hidden;}
 .fg-pickmap .fg-pick-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:5;
   pointer-events:none;color:var(--ink);}
