@@ -43,6 +43,7 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
 
   const [shot, setShot] = useState(0)
   const [dirOpen, setDirOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
 
   const mobileStyle: CSSProperties = mobile
@@ -68,20 +69,24 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
     showToast(nowSaved ? 'Saved to your collection' : 'Removed from collection')
   }
 
-  const onShare = async () => {
+  const shareUrl = `${window.location.origin}${import.meta.env.BASE_URL}#/spot/${p.slug}`
+  const canNativeShare = typeof navigator.share === 'function'
+
+  const onNativeShare = async () => {
+    setShareOpen(false)
     track('share', undefined, p.id)
-    const url = `${window.location.origin}${import.meta.env.BASE_URL}#/spot/${p.slug}`
-    const shareData = { title: p.name, text: `${p.name} · GemSpot Tallinn`, url }
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData)
-        return
-      } catch {
-        // user cancelled or share failed → fall through to clipboard
-      }
-    }
     try {
-      await navigator.clipboard.writeText(url)
+      await navigator.share({ title: p.name, text: `${p.name} · GemSpot Tallinn`, url: shareUrl })
+    } catch {
+      // user cancelled the native sheet — nothing to do
+    }
+  }
+
+  const onCopyLink = async () => {
+    setShareOpen(false)
+    track('share', { method: 'copy' }, p.id)
+    try {
+      await navigator.clipboard.writeText(shareUrl)
       showToast('Link copied')
     } catch {
       showToast('Could not copy link')
@@ -94,7 +99,27 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
         <Photo cat={cat} glyph={!hasPhotos} large={hasPhotos} url={hasPhotos ? photos[shot]?.url : undefined} />
         <div className="fg-detail-top">
           <button className="fg-iconbtn" onClick={onClose} aria-label="Back"><Icon d={Ic.back} size={18} /></button>
-          <button className="fg-iconbtn" onClick={onShare} aria-label="Share"><Icon d={Ic.share} size={17} /></button>
+          <div className="fg-share">
+            {shareOpen && (
+              <>
+                <div className="fg-dir-scrim" onClick={() => setShareOpen(false)} />
+                <div className="fg-share-menu" role="menu">
+                  {canNativeShare && (
+                    <button className="fg-dir-item" role="menuitem" onClick={onNativeShare}>
+                      <Icon d={Ic.share} size={15} sw={2} />Share…
+                    </button>
+                  )}
+                  <button className="fg-dir-item" role="menuitem" onClick={onCopyLink}>
+                    <Icon d={Ic.link} size={15} sw={2} />Copy link
+                  </button>
+                </div>
+              </>
+            )}
+            <button className="fg-iconbtn" aria-haspopup="menu" aria-expanded={shareOpen}
+              onClick={() => setShareOpen((v) => !v)} aria-label="Share">
+              <Icon d={Ic.share} size={17} />
+            </button>
+          </div>
         </div>
         <span className="fg-detail-cattag"><CategoryGlyph cat={cat} size={13} />{p.category.label}</span>
         {hasPhotos && photos.length > 1 && (

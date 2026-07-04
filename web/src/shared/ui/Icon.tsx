@@ -24,6 +24,7 @@ export const Ic: Record<string, ReactNode> = {
   shield: <g><path d="M12 3.5l6.5 2.4v5.1c0 4-2.7 7.1-6.5 8.5-3.8-1.4-6.5-4.5-6.5-8.5V5.9L12 3.5z" /></g>,
   out: <g><path d="M14 7V5a1 1 0 00-1-1H6a1 1 0 00-1 1v14a1 1 0 001 1h7a1 1 0 001-1v-2" /><path d="M10 12h10M16 8l4 4-4 4" /></g>,
   chev: <g><path d="M6 9l6 6 6-6" /></g>,
+  link: <g><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1.6 1.6" /><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1.6-1.6" /></g>,
 }
 
 export function Icon({ d, size = 18, sw = 1.6 }: { d: ReactNode; size?: number; sw?: number }) {
