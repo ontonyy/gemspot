@@ -89,8 +89,7 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
   return (
     <aside className="fg-detail" style={{ '--cc': catColor(cat), ...mobileStyle } as CSSProperties}>
       <div className="fg-detail-hero">
-        <Photo cat={cat} glyph={!hasPhotos} large url={hasPhotos ? photos[shot]?.url : undefined}
-          label={hasPhotos ? undefined : p.category.label} />
+        <Photo cat={cat} glyph={!hasPhotos} large url={hasPhotos ? photos[shot]?.url : undefined} />
         <div className="fg-detail-top">
           <button className="fg-iconbtn" onClick={onClose} aria-label="Back"><Icon d={Ic.back} size={18} /></button>
           <button className="fg-iconbtn" onClick={onShare} aria-label="Share"><Icon d={Ic.share} size={17} /></button>
