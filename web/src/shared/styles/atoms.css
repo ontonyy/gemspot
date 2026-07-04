@@ -591,7 +591,7 @@
 .fg-openmap-link:hover{background:var(--ink);color:var(--paper);}
 
 /* ===== report-a-problem modal (Block CW) ===== */
-.fg-report-link{display:inline-flex;align-items:center;gap:7px;background:none;border:none;cursor:pointer;
+.fg-report-link{display:inline-flex;align-items:center;gap:7px;min-height:40px;background:none;border:none;cursor:pointer;
   padding:0;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);}
 .fg-report-link:hover{color:var(--ink);}
 .fg-modal-scrim{position:fixed;inset:0;z-index:60;background:color-mix(in oklch,var(--ink) 24%,transparent);
