@@ -8,6 +8,9 @@ import { useGuide } from '../shared/api/queries'
 import { Icon, Ic } from '../shared/ui/Icon'
 import { useGatedSave } from '../shared/store/useGatedSave'
 import { useGeoStore } from '../shared/store/geoStore'
+import { usePageTitle } from '../shared/lib/pageTitle'
+import { pluralize } from '../shared/lib/pluralize'
+import { GuideRouteMap } from '../widgets/map/GuideRouteMap'
 
 /* GuideDetail — the spots in one curated collection. Reuses the Explore
    RailCard (distance + save) by annotating the guide's slugs from the live
@@ -21,6 +24,7 @@ export default function GuideDetail() {
   const { data, isLoading: guideLoading, isError: guideError, refetch: refetchGuide } = useGuide(id ?? null)
   const { items, isLoading: listLoading, isError: listError, refetch: refetchList } = useExploreList()
   const save = useGatedSave()
+  usePageTitle(data?.guide.title)
 
   const spots = useMemo(() => {
     if (!data) return []
@@ -46,7 +50,7 @@ export default function GuideDetail() {
               <h1>{data?.guide.title ?? 'Guide'}</h1>
               {data && <div className="sub">{data.guide.subtitle}</div>}
             </div>
-            <div className="sub mono">{spots.length} spots</div>
+            <div className="sub mono">{pluralize(spots.length, 'spot')}</div>
           </div>
 
           {isLoading ? (
@@ -54,7 +58,9 @@ export default function GuideDetail() {
           ) : isError && spots.length === 0 ? (
             <ErrorState onRetry={() => { void refetchGuide(); void refetchList() }} />
           ) : (
-            <div className="fg-page-grid">
+            <>
+              <GuideRouteMap spots={spots} onOpen={(slug) => navigate(`/spot/${slug}`)} />
+              <div className="fg-page-grid">
               {spots.map((p) => (
                 <RailCard
                   key={p.slug}
@@ -64,7 +70,8 @@ export default function GuideDetail() {
                   onSave={() => save(p.id, `/guides/${id}`)}
                 />
               ))}
-            </div>
+              </div>
+            </>
           )}
         </div>
       </div>

@@ -10,6 +10,7 @@ public record GuideDto(
         String subtitle,
         String coverCategory,
         String coverIcon,
+        String coverImage,
         int count,
         List<String> spotSlugs
 ) {}

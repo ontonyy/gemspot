@@ -12,6 +12,7 @@ import { useSavedStore } from '../../shared/store/savedStore'
 import { useToastStore } from '../../shared/store/toastStore'
 import { useAuthStore } from '../../shared/store/authStore'
 import { track } from '../../shared/api/track'
+import { usePageTitle } from '../../shared/lib/pageTitle'
 
 /* Spot detail panel. Slides over the rail on desktop, full-screen on mobile.
    Driven by slug → usePlace. fg-app.jsx Detail + fg.css .fg-detail spec.
@@ -24,6 +25,7 @@ interface SpotDetailProps {
 
 export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
   const { data: p, isLoading } = usePlace(slug)
+  usePageTitle(p?.name)
   const origin = useGeoStore((s) => s.origin)
   const isSaved = useSavedStore((s) => s.ids.includes(p?.id ?? ''))
   const toggleSave = useSavedStore((s) => s.toggle)
@@ -88,8 +90,8 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
 
   return (
     <aside className="fg-detail" style={{ '--cc': catColor(cat), ...mobileStyle } as CSSProperties}>
-      <div className="fg-detail-hero">
-        <Photo cat={cat} glyph={!hasPhotos} large url={hasPhotos ? photos[shot]?.url : undefined} />
+      <div className={'fg-detail-hero' + (hasPhotos ? '' : ' fg-detail-hero-nophoto')}>
+        <Photo cat={cat} glyph={!hasPhotos} large={hasPhotos} url={hasPhotos ? photos[shot]?.url : undefined} />
         <div className="fg-detail-top">
           <button className="fg-iconbtn" onClick={onClose} aria-label="Back"><Icon d={Ic.back} size={18} /></button>
           <button className="fg-iconbtn" onClick={onShare} aria-label="Share"><Icon d={Ic.share} size={17} /></button>
@@ -139,13 +141,14 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
           </>
         )}
 
-        <button className="fg-report-link" onClick={() => navigate(`/explore?focus=${p.slug}`)}>
-          <Icon d={Ic.pin} size={13} />Open in full map →
-        </button>
-
-        <button className="fg-report-link" onClick={() => requireAuth('Sign in to report a problem') && setReportOpen(true)}>
-          <Icon d={Ic.flag} size={13} />Report a problem · outdated
-        </button>
+        <div className="fg-detail-actions">
+          <button className="fg-openmap-link" onClick={() => navigate(`/explore?focus=${p.slug}`)}>
+            <Icon d={Ic.pin} size={14} />Open in full map<Icon d={Ic.arrow} size={13} />
+          </button>
+          <button className="fg-report-link" onClick={() => requireAuth('Sign in to report a problem') && setReportOpen(true)}>
+            <Icon d={Ic.flag} size={13} />Report a problem · outdated
+          </button>
+        </div>
       </div>
 
       {reportOpen && <ReportModal place={p} onClose={() => setReportOpen(false)} />}
