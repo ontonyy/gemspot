@@ -432,6 +432,11 @@
   color:var(--ink);text-decoration:none;}
 .fg-dir-item+.fg-dir-item{border-top:1px solid var(--line);}
 .fg-dir-item:hover{background:var(--paper-2);}
+/* share menu (native share / copy link) — same anatomy as fg-dir, drops below the hero icon button */
+.fg-share{position:relative;}
+.fg-share-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:158px;z-index:41;background:var(--paper);
+  border:1.25px solid var(--ink);box-shadow:0 8px 24px rgba(20,30,30,.14);animation:fg-slide .16s var(--ease);}
+button.fg-dir-item{width:100%;border:none;background:none;text-align:left;cursor:pointer;}
 .fg-detail-hero-skel{background:var(--paper-2);}
 
 /* ===== shared page scaffold (Saved / Guides / Add) — Block 8+ ===== */
