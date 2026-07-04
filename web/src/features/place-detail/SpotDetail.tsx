@@ -140,13 +140,15 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
           </>
         )}
 
-        <button className="fg-report-link" onClick={() => navigate(`/explore?focus=${p.slug}`)}>
-          <Icon d={Ic.pin} size={13} />Open in full map →
-        </button>
+        <div className="fg-detail-actions">
+          <button className="fg-report-link" onClick={() => navigate(`/explore?focus=${p.slug}`)}>
+            <Icon d={Ic.pin} size={13} />Open in full map →
+          </button>
 
-        <button className="fg-report-link" onClick={() => requireAuth('Sign in to report a problem') && setReportOpen(true)}>
-          <Icon d={Ic.flag} size={13} />Report a problem · outdated
-        </button>
+          <button className="fg-report-link" onClick={() => requireAuth('Sign in to report a problem') && setReportOpen(true)}>
+            <Icon d={Ic.flag} size={13} />Report a problem · outdated
+          </button>
+        </div>
       </div>
 
       {reportOpen && <ReportModal place={p} onClose={() => setReportOpen(false)} />}
