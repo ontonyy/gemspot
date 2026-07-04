@@ -8,6 +8,7 @@ import { useExploreList } from '../features/explore/useExploreList'
 import { RailCard } from '../features/explore/RailCard'
 import { useGatedSave } from '../shared/store/useGatedSave'
 import { HeroMapCanvas } from '../widgets/map/HeroMapCanvas'
+import { usePageTitle } from '../shared/lib/pageTitle'
 
 /* Landing / home — the editorial front door, ported from the "Spotter's Field
    Guide" design at full fidelity: hero + live-map preview, taxonomy grid,
@@ -39,6 +40,7 @@ function projectPins(items: { lat: number; lng: number }[]) {
 }
 
 export default function Home() {
+  usePageTitle('')
   const navigate = useNavigate()
   const save = useGatedSave()
   const { items } = useExploreList()

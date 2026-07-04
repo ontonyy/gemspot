@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'outline' | 'solid'
+  variant?: 'outline' | 'solid' | 'danger'
   size?: 'md' | 'lg'
   block?: boolean
   children?: ReactNode
@@ -11,6 +11,7 @@ export function Button({ variant = 'outline', size = 'md', block, className = ''
   const cls = [
     'fg-btn',
     variant === 'solid' && 'fg-btn-solid',
+    variant === 'danger' && 'fg-btn-danger',
     size === 'lg' && 'fg-btn-lg',
     block && 'fg-btn-block',
     className,

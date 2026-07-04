@@ -20,6 +20,9 @@
   /* verify / fresh signal */
   --fresh:    oklch(55% 0.10 160);
 
+  /* destructive actions — same warm hue family as the stamp, darker for text/borders */
+  --danger:   oklch(48% 0.17 28);
+
   /* category ink-set — shared-ish L/C, hue carries meaning */
   --c-tabletennis: oklch(69% 0.155 66);
   --c-basketball:  oklch(64% 0.165 46);
