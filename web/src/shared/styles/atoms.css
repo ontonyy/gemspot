@@ -650,9 +650,19 @@ button.fg-dir-item{width:100%;border:none;background:none;text-align:left;cursor
 .fg-field .err{margin-top:6px;font-family:var(--font-ui);font-size:12px;color:var(--stamp);}
 .fg-field .hint{margin-top:6px;font-family:var(--font-ui);font-size:12px;color:var(--ink-3);}
 .fg-req{color:var(--stamp);letter-spacing:0;margin-left:2px;}
-.fg-pickmap{height:240px;border:1.5px solid var(--line-2);position:relative;overflow:hidden;}
+.fg-pickmap{height:clamp(300px,46vh,440px);border:1.5px solid var(--line-2);position:relative;overflow:hidden;}
 .fg-pickmap .fg-pick-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:5;
   pointer-events:none;color:var(--ink);}
+.fg-pick-locate{position:absolute;left:8px;top:8px;z-index:6;display:inline-flex;align-items:center;gap:5px;
+  font-family:var(--font-ui);font-size:12px;color:var(--ink);background:var(--paper);
+  border:1.5px solid var(--line-2);padding:6px 9px;cursor:pointer;transition:border-color .15s ease;}
+.fg-pick-locate:hover:not(:disabled){border-color:var(--ink);}
+.fg-pick-locate:disabled{opacity:.6;cursor:default;}
+.fg-pick-hint{position:absolute;left:8px;bottom:8px;z-index:5;pointer-events:none;
+  font-family:var(--font-ui);font-size:11px;color:var(--ink);
+  background:rgba(255,255,255,0.78);padding:3px 7px;border-radius:3px;}
+.fg-pick-coords{position:absolute;left:8px;top:44px;z-index:5;pointer-events:none;
+  font-size:11px;color:var(--ink);background:rgba(255,255,255,0.78);padding:2px 6px;border-radius:3px;}
 .fg-form-actions{display:flex;gap:10px;align-items:center;margin-top:8px;}
 .fg-linkbtn{background:none;border:none;padding:0;font-family:inherit;font-size:12.5px;
   color:var(--ink-3);text-decoration:underline;text-underline-offset:2px;cursor:pointer;}
