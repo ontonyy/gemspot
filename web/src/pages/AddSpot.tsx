@@ -45,6 +45,7 @@ export default function AddSpot() {
   const [uploading, setUploading] = useState(false)
   const [errors, setErrors] = useState<Errors>({})
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const onPickPhotos = async (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -80,6 +81,7 @@ export default function AddSpot() {
   const submit = async () => {
     const e = validate()
     setErrors(e)
+    setSubmitError(null)
     if (Object.keys(e).length > 0 || !category) return
     setSubmitting(true)
     try {
@@ -96,6 +98,17 @@ export default function AddSpot() {
       track('submission', { categoryId: category })
       showToast('Spot submitted · pending moderation')
       navigate('/explore')
+    } catch (err) {
+      // httpPlacesApi throws Error & { status?: number }; a 401 here means the
+      // access token expired and the refresh retry also failed (tokens cleared).
+      if ((err as { status?: number }).status === 401) {
+        showToast('Session expired — sign in to submit')
+        navigate('/auth', { state: { from: '/add' } })
+      } else {
+        const msg = 'Couldn’t submit the spot — check your connection and try again.'
+        setSubmitError(msg)
+        showToast(msg, 4000)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -161,6 +174,10 @@ export default function AddSpot() {
                 )}
               </div>
             </div>
+
+            {submitError && (
+              <div className="err" role="alert">{submitError}</div>
+            )}
 
             <div className="fg-form-actions">
               <Button variant="solid" onClick={submit} disabled={submitting || uploading}>
