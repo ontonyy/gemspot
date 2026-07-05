@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { catColor, CategoryGlyph } from '../../entities/place/categories'
 import { Photo } from '../../entities/place/Photo'
+import { fieldNoteKeyLabel, fieldNoteValueLabel } from '../../entities/place/fieldNotes'
 import { ReportModal } from './ReportModal'
 import { Icon, Ic } from '../../shared/ui/Icon'
 import { usePlace } from '../../shared/api/queries'
@@ -152,9 +153,12 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
 
         <div className="fg-notes-h">Field notes</div>
         <div className="fg-facts">
-          <div className="fg-fact"><span className="k">Access</span><span className="v">{p.fieldNotes.access}</span></div>
-          <div className="fg-fact"><span className="k">Lit</span><span className="v">{p.fieldNotes.lit}</span></div>
-          <div className="fg-fact"><span className="k">Best</span><span className="v">{p.fieldNotes.best}</span></div>
+          {(['access', 'lit', 'best'] as const).map((key) => (
+            <div key={key} className="fg-fact">
+              <span className="k">{fieldNoteKeyLabel(key)}</span>
+              <span className="v">{fieldNoteValueLabel(key, p.fieldNotes[key])}</span>
+            </div>
+          ))}
         </div>
 
         {hasPhotos && (
