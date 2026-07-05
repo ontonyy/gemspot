@@ -13,6 +13,9 @@ import AdminDashboard from '../pages/admin/AdminDashboard'
 import AdminModeration from '../pages/admin/AdminModeration'
 import AdminPlaces from '../pages/admin/AdminPlaces'
 import AdminUsers from '../pages/admin/AdminUsers'
+import About from '../pages/static/About'
+import Privacy from '../pages/static/Privacy'
+import BringToYourCity from '../pages/static/BringToYourCity'
 
 /* Data router. Root = landing/home. Explore is URL-driven (?cat=).
    Saved/Guides/Add are full screens sharing the AppShell chrome. */
@@ -28,6 +31,10 @@ export const router = createHashRouter([
   { path: '/auth', element: <Auth /> },
   { path: '/account', element: <Account /> },
   { path: '/account/verify-email', element: <VerifyEmail /> },
+  // static info pages (footer links)
+  { path: '/about', element: <About /> },
+  { path: '/privacy', element: <Privacy /> },
+  { path: '/bring-your-city', element: <BringToYourCity /> },
   // role-gated admin panel — own chrome (AdminLayout), not the consumer AppShell
   {
     path: '/admin',
