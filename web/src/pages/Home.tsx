@@ -193,13 +193,15 @@ export default function Home() {
                 <div>
                   <h4>Contribute</h4>
                   <a onClick={() => navigate('/add')}>Add a spot</a>
-                  <a onClick={() => navigate('/add')}>Report an issue</a>
+                  {/* /reports requires a placeId (spot-scoped); general issues go via
+                      mail until a placeless /feedback seam exists (plans/010) */}
+                  <a href="mailto:hello@gemspot.app?subject=GemSpot%20issue%20report">Report an issue</a>
                 </div>
                 <div>
                   <h4>GemSpot</h4>
-                  <a onClick={() => navigate('/')}>About</a>
-                  <a onClick={() => navigate('/')}>Bring GemSpot to your city</a>
-                  <a onClick={() => navigate('/')}>Privacy</a>
+                  <a onClick={() => navigate('/about')}>About</a>
+                  <a onClick={() => navigate('/bring-your-city')}>Bring GemSpot to your city</a>
+                  <a onClick={() => navigate('/privacy')}>Privacy</a>
                 </div>
               </div>
             </div>
