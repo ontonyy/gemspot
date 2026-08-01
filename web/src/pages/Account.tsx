@@ -71,6 +71,8 @@ export default function Account() {
 
   // Keep the field in sync if the user is refreshed elsewhere (e.g. bootstrap).
   useEffect(() => {
+    // sync the editable field when the user is refreshed elsewhere (bootstrap/re-auth)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(user?.name ?? '')
   }, [user?.name])
 

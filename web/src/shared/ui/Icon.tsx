@@ -1,3 +1,6 @@
+/* eslint-disable react-refresh/only-export-components --
+   Shared icon-glyph data module that colocates one tiny renderer.
+   Splitting the data out would churn ~16 import sites; fast-refresh DX only. */
 import type { ReactNode } from 'react'
 
 /* minimal line icons (stroke 1.6, consistent) — ported from fg-app.jsx Ic */

@@ -22,7 +22,7 @@ export function LocationPicker({ value, onChange }: { value: LatLng; onChange: (
   const hostRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const onChangeRef = useRef(onChange)
-  onChangeRef.current = onChange
+  useEffect(() => { onChangeRef.current = onChange }, [onChange])
 
   const [picked, setPicked] = useState<LatLng>(value)
   const geoStatus = useGeoStore((s) => s.status)
