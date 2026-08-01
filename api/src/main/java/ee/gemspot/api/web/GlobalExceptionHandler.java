@@ -1,5 +1,7 @@
 package ee.gemspot.api.web;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,20 @@ import java.util.Map;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    /**
+     * Fallback: any exception not matched by a more specific handler → 500 in the
+     * same JSON shape (never the servlet's default HTML error page). The failure
+     * is logged; the client message stays generic so internals aren't leaked.
+     * ResponseStatusException / validation handlers above take precedence.
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> onUnhandled(Exception ex) {
+        log.error("Unhandled exception", ex);
+        return bodyFor(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
+    }
 
     /** Bean-validation (@Valid record DTOs) → 400 with message[] of field errors. */
     @ExceptionHandler(MethodArgumentNotValidException.class)

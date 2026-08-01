@@ -23,7 +23,7 @@ Executor rules:
 | 001  | Create canonical service-context doc set (UPPERCASE split-transport scheme) | P1 | L | LOW | — | DONE (applied at `aad27f1`, 2026-06-29; branch advisor/001-service-context-docs) |
 | 002  | Eliminate N+1 query patterns in list endpoints | P2 | M | MED | — | TODO |
 | 003  | Validate latitude/longitude on submission input | P2 | S | LOW | — | TODO |
-| 004  | Add lint + test gates to CI before deploy | P2 | S | LOW | — | TODO |
+| 004  | Add lint + test gates to CI before deploy | P2 | S | LOW | — | DONE |
 | 005  | Test the web 401→refresh→retry auth seam | P3 | M | LOW | 004 (soft) | TODO |
 
 ## Recommended sequence

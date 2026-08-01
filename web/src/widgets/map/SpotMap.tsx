@@ -166,8 +166,11 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
   // ── init map once (re-runs on retry) ─────────────────────────────────────
   useEffect(() => {
     if (!hostRef.current) return
+    // imperative map bootstrap; status reflects async GL init, not derivable in render
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!webglAvailable()) { setStatus('error'); return }
     setStatus('loading')
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     let map: maplibregl.Map
     try {

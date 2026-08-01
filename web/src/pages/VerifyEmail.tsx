@@ -25,8 +25,11 @@ export default function VerifyEmail() {
     if (ran.current) return // StrictMode double-invoke guard — consume once
     ran.current = true
     if (!token) {
+      // one-time mount side-effect (token consume); not derivable during render
+      /* eslint-disable react-hooks/set-state-in-effect */
       setStatus('error')
       setMessage('This verification link is missing its token.')
+      /* eslint-enable react-hooks/set-state-in-effect */
       return
     }
     verifyEmailChange(token)
