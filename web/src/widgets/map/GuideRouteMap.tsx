@@ -35,7 +35,7 @@ function webglAvailable(): boolean {
 export function GuideRouteMap({ spots, onOpen }: GuideRouteMapProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const onOpenRef = useRef<typeof onOpen>(onOpen)
-  onOpenRef.current = onOpen
+  useEffect(() => { onOpenRef.current = onOpen }, [onOpen])
 
   useEffect(() => {
     const host = hostRef.current
