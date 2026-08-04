@@ -23,6 +23,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Gate: run the JUnit + Testcontainers suite before building/deploying.
+      # Runner has Docker (used below), so Testcontainers Postgres works.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Test
+        run: ./gradlew test
+        working-directory: api
+
       - id: auth
         uses: google-github-actions/auth@v2
         with:

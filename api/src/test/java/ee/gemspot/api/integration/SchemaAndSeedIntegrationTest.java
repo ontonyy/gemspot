@@ -23,15 +23,20 @@ class SchemaAndSeedIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void schemaValidatesAndSeedIsIdempotent() {
-        // Seed already ran once on boot (ApplicationRunner).
+        // Seed already ran once on boot (ApplicationRunner). Categories/places are
+        // seed-owned — no test creates them — so their absolute counts hold.
         assertThat(categories.count()).isEqualTo(7);
         assertThat(places.count()).isEqualTo(10);
-        assertThat(users.count()).isEqualTo(1); // admin only
+
+        // Users are shared-DB mutable: other integration tests register accounts on
+        // the same container, so assert idempotency (re-run leaves counts stable),
+        // not an absolute admin-only count.
+        long usersBefore = users.count();
 
         // Run again → same counts (idempotent).
         seeder.run(null);
         assertThat(categories.count()).isEqualTo(7);
         assertThat(places.count()).isEqualTo(10);
-        assertThat(users.count()).isEqualTo(1);
+        assertThat(users.count()).isEqualTo(usersBefore);
     }
 }

@@ -1,3 +1,6 @@
+/* eslint-disable react-refresh/only-export-components --
+   Shared taxonomy/glyph data module that colocates one tiny renderer.
+   Splitting the data out would churn ~24 import sites; fast-refresh DX only. */
 import type { ReactNode } from 'react'
 
 /* GemSpot taxonomy — 7 launch categories. Color = taxonomy only.

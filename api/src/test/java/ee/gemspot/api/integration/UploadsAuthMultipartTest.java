@@ -10,6 +10,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import ee.gemspot.api.storage.StorageService;
+import ee.gemspot.api.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -24,11 +26,26 @@ class UploadsAuthMultipartTest extends AbstractIntegrationTest {
 
     @MockBean StorageService storage;
 
+    @Autowired UserRepository users;
+
+    // Unique per test method so re-registering doesn't 409 on the shared-DB
+    // container; cleaned up in @AfterEach so accounts don't leak to other tests.
+    private String testEmail;
+
+    @AfterEach
+    void cleanup() {
+        if (testEmail != null) {
+            users.findByEmail(testEmail).ifPresent(users::delete);
+            testEmail = null;
+        }
+    }
+
     private String clientToken() throws Exception {
+        testEmail = "up-" + java.util.UUID.randomUUID() + "@gemspot.ee";
         MvcResult reg = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"up@gemspot.ee\",\"password\":\"pw12345678\",\"name\":\"UP\"}"))
+                        .content("{\"email\":\"" + testEmail + "\",\"password\":\"pw12345678\",\"name\":\"UP\"}"))
                 .andExpect(status().isCreated())
                 .andReturn();
         return json.readTree(reg.getResponse().getContentAsString()).get("accessToken").asText();
