@@ -36,6 +36,9 @@ export default function AdminModeration() {
   }, [token, tab])
 
   useEffect(() => {
+    // mount + tab-change fetch; load()'s synchronous setLoadError(null) is an
+    // error reset before the requests, not state derived during render
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load()
   }, [load])
 
