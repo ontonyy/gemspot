@@ -80,6 +80,10 @@ public class AdminService {
         return new AdminStatsDto(places, activePlaces, pendingSubmissions, openReports, users);
     }
 
+    // Read-only tx keeps the Hibernate session open across the lazy photos
+    // collection; without it this 500s (LazyInitializationException) in prod,
+    // while @Transactional integration tests mask it.
+    @Transactional(readOnly = true)
     public List<AdminSubmissionDto> listSubmissions(String status) {
         List<Submission> rows = status != null
                 ? submissionRepo.findByStatusOrderBySubmittedAtDesc(SubmissionStatus.valueOf(status))
