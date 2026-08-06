@@ -23,8 +23,21 @@ Executor rules:
 | 001  | Create canonical service-context doc set (UPPERCASE split-transport scheme) | P1 | L | LOW | — | DONE (applied at `aad27f1`, 2026-06-29; branch advisor/001-service-context-docs) |
 | 002  | Eliminate N+1 query patterns in list endpoints | P2 | M | MED | — | TODO |
 | 003  | Validate latitude/longitude on submission input | P2 | S | LOW | — | TODO |
-| 004  | Add lint + test gates to CI before deploy | P2 | S | LOW | — | DONE |
+| 004  | Add lint + test gates to CI before deploy | P2 | S | LOW | — | DONE (`45e7905`, 2026-08-06; PR #25) |
 | 005  | Test the web 401→refresh→retry auth seam | P3 | M | LOW | 004 (soft) | TODO |
+
+Plans 006+ came from design review and user bug reports rather than the advisor audit above.
+All are shipped:
+
+| Plan | Title | Status |
+|------|-------|--------|
+| 006  | Spot detail: duplicate category label on photo-less spots | DONE (`9dd8912`) |
+| 007  | Spot detail: action links as separate rows | DONE (`58d42a4`) |
+| 008  | Spot detail: share menu with explicit copy link | DONE (`9a78d77`) |
+| 009  | Field notes: human-readable labels | DONE (`cb615e3`) |
+| 010  | Static info pages + footer link fixes | DONE (`77ecd7e`) |
+| 011  | "Add a spot": submit failures + admin queue 500 | DONE (`7c2f235`, PR #26) |
+| 012  | Add-spot location picker UX | DONE (`7342cc0`) |
 
 ## Recommended sequence
 
@@ -91,10 +104,11 @@ findings below (each read + confirmed in source). Plans written for the high-lev
   entirely. Trade-off: backend must set/read cookies and CORS `credentials` is already on,
   but it changes the auth seam in `web/src/shared/api` and `SecurityConfig`. Non-trivial;
   weigh against current short-TTL mitigation.
-- **Deploy-target source of truth**: `api/README.md` says Cloud Run (`deploy-api.yml`,
-  service `gemspot-api`) while the audit also saw `https://gemspot-api.onrender.com`.
-  One is stale. Resolve before `RUNBOOK.md` pins a live URL (plan 001 flags this, does not
-  assert it).
+- ~~**Deploy-target source of truth**~~ — **RESOLVED 2026-08-06.** Cloud Run is authoritative;
+  `api/README.md` now names service `gemspot-api` (`europe-north1`, project `gemspot-498821`)
+  and the stale `onrender.com` reference is gone (landed in `7c2f235`). Note
+  `docs/service-context/RUNBOOK.md` still carries the old "URL ambiguous" TODO inside its
+  auto-generated block — clear it on the next service-context regen.
 - **ADR for monorepo doc layout**: a single repo-root `docs/service-context/` covering two
   deployables (web + api) vs. per-package dirs. Plan 001 takes the root-level approach with
   a `WEB.md` for the frontend; if you prefer per-package, capture it as ADR 0003 first.

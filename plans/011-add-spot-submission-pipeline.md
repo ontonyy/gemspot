@@ -1,7 +1,9 @@
 # 011 — "Add a spot": submit button not working + nothing reaches admin moderation
 
 Priority: P1 · Effort: M-L · Risk: MED · Depends on: —
-Status: FIXED (block 2, 2026-07-05) — pending commit/PR. Not committed (user's call).
+Status: DONE — merged to master 2026-08-06 as `7c2f235` (PR #26, squash of `deabb95`).
+API deploy green; the admin-queue 500 fix is live on Cloud Run. Follow-up `786c960` (PR #27)
+fixed a lint-gate failure this change surfaced in `AdminModeration.tsx` — see plans/004.
 
 ## Problem (user report, production gemspot.web.app)
 

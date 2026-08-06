@@ -1,99 +1,98 @@
 # GemSpot — Project Status
 
-> Spotter's Field Guide to Tallinn. Map-first UGC app: discover/save/submit outdoor spots
+> Spotter's Field Guide to Tallinn. Map-first UGC app: discover / save / submit outdoor spots
 > (ping-pong, hoops, football, tennis, padel, viewpoints, sakura).
-> Stack: React + Vite (FSD, HashRouter, base `/gemspot/`) → GitHub Pages · NestJS + Prisma + Postgres → Render.
-> Last updated: 2026-06-04 · web `v0.2.0` · backend LIVE `https://gemspot-api.onrender.com`.
+> Last updated: 2026-08-06 · web `v0.2.11`.
+
+**This file is a pointer, not a second source of truth.** The authoritative description of the
+service lives in [`docs/service-context/`](service-context/README.md), which is generated from
+the code and grep-verified. Everything below is either a link into that pack or a fact the pack
+deliberately does not carry (ownership, open work, launch gaps).
+
+An earlier version of this file described a NestJS + Prisma + Render backend on GitHub Pages.
+That stack was replaced — see [ADR 0001](adr/0001-rewrite-backend-nestjs-to-spring.md). None of
+it survives in the repo.
 
 ---
 
-## TL;DR
+## Stack (one line each — details in the pack)
 
-- **Frontend: done.** Full app on mock seam → GitHub Pages. All 14 review items addressed (1 optional skipped earlier, now solid thumbnails shipped).
-- **Backend: LIVE on Render.** `https://gemspot-api.onrender.com` — health/categories/places verified, DB migrated + seeded (7 cats, 10 places). NestJS + Prisma + free Postgres, Blueprint-managed off `master` (`render.yaml`).
-- **Backend now has tests** — Jest unit suite, 33 tests, mocked Prisma (auth/saved-merge/submissions/admin moderation/relative-time).
-- **Live site STILL on mock data until secret set** — set GitHub secret `VITE_API_URL=https://gemspot-api.onrender.com` + re-run Pages → seam flips mock→real (zero code change). Then run acceptance tests.
-- **Gaps:** admin seeded with default password (`ADMIN_PASSWORD` unset) — set real one before launch; version/CHANGELOG at `0.2.0`; free tier cold-start ~50s; uploads on ephemeral FS.
+| Part | What it is | Where it runs | Doc |
+|---|---|---|---|
+| `api/` | Spring Boot 3.5.6, Java 25, Gradle. 11 REST controllers, 38 endpoints | Google Cloud Run, `europe-north1` | [HTTP.md](service-context/HTTP.md) |
+| `web/` | React 19 + Vite + TS, feature-sliced, HashRouter, base `/` | Firebase Hosting → `https://gemspot.web.app` | [WEB.md](service-context/WEB.md) |
+| Database | PostgreSQL (Supabase, pooler `:6543`, direct `:5432`), Liquibase owns DDL | Supabase `eu-north-1` | [DATA.md](service-context/DATA.md) |
+| Photos | Supabase S3-compatible bucket `place-photos` | Supabase | [DEPENDENCIES.md](service-context/DEPENDENCIES.md) |
+| Auth | Custom dual-token JWT + refresh-reuse detection; Google + Facebook OAuth | — | [HTTP.md](service-context/HTTP.md) |
+
+Build / run / test commands, ports and deploy triggers: [RUNBOOK.md](service-context/RUNBOOK.md).
+Config keys and env-var names (no values): [CONFIG.md](service-context/CONFIG.md).
 
 ---
 
-## Frontend — DONE
+## CI gate
 
-Path: `web/`. FSD layers: `app / pages / widgets / features / entities / shared`.
+Since 2026-08-06 both deploy workflows gate on the suites before shipping:
 
-| Area | State | Where |
+- `deploy-web.yml` — `npm run lint` + `npm run test`, then build + deploy.
+- `deploy-api.yml` — `./gradlew test` (JUnit + Testcontainers Postgres), then build + deploy.
+
+A red suite blocks the deploy; prod stays on the previous build. Plan:
+[`plans/004-ci-lint-test-gates.md`](../plans/004-ci-lint-test-gates.md).
+
+**Gotcha:** merging a branch that is behind master can fail the gate on the merged tree even
+though both sides were green. Rebase before merge. This happened on the very first merge after
+the gate landed.
+
+---
+
+## Open work
+
+Tracked in [`plans/`](../plans/README.md) — that file's status table is the source of truth.
+
+| Plan | What | Status |
 |---|---|---|
-| Explore (map + clustering + rail + filter) | ✅ | `features/explore/*`, `widgets/map/SpotMap.tsx` |
-| Category filter + Free filter (`?cat=`,`?free=1`) | ✅ | `features/explore/Legend.tsx`, `useExploreList.ts` |
-| Spot detail panel + directions deep-links | ✅ | `features/place-detail/SpotDetail.tsx` |
-| Share (navigator.share → clipboard → toast) | ✅ | `SpotDetail.tsx` `onShare` |
-| Report-a-problem (modal → mock/HTTP seam → Account) | ✅ | `features/report/*`, `reportsStore` |
-| Save / collection (localStorage; server-merge on login) | ✅ | `shared/store/savedStore.ts` |
-| Add-a-spot (category required, no "All", no photo field) | ✅ | `pages/AddSpot.tsx` |
-| Guides (derived collections) | ✅ | `pages/Guides.tsx`, `GuideDetail.tsx` |
-| Account menu (submissions, saved, Sign in→login) | ✅ | `features/account/AccountMenu.tsx` |
-| Auth UI (guest default, email login) | ✅ | `authStore`, `shared/api/authApi.ts` |
-| Admin panel (moderation/dashboard/places/users) | ✅ | `features/admin/*` (role-gated) |
-| Analytics `track()` events | ✅ | wired to call sites → `events` API |
-| Mobile (bottom sheet, mobile nav) | ✅ | `MobileExplore.tsx`, `widgets/nav/MobileNav.tsx` |
-| Stable specimen numbering (`№{id}` list=detail) | ✅ | `RailList/Saved/GuideDetail` |
-
-**Seam:** `shared/api/{placesApi,authApi,adminApi}.ts` pick HTTP client when `VITE_API_URL` set, else mock. Zero call-site changes to flip. DTO contract `shared/api/types.ts` is the stable boundary.
-
-**Constraints held:** fg.css visuals only (no new colors/fonts); category color = only taxonomy color; `--stamp` = save-only; HashRouter + base `/gemspot/`.
+| 002 | Eliminate N+1 queries in list endpoints | TODO |
+| 003 | Validate lat/lng on submission input | TODO |
+| 005 | Test the web 401→refresh→retry auth seam | TODO |
 
 ---
 
-## Backend — LIVE on Render
+## Launch gaps (not code)
 
-Path: `backend/`. NestJS, layered `api / application / domain / infra / contracts`. Prisma + Postgres.
-Live at `https://gemspot-api.onrender.com` (Blueprint `render.yaml`, free web + free Postgres).
-Endpoints conform to frontend DTO shapes (do not change shapes).
+These are operator / console tasks, not tracked as plans:
 
-Modules + routes:
-- `health` — `GET /health`
-- `places` — `GET /places`, `GET /places/:slug`
-- `categories` — `GET /categories`
-- `guides` — `GET /guides`, `GET /guides/:id`
-- `saved` — `GET /saved`, `POST /saved`, `POST /saved/merge`, `DELETE /saved/:placeId`
-- `submissions` — `POST /submissions`, `GET /submissions/mine`
-- `reports` — `POST /reports`, `GET /reports/mine`
-- `uploads` — `POST /uploads` (photo multipart)
-- `auth` — `register / login / refresh / logout`, `GET /auth/me` (JWT access+refresh)
-- `admin` (role-gated) — `events`, `stats`, submissions queue + approve/reject, places + status patch, reports + status patch, users
-- `events` — `POST /events` (analytics ingest)
-
-Prisma schema: users, profiles, places, categories, place_categories, saved_places, submissions, submission_photos, reports + enums `UserRole`, `PlaceStatus`. Seed loads the 10 Tallinn spots from `web` `RAW[]`.
-
-Env (Render): `DATABASE_URL` (fromDatabase), `PORT` (injected), `NODE_ENV=production`, `JWT_SECRET`/`JWT_REFRESH_SECRET` (generated) + TTLs, `CORS_ORIGIN=https://ontonyy.github.io`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` (sync:false — currently UNSET → default `admin1234`). Build = `npm install --include=dev → prisma generate → migrate deploy → db:seed → nest build`. **Use `npm install`, not `npm ci`** (lock tree drift Render rejects). Deploy notes: CONTEXT.md Block P2.3.
+1. **Supabase S3 access key equals the secret key.** Rotate to a distinct access/secret pair.
+2. **No database backups.** Nothing exists until the first real users; decide before launch.
+3. **MapTiler cutover** is code-complete with OpenFreeMap as permanent fallback; the account and
+   key steps are pending. See the vault runbook.
+4. **Admin credentials** — confirm the production `ADMIN_EMAIL` / `ADMIN_PASSWORD` are real
+   values in Secret Manager, not seed defaults.
+5. **Version + CHANGELOG** — `web/package.json` is at `0.2.11`; no tagged releases.
 
 ---
 
-## What's needed next (to ship real MVP)
+## Backlog
 
-1. **Flip live frontend to real API.** ✅ backend deployed. REMAINING: set GitHub repo secret `VITE_API_URL=https://gemspot-api.onrender.com` → re-run Pages workflow → seam flips mock→real (zero code change). Then verify live: Explore from API, login persists cross-device, approve PENDING → live map, `POST /events` 201.
-2. **SECURITY: set admin password.** Admin seeded with default `admin1234` (`ADMIN_PASSWORD` unset). Set a real value in Render env before public launch (redeploys + re-seeds).
-3. ~~**Backend tests.**~~ ✅ DONE — Jest, 33 tests (auth/saved-merge/submissions/admin moderation/relative-time), mocked Prisma.
-4. **Version + CHANGELOG.** Bump `web/package.json` past `0.2.0`; log CW/C/D/E/F entries. Tag release.
-5. **Avatar + verifiedAt** — derive avatar from auth user (hardcoded `"M"`); `verifiedAt` → real timestamp + relative format once API serves real dates.
-6. **`TokenProbe.tsx`** dev page — remove or route-gate before launch.
-
----
-
-## What can be added later (backlog)
-
-- More base filters (outdoor/quiet/lit/access) — data fields exist, UI is single-axis + Free.
-- Real place photos pipeline (object storage already stubbed via `uploads`); detail hero still placeholder when no photos.
-- Landing/home screen (currently `/` → `/explore`; map-first is acceptable — decide explicitly).
-- Collections as CMS (guides are derived today, no editing).
+- More base filters (outdoor / quiet / lit / access) — data fields exist, UI is single-axis + Free.
+- Real place photos pipeline (uploads work; detail hero is still a placeholder when a spot has none).
+- Landing/home screen (`/` → `/explore` today; map-first is acceptable — decide explicitly).
+- Collections as CMS (guides are derived, not editable).
 - Push/email on submission approval; rate-limit + spam guard on UGC.
-- i18n (ET/EN/RU), PWA/offline, social-login.
-- Analytics dashboard depth (funnels, retention) once events accumulate.
+- i18n (ET/EN/RU), PWA/offline.
+- Analytics depth (funnels, retention) once events accumulate.
 
 ---
 
 ## Gotchas (carry forward)
 
-- **Public-asset paths must use `import.meta.env.BASE_URL`**, never leading `/` (GH Pages base `/gemspot/` → 404 otherwise). Bit the map style once.
-- **`.claude/launch.json` `web` cwd must point at the worktree you actually edit** — else preview serves stale code (green build but old UI).
-- **DTO shapes (`web/src/shared/api/types.ts`) are the contract** — backend conforms; do not redesign frontend to match backend.
+- **Public-asset paths must use `import.meta.env.BASE_URL`**, never a leading `/`. Bit the map
+  style once (blank live map).
+- **DTO shapes in `web/src/shared/api/types.ts` are the contract.** The API conforms to the
+  frontend, not the other way round.
+- **Map tile/glyph URLs are never hardcoded in components** — go through
+  `web/src/widgets/map/provider.ts`.
+- **`.claude/launch.json` `web` cwd must point at the worktree you actually edit**, else the
+  preview serves stale code (green build, old UI).
+- **Google sign-in needs the same client id in two places**: web build `VITE_GOOGLE_CLIENT_ID`
+  and api runtime `GOOGLE_CLIENT_ID`. Unset on either side → the button reports "isn't configured".
