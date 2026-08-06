@@ -21,7 +21,8 @@ Config in `src/main/resources/application.yml`. Schema managed by Liquibase
 
 `Dockerfile` (multi-stage Gradle build → Temurin JRE) is built and pushed to
 Cloud Run by `.github/workflows/deploy-api.yml` on push to `master` touching
-`api/**`. Live: `https://gemspot-api.onrender.com` → Cloud Run service `gemspot-api`.
+`api/**`. Live: Cloud Run service `gemspot-api` (`europe-north1`, project
+`gemspot-498821`) — `https://gemspot-api-1017776835940.europe-north1.run.app`.
 
 ## Legacy
 

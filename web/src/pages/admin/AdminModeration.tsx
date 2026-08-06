@@ -21,10 +21,18 @@ export default function AdminModeration() {
   const [active, setActive] = useState<AdminSubmission | null>(null)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    adminApi.listSubmissions(token, tab).then(setSubs).catch(() => undefined)
-    adminApi.listReports(token, 'OPEN').then(setReports).catch(() => undefined)
+    setLoadError(null)
+    adminApi
+      .listSubmissions(token, tab)
+      .then(setSubs)
+      .catch(() => setLoadError('Couldn’t load the moderation queue — check the API and retry.'))
+    adminApi
+      .listReports(token, 'OPEN')
+      .then(setReports)
+      .catch(() => setLoadError('Couldn’t load the moderation queue — check the API and retry.'))
   }, [token, tab])
 
   useEffect(() => {
@@ -78,6 +86,14 @@ export default function AdminModeration() {
     <section>
       <h1 className="fg-adm-h1">Moderation</h1>
       {msg && <div className="fg-adm-flash">{msg}</div>}
+      {loadError && (
+        <div className="fg-adm-flash" role="alert">
+          {loadError}{' '}
+          <button className="fg-adm-btn fg-adm-btn-ghost" onClick={load}>
+            Retry
+          </button>
+        </div>
+      )}
 
       <h2 className="fg-adm-h2">Submissions</h2>
       <div className="fg-adm-tabs">
