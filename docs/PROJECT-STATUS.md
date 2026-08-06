@@ -38,7 +38,7 @@ Since 2026-08-06 both deploy workflows gate on the suites before shipping:
 - `deploy-api.yml` — `./gradlew test` (JUnit + Testcontainers Postgres), then build + deploy.
 
 A red suite blocks the deploy; prod stays on the previous build. Plan:
-[`plans/004-ci-lint-test-gates.md`](../plans/004-ci-lint-test-gates.md).
+[`plans/done/004-ci-lint-test-gates.md`](../plans/done/004-ci-lint-test-gates.md).
 
 **Gotcha:** merging a branch that is behind master can fail the gate on the merged tree even
 though both sides were green. Rebase before merge. This happened on the very first merge after
