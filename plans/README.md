@@ -30,7 +30,7 @@ for each lint suppression).
 
 | Plan | Title | Priority | Effort | Risk | Depends on | Status |
 |------|-------|----------|--------|------|------------|--------|
-| [002](002-fix-n-plus-1-queries.md) | Eliminate N+1 query patterns in list endpoints | P2 | M | MED | — | TODO |
+| [002](002-fix-n-plus-1-queries.md) | Eliminate N+1 query patterns in list endpoints | P2 | M | MED | — | DONE |
 | [003](003-validate-geo-coordinates.md) | Validate latitude/longitude on submission input | P2 | S | LOW | — | TODO |
 | [005](005-web-auth-refresh-tests.md) | Test the web 401→refresh→retry auth seam | P3 | M | LOW | — | TODO |
 

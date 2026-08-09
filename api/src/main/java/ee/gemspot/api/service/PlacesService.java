@@ -30,7 +30,7 @@ public class PlacesService {
 
     @Transactional(readOnly = true)
     public List<PlaceCardDto> list(String cat) {
-        List<Place> active = placeRepo.findByStatusOrderBySortAsc(PlaceStatus.ACTIVE);
+        List<Place> active = placeRepo.findActiveWithCategories(PlaceStatus.ACTIVE);
         return active.stream()
                 // cat filter mirrors Nest `categories: { some: { categoryId: cat } }`
                 .filter(p -> cat == null || p.getCategories().stream()

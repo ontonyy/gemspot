@@ -100,6 +100,47 @@ class SubmissionsServiceTest {
         assertThat(res.get(0).id()).isEqualTo("s1");
     }
 
+    @Test
+    void listMineBatchesPhotoLookupsIntoOneQuery() {
+        Submission a = row("s1", "u1");
+        Submission b = row("s2", "u1");
+        Submission other = row("s3", "u2");
+        when(submissions.findAllByOrderBySubmittedAtDesc()).thenReturn(List.of(a, b, other));
+        when(submissionPhotos.findBySubmissionIdInOrderBySortAsc(any()))
+                .thenReturn(List.of(
+                        photoOf(a, "a0.jpg", 0),
+                        photoOf(b, "b0.jpg", 0),
+                        photoOf(a, "a1.jpg", 1),
+                        photoOf(b, "b1.jpg", 1)));
+
+        List<SubmissionDto> res = svc.listMine("u1");
+
+        assertThat(res).extracting(SubmissionDto::id).containsExactly("s1", "s2");
+        assertThat(res.get(0).photoUrls()).containsExactly("a0.jpg", "a1.jpg");
+        assertThat(res.get(1).photoUrls()).containsExactly("b0.jpg", "b1.jpg");
+
+        verify(submissionPhotos, times(1)).findBySubmissionIdInOrderBySortAsc(any());
+        verify(submissionPhotos, times(0)).findBySubmissionIdOrderBySortAsc(any());
+    }
+
+    private static Submission row(String id, String userId) {
+        Submission s = new Submission();
+        s.setId(id);
+        s.setUserId(userId);
+        s.setName("A");
+        s.setCategoryId("football");
+        s.setNote("n");
+        s.setStatus(SubmissionStatus.PENDING);
+        ReflectionTestUtils.setField(s, "submittedAt", Instant.now());
+        return s;
+    }
+
+    private static SubmissionPhoto photoOf(Submission s, String url, int sort) {
+        SubmissionPhoto p = photo(url, sort);
+        p.setSubmission(s);
+        return p;
+    }
+
     private static SubmissionPhoto photo(String url, int sort) {
         SubmissionPhoto p = new SubmissionPhoto();
         p.setUrl(url);

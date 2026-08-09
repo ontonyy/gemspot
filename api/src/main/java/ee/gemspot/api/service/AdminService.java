@@ -13,6 +13,7 @@ import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -254,9 +255,14 @@ public class AdminService {
     public List<AdminUserDto> listUsers() {
         List<User> rows = new ArrayList<>(userRepo.findAll());
         rows.sort(Comparator.comparing(User::getCreatedAt).reversed());
+        // one batched profile load instead of one lookup per user
+        Map<String, String> nameByUserId = new HashMap<>();
+        for (Profile p : profileRepo.findByUserIdIn(rows.stream().map(User::getId).toList())) {
+            nameByUserId.putIfAbsent(p.getUserId(), p.getName());
+        }
         List<AdminUserDto> out = new ArrayList<>();
         for (User u : rows) {
-            String name = profileRepo.findByUserId(u.getId()).map(Profile::getName).orElse(null);
+            String name = nameByUserId.get(u.getId());
             out.add(new AdminUserDto(
                     u.getId(),
                     u.getEmail(),
