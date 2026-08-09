@@ -4,6 +4,7 @@ import ee.gemspot.api.domain.Category;
 import ee.gemspot.api.domain.Place;
 import ee.gemspot.api.domain.PlaceCategory;
 import ee.gemspot.api.domain.PlaceStatus;
+import ee.gemspot.api.domain.Profile;
 import ee.gemspot.api.domain.Report;
 import ee.gemspot.api.domain.ReportReason;
 import ee.gemspot.api.domain.ReportStatus;
@@ -14,6 +15,7 @@ import ee.gemspot.api.domain.User;
 import ee.gemspot.api.dto.AdminPlaceDto;
 import ee.gemspot.api.dto.AdminReportDto;
 import ee.gemspot.api.dto.AdminStatsDto;
+import ee.gemspot.api.dto.AdminUserDto;
 import ee.gemspot.api.dto.ApproveResultDto;
 import ee.gemspot.api.dto.RejectResultDto;
 import ee.gemspot.api.repository.CategoryRepository;
@@ -200,7 +202,43 @@ class AdminServiceTest {
         assertThat(res.reporterEmail()).isEqualTo("r@e.com");
     }
 
+    @Test
+    void listUsersBatchesProfileLookupsIntoOneQuery() {
+        User u1 = user("u1", "a@e.com", Instant.parse("2026-01-03T00:00:00Z"));
+        User u2 = user("u2", "b@e.com", Instant.parse("2026-01-02T00:00:00Z"));
+        User u3 = user("u3", "c@e.com", Instant.parse("2026-01-01T00:00:00Z"));
+        when(userRepo.findAll()).thenReturn(List.of(u3, u1, u2));
+        when(profileRepo.findByUserIdIn(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(List.of(profile("u1", "Alice"), profile("u2", "Bob")));
+
+        List<AdminUserDto> out = svc.listUsers();
+
+        assertThat(out).extracting(AdminUserDto::id).containsExactly("u1", "u2", "u3"); // createdAt desc
+        assertThat(out).extracting(AdminUserDto::name).containsExactly("Alice", "Bob", null);
+        assertThat(out).extracting(AdminUserDto::email).containsExactly("a@e.com", "b@e.com", "c@e.com");
+
+        org.mockito.Mockito.verify(profileRepo, org.mockito.Mockito.times(1))
+                .findByUserIdIn(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(profileRepo, org.mockito.Mockito.never())
+                .findByUserId(org.mockito.ArgumentMatchers.any());
+    }
+
     // --- builders ---
+
+    private static User user(String id, String email, Instant createdAt) {
+        User u = new User();
+        u.setId(id);
+        u.setEmail(email);
+        ReflectionTestUtils.setField(u, "createdAt", createdAt);
+        return u;
+    }
+
+    private static Profile profile(String userId, String name) {
+        Profile p = new Profile();
+        p.setUserId(userId);
+        p.setName(name);
+        return p;
+    }
 
     private static Place place(String id, int sort) {
         Place p = new Place();

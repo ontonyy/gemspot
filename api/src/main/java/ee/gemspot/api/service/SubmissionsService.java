@@ -11,8 +11,10 @@ import ee.gemspot.api.repository.SubmissionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -57,10 +59,26 @@ public class SubmissionsService {
     }
 
     /** PENDING submissions for the signed-in user — survives reload (server-backed). */
+    // read-only tx: photo→submission is a LAZY @ManyToOne; the grouping reads only the
+    // proxy id, but keep the session open so this can't 500 outside a transaction.
+    @Transactional(readOnly = true)
     public List<SubmissionDto> listMine(String userId) {
-        return submissionRepository.findAllByOrderBySubmittedAtDesc().stream()
+        List<Submission> rows = submissionRepository.findAllByOrderBySubmittedAtDesc().stream()
                 .filter(r -> userId.equals(r.getUserId()))
-                .map(this::toDto)
+                .collect(Collectors.toList());
+        if (rows.isEmpty()) {
+            return List.of();
+        }
+        // one batched photo load instead of one lookup per submission
+        Map<String, List<String>> urlsBySubmissionId = new HashMap<>();
+        List<String> ids = rows.stream().map(Submission::getId).collect(Collectors.toList());
+        for (SubmissionPhoto p : submissionPhotoRepository.findBySubmissionIdInOrderBySortAsc(ids)) {
+            urlsBySubmissionId
+                    .computeIfAbsent(p.getSubmission().getId(), k -> new ArrayList<>())
+                    .add(p.getUrl());
+        }
+        return rows.stream()
+                .map(r -> toDto(r, urlsBySubmissionId.getOrDefault(r.getId(), List.of())))
                 .collect(Collectors.toList());
     }
 
@@ -69,6 +87,10 @@ public class SubmissionsService {
                 .findBySubmissionIdOrderBySortAsc(row.getId()).stream()
                 .map(SubmissionPhoto::getUrl)
                 .collect(Collectors.toList());
+        return toDto(row, photoUrls);
+    }
+
+    private SubmissionDto toDto(Submission row, List<String> photoUrls) {
         return new SubmissionDto(
                 row.getName(),
                 row.getCategoryId(),
