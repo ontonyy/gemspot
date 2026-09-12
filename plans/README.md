@@ -28,11 +28,8 @@ for each lint suppression).
 
 ## Open
 
-| Plan | Title | Priority | Effort | Risk | Depends on | Status |
-|------|-------|----------|--------|------|------------|--------|
-| [005](005-web-auth-refresh-tests.md) | Test the web 401→refresh→retry auth seam | P3 | M | LOW | — | TODO |
-
-Only **005** is left. Its drift check passed at `240bfc0`.
+None — every plan written so far has landed. New work starts with a new plan at the top
+level of `plans/`, following the executor rules above.
 
 ## Done — [`plans/done/`](done/)
 
@@ -41,9 +38,10 @@ Only **005** is left. Its drift check passed at `240bfc0`.
 | Plan | Title | Landed |
 |------|-------|--------|
 | [001](done/001-service-context-docs.md) | Canonical service-context doc set | `aad27f1`, 2026-06-29 |
-| [002](done/002-fix-n-plus-1-queries.md) | Eliminate N+1 query patterns in list endpoints | `advisor/002-fix-n-plus-1-queries` |
+| [002](done/002-fix-n-plus-1-queries.md) | Eliminate N+1 query patterns in list endpoints | `817f04e` |
 | [003](done/003-validate-geo-coordinates.md) | Validate latitude/longitude on submission input | `f7571af` |
 | [004](done/004-ci-lint-test-gates.md) | Lint + test gates in CI before deploy | `45e7905`, PR #25 |
+| [005](done/005-web-auth-refresh-tests.md) | Test the web 401→refresh→retry auth seam | `advisor/005-web-auth-refresh-tests` |
 | [006](done/006-spot-detail-duplicate-category-label.md) | Spot detail: duplicate category label on photo-less spots | `9dd8912` |
 | [007](done/007-spot-detail-action-links-layout.md) | Spot detail: action links as separate rows | `58d42a4` |
 | [008](done/008-spot-detail-share-copy-link.md) | Spot detail: share menu with explicit copy link | `9a78d77` |
@@ -51,11 +49,6 @@ Only **005** is left. Its drift check passed at `240bfc0`.
 | [010](done/010-static-info-pages.md) | Static info pages + footer link fixes | `77ecd7e` |
 | [011](done/011-add-spot-submission-pipeline.md) | "Add a spot": submit failures + admin queue 500 | `7c2f235`, PR #26 |
 | [012](done/012-add-spot-location-picker-ux.md) | Add-spot location picker UX | `7342cc0` |
-
-## Dependency notes
-
-- 005's soft dependency on 004 is satisfied: the gate exists, so new Vitest tests block
-  deploys as soon as they land.
 
 ## Code findings (full audit, 2026-07-03)
 
@@ -69,7 +62,7 @@ findings below (each read + confirmed in source). Plans written for the high-lev
 | C3 | LOW-MED | perf | `api/.../service/SubmissionsService.java:60-71` | `listMine()` runs one photo query per submission | 002 ✅ |
 | C4 | MED | bug (data integrity) | `api/.../dto/SubmissionInputDto.java:15-16` | `lat`/`lng` accept any double — no range bounds; invalid coords persist | 003 ✅ |
 | C5 | MED | dx | `.github/workflows/deploy-web.yml:26-30`, `deploy-api.yml:38-41` | Deploys run no lint/test gate; regressions ship | 004 |
-| C6 | HIGH (coverage) | tests | `web/src/shared/api/httpPlacesApi.ts:21-35`, `authStore.ts` | 401→refresh→retry + refresh dedup: zero web tests (only 2 util tests exist) | 005 |
+| C6 | HIGH (coverage) | tests | `web/src/shared/api/httpPlacesApi.ts:21-35`, `authStore.ts` | 401→refresh→retry + refresh dedup: zero web tests (only 2 util tests exist) | 005 ✅ |
 
 ## Findings considered and rejected
 
