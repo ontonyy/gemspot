@@ -50,9 +50,7 @@ the gate landed.
 
 Tracked in [`plans/`](../plans/README.md) — that file's status table is the source of truth.
 
-| Plan | What | Status |
-|---|---|---|
-| 005 | Test the web 401→refresh→retry auth seam | TODO |
+No open plans — 001-012 have all landed. See the plans index for the history.
 
 ---
 
