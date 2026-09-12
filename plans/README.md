@@ -31,11 +31,10 @@ for each lint suppression).
 | Plan | Title | Priority | Effort | Risk | Depends on | Status |
 |------|-------|----------|--------|------|------------|--------|
 | [002](002-fix-n-plus-1-queries.md) | Eliminate N+1 query patterns in list endpoints | P2 | M | MED | — | TODO |
-| [003](003-validate-geo-coordinates.md) | Validate latitude/longitude on submission input | P2 | S | LOW | — | TODO |
 | [005](005-web-auth-refresh-tests.md) | Test the web 401→refresh→retry auth seam | P3 | M | LOW | — | TODO |
 
-Suggested order: **003** (smallest, independent) → **002** (needs its own regression tests)
-→ **005**. Drift checks for all three passed at `240bfc0`.
+Suggested order: **002** (needs its own regression tests) → **005**. Drift checks for both
+passed at `240bfc0`.
 
 ## Done — [`plans/done/`](done/)
 
@@ -44,6 +43,7 @@ Suggested order: **003** (smallest, independent) → **002** (needs its own regr
 | Plan | Title | Landed |
 |------|-------|--------|
 | [001](done/001-service-context-docs.md) | Canonical service-context doc set | `aad27f1`, 2026-06-29 |
+| [003](done/003-validate-geo-coordinates.md) | Validate latitude/longitude on submission input | `f7571af` |
 | [004](done/004-ci-lint-test-gates.md) | Lint + test gates in CI before deploy | `45e7905`, PR #25 |
 | [006](done/006-spot-detail-duplicate-category-label.md) | Spot detail: duplicate category label on photo-less spots | `9dd8912` |
 | [007](done/007-spot-detail-action-links-layout.md) | Spot detail: action links as separate rows | `58d42a4` |
@@ -55,7 +55,7 @@ Suggested order: **003** (smallest, independent) → **002** (needs its own regr
 
 ## Dependency notes
 
-- 002, 003 and 005 are mutually independent — any order, parallel branches fine.
+- 002 and 005 are mutually independent — any order, parallel branches fine.
 - 005's soft dependency on 004 is satisfied: the gate exists, so new Vitest tests block
   deploys as soon as they land.
 
@@ -69,7 +69,7 @@ findings below (each read + confirmed in source). Plans written for the high-lev
 | C1 | MED | perf | `api/.../service/PlacesService.java:31-40` (+ `Place.categories` LAZY) | `GET /places` lazily loads categories per place (N+1) on the hottest endpoint | 002 |
 | C2 | LOW-MED | perf | `api/.../service/AdminService.java:250-264` | `listUsers()` runs one profile query per user | 002 |
 | C3 | LOW-MED | perf | `api/.../service/SubmissionsService.java:60-71` | `listMine()` runs one photo query per submission | 002 |
-| C4 | MED | bug (data integrity) | `api/.../dto/SubmissionInputDto.java:15-16` | `lat`/`lng` accept any double — no range bounds; invalid coords persist | 003 |
+| C4 | MED | bug (data integrity) | `api/.../dto/SubmissionInputDto.java:15-16` | `lat`/`lng` accept any double — no range bounds; invalid coords persist | 003 ✅ |
 | C5 | MED | dx | `.github/workflows/deploy-web.yml:26-30`, `deploy-api.yml:38-41` | Deploys run no lint/test gate; regressions ship | 004 |
 | C6 | HIGH (coverage) | tests | `web/src/shared/api/httpPlacesApi.ts:21-35`, `authStore.ts` | 401→refresh→retry + refresh dedup: zero web tests (only 2 util tests exist) | 005 |
 
