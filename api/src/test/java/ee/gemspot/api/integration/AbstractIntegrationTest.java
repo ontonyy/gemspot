@@ -35,5 +35,9 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.liquibase.url", POSTGRES::getJdbcUrl);
         registry.add("spring.liquibase.user", POSTGRES::getUsername);
         registry.add("spring.liquibase.password", POSTGRES::getPassword);
+        // Lets N+1 regression tests count real JDBC round trips (see
+        // NPlusOneQueryCountTest). Set here, not per-class, so every integration
+        // test still shares one cached Spring context.
+        registry.add("spring.jpa.properties.hibernate.generate_statistics", () -> "true");
     }
 }

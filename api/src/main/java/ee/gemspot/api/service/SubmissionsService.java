@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -58,17 +59,35 @@ public class SubmissionsService {
 
     /** PENDING submissions for the signed-in user — survives reload (server-backed). */
     public List<SubmissionDto> listMine(String userId) {
-        return submissionRepository.findAllByOrderBySubmittedAtDesc().stream()
+        List<Submission> mine = submissionRepository.findAllByOrderBySubmittedAtDesc().stream()
                 .filter(r -> userId.equals(r.getUserId()))
-                .map(this::toDto)
+                .collect(Collectors.toList());
+        if (mine.isEmpty()) {
+            return List.of();
+        }
+        // All photos in one query, then grouped in memory — the per-row lookup in
+        // toDto() is kept only for the single-row create path.
+        Map<String, List<String>> urlsBySubmissionId = submissionPhotoRepository
+                .findUrlsBySubmissionIds(mine.stream().map(Submission::getId).toList()).stream()
+                .collect(Collectors.groupingBy(
+                        SubmissionPhotoRepository.SubmissionPhotoUrl::getSubmissionId,
+                        Collectors.mapping(SubmissionPhotoRepository.SubmissionPhotoUrl::getUrl,
+                                Collectors.toList())));
+        return mine.stream()
+                .map(row -> toDto(row, urlsBySubmissionId.getOrDefault(row.getId(), List.of())))
                 .collect(Collectors.toList());
     }
 
+    /** Single-row path (create): loads this submission's photos itself. */
     private SubmissionDto toDto(Submission row) {
         List<String> photoUrls = submissionPhotoRepository
                 .findBySubmissionIdOrderBySortAsc(row.getId()).stream()
                 .map(SubmissionPhoto::getUrl)
                 .collect(Collectors.toList());
+        return toDto(row, photoUrls);
+    }
+
+    private SubmissionDto toDto(Submission row, List<String> photoUrls) {
         return new SubmissionDto(
                 row.getName(),
                 row.getCategoryId(),
