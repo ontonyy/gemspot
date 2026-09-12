@@ -43,7 +43,7 @@ passed at `240bfc0`.
 | Plan | Title | Landed |
 |------|-------|--------|
 | [001](done/001-service-context-docs.md) | Canonical service-context doc set | `aad27f1`, 2026-06-29 |
-| [003](done/003-validate-geo-coordinates.md) | Validate latitude/longitude on submission input | `advisor/003-validate-geo-coordinates` |
+| [003](done/003-validate-geo-coordinates.md) | Validate latitude/longitude on submission input | `f7571af` |
 | [004](done/004-ci-lint-test-gates.md) | Lint + test gates in CI before deploy | `45e7905`, PR #25 |
 | [006](done/006-spot-detail-duplicate-category-label.md) | Spot detail: duplicate category label on photo-less spots | `9dd8912` |
 | [007](done/007-spot-detail-action-links-layout.md) | Spot detail: action links as separate rows | `58d42a4` |
