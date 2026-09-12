@@ -15,6 +15,7 @@ import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Byte-identical port of {@code admin.service.ts}.
@@ -254,9 +255,15 @@ public class AdminService {
     public List<AdminUserDto> listUsers() {
         List<User> rows = new ArrayList<>(userRepo.findAll());
         rows.sort(Comparator.comparing(User::getCreatedAt).reversed());
+        // One profile query for the whole page instead of one per user.
+        Map<String, String> namesByUserId = rows.isEmpty()
+                ? Map.of()
+                : profileRepo.findByUserIdIn(rows.stream().map(User::getId).toList()).stream()
+                        .filter(pr -> pr.getName() != null)
+                        .collect(Collectors.toMap(Profile::getUserId, Profile::getName, (a, b) -> a));
         List<AdminUserDto> out = new ArrayList<>();
         for (User u : rows) {
-            String name = profileRepo.findByUserId(u.getId()).map(Profile::getName).orElse(null);
+            String name = namesByUserId.get(u.getId());
             out.add(new AdminUserDto(
                     u.getId(),
                     u.getEmail(),

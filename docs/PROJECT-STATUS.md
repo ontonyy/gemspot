@@ -52,7 +52,6 @@ Tracked in [`plans/`](../plans/README.md) — that file's status table is the so
 
 | Plan | What | Status |
 |---|---|---|
-| 002 | Eliminate N+1 queries in list endpoints | TODO |
 | 005 | Test the web 401→refresh→retry auth seam | TODO |
 
 ---
