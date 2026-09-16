@@ -15,7 +15,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!token) return
     adminApi.stats(token).then(setStats).catch((e: Error) => setErr(e.message))
-    adminApi.eventCounts(token).then(setEvents).catch(() => undefined)
+    adminApi.eventCounts(token).then(setEvents).catch((e: Error) => setErr(e.message))
   }, [token])
 
   const cards: { label: string; value: number; hint?: string; go?: string }[] = stats

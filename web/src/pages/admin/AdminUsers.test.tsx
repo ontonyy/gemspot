@@ -7,8 +7,8 @@
    httpPlacesApi.test.ts) and listUsers is stubbed with vi.spyOn so the component
    itself stays untouched.
 
-   Case 3 asserts today's behaviour — the component swallows a rejection and
-   shows an empty table. Plan 022 changes that and will rewrite this case. */
+   Case 3 covers the failure path: since plan 022 a rejected listUsers surfaces
+   in the page's flash slot instead of being swallowed into an empty table. */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
@@ -54,13 +54,12 @@ describe('<AdminUsers />', () => {
     expect(rows()).toHaveLength(0)
   })
 
-  it('swallows a rejected request and leaves the roster empty', async () => {
-    const listUsers = vi.spyOn(adminApi, 'listUsers').mockRejectedValue(new Error('boom'))
+  it('surfaces a rejected request instead of showing an empty roster', async () => {
+    vi.spyOn(adminApi, 'listUsers').mockRejectedValue(new Error('boom'))
 
     render(<AdminUsers />)
 
-    await waitFor(() => expect(listUsers).toHaveBeenCalled())
-    expect(screen.getByRole('table')).toBeInTheDocument()
+    expect(await screen.findByText("Couldn't load users.")).toBeInTheDocument()
     expect(rows()).toHaveLength(0)
   })
 })
