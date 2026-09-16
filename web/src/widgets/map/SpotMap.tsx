@@ -329,7 +329,7 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
 
     for (const f of features) {
       const props = f.properties ?? {}
-      const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number]
+      const coords = (f.geometry as { coordinates: [number, number] }).coordinates
 
       if (props.cluster) {
         const id = `c${props.cluster_id}`

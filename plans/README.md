@@ -28,8 +28,65 @@ for each lint suppression).
 
 ## Open
 
-None — every plan written so far has landed. New work starts with a new plan at the top
-level of `plans/`, following the executor rules above.
+Advisor pass 2026-09-17 (against commit `0ce116c`). Plans 013–019 were written in an
+earlier campaign on branches not present in this checkout and are not listed here.
+
+| Plan | Title | Priority | Effort | Risk | Depends on | Status |
+|------|-------|----------|--------|------|------------|--------|
+| [020](020-web-dependency-advisories.md) | Clear critical/high npm advisories in `web/` (maplibre-gl XSS, react-router open redirect) | P1 | M | MED | — | TODO |
+| [021](021-web-component-test-harness.md) | Component test harness for `web/` (jsdom + Testing Library) | P1 | M | LOW | — | TODO |
+| [022](022-surface-swallowed-errors-web.md) | Stop swallowing request failures in the web UI | P1 | M | LOW | 021 | TODO |
+| [023](023-api-whole-table-loads.md) | Replace whole-table loads with database counts and filters | P2 | S | LOW | — | TODO |
+| [024](024-refresh-token-rotation-race.md) | Close the refresh-token rotation race that defeats reuse detection | P2 | S | MED | — | TODO |
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
+
+### Proposals — [`plans/proposals/`](proposals/)
+
+Decision documents, not executable plans. A maintainer answers them; only then does an
+implementation plan get written.
+
+| Proposal | Title | Escalation trigger | Status |
+|----------|-------|--------------------|--------|
+| [025](proposals/025-httponly-refresh-cookie-auth.md) | Move the refresh token out of `localStorage` into an HttpOnly cookie | public API / contract break | OPEN — needs maintainer decision |
+
+### Dependency notes
+
+- **022 requires 021**: 022's tests assert on rendered error messages, which needs the
+  jsdom environment 021 installs. Do not execute 022 first.
+- **020 before 025**: proposal 025 is a reaction to the live XSS advisories; clearing them
+  is unconditional and changes the weighting of the decision.
+- **024 before any auth-transport change (025)**: get rotation correct before moving where
+  the credential lives.
+- 023 is independent of everything else.
+
+## Code findings, pass 2 (2026-09-17, commit `0ce116c`)
+
+Each read and confirmed in source by the advisor. Admitted findings below; see the
+rejected section for what was dropped.
+
+| ID | Severity | Type | file:line | Finding | Plan |
+|----|----------|------|-----------|---------|------|
+| D1 | HIGH | security/deps | `web/package.json` (`maplibre-gl ^5.24.0`, `react-router-dom ^7.16.0`) | `npm audit`: 1 critical (maplibre-gl `DOM.sanitize()` XSS bypass) + 5 high (incl. react-router open redirect / XSS) | 020 |
+| D2 | HIGH | tests | `web/vite.config.ts` (no `test` block), `web/package.json` (no `@testing-library/*`, no `jsdom`) | Zero component tests possible; all 6 test files are pure-logic. `AddSpot.tsx`, `AdminModeration.tsx` carry real branching, uncovered | 021 |
+| D3 | MED | bug | `AdminPlaces.tsx:20,34`, `AdminUsers.tsx:11`, `AdminDashboard.tsx:18` | Failed requests swallowed (`.catch(() => undefined)`, `/* ignore */`) — admin sees empty state instead of an error | 022 |
+| D4 | MED | bug | `features/place-detail/SpotDetail.tsx:28,54` | `usePlace` `error` never read; on failure `isLoading || !p` renders the skeleton forever | 022 |
+| D5 | MED | bug | `features/place-detail/ReportModal.tsx:38-54` | `submit()` has `try/finally` with no `catch` → unhandled rejection, silent failure, modal stuck open | 022 |
+| D6 | MED | perf | `AdminService.java:76-78`, `SubmissionsService.java:62-64`, `ReportsService.java:71-72` | Whole tables loaded to `.size()` them / to filter by `userId` in a Java stream | 023 |
+| D7 | MED | security | `AuthService.java:293-305` | Refresh rotation is check-then-act (`row.isUsed()` → `setUsed(true)`); two concurrent refreshes of the same jti both succeed, defeating reuse detection | 024 |
+
+### Confirmed but unplanned (budget — pick up next pass)
+
+- **MED, a11y** — map markers and clusters are `div`s with `click` listeners, no
+  `role`/`tabIndex`/`aria-label`/keydown: `web/src/widgets/map/SpotMap.tsx:340-349,365-372`.
+  Partly mitigated — the rail list offers a keyboard-reachable path to the same spots.
+- **MED, a11y** — photo carousel dots are `<i onClick>`: `SpotDetail.tsx:126-131`. No
+  equivalent path exists, so photos cannot be browsed by keyboard at all. Cheap fix.
+- **MED, bug** — saved-place sync race: `web/src/shared/store/savedStore.ts:25-35` fires
+  add/remove and overwrites `ids` from whichever response lands last; rapid toggles can
+  settle on the wrong state.
+- **LOW-MED, dx** — no formatter, no pre-commit hook, no explicit `typecheck` script
+  (`npm run build` is the only typecheck). Consistency is currently convention-only.
 
 ## Done — [`plans/done/`](done/)
 
@@ -89,6 +146,20 @@ findings below (each read + confirmed in source). Plans written for the high-lev
   Minor cosmetic, self-correcting — not worth a plan.
 - **Separate `AGENTS.md`/`CLAUDE.md`**: a minimal `AGENTS.md` was created during 001 apply
   (repo had neither). Resolved, not pending.
+
+### Rejected in pass 2 (2026-09-17)
+
+- **Upload extension trusts the client filename** (`SupabaseStorageService.java:56-63`,
+  `UploadsController.java:41`): the stored object key takes its extension verbatim from
+  `getOriginalFilename()`. Downgraded to not-worth-a-plan: `UploadsController` allowlists
+  the mime type and `PutObjectRequest` sets `contentType` from it, so a `.svg`/`.html`
+  extension is still served as an allowlisted image type and won't execute. The
+  `dot > slash` guard also rules out path traversal in the extension. Worth a 3-line
+  tidy-up (derive the extension from the validated mime only, ignore the filename) if
+  someone is in the file anyway — not worth its own PR.
+- **`AdminService.listSubmissions()` loads all rows**: correct — it is the admin queue and
+  genuinely needs every submission. Not the same finding as D6.
+
 
 ## Direction options (maintainer's call — not bugs)
 
