@@ -11,6 +11,7 @@ public interface PlaceRepository extends JpaRepository<Place, String> {
     List<Place> findAllByOrderBySortAsc();
     Optional<Place> findBySlug(String slug);
     List<Place> findByStatusOrderBySortAsc(PlaceStatus status);
+    long countByStatus(PlaceStatus status);
 
     /**
      * Same rows as {@link #findByStatusOrderBySortAsc}, but with categories and

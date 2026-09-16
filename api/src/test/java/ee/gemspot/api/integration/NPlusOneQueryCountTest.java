@@ -138,6 +138,24 @@ class NPlusOneQueryCountTest extends AbstractIntegrationTest {
                 .isEqualTo(before);
     }
 
+    @Test
+    void adminStatsCountsInTheDatabaseInsteadOfLoadingRows() {
+        long before = statementsFor(adminService::stats);
+
+        for (int i = 0; i < EXTRA_ROWS; i++) {
+            createActivePlace(i);
+        }
+
+        long after = statementsFor(adminService::stats);
+
+        assertThat(before)
+                .as("admin stats is five counts: places, active places, pending, open, users")
+                .isEqualTo(5);
+        assertThat(after)
+                .as("JDBC statements for admin stats must not grow with row count")
+                .isEqualTo(before);
+    }
+
     /** JDBC statements prepared while {@code call} runs, measured on a clean session. */
     private long statementsFor(Runnable call) {
         Statistics stats = emf.unwrap(SessionFactory.class).getStatistics();

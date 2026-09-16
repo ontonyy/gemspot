@@ -59,9 +59,7 @@ public class SubmissionsService {
 
     /** PENDING submissions for the signed-in user — survives reload (server-backed). */
     public List<SubmissionDto> listMine(String userId) {
-        List<Submission> mine = submissionRepository.findAllByOrderBySubmittedAtDesc().stream()
-                .filter(r -> userId.equals(r.getUserId()))
-                .collect(Collectors.toList());
+        List<Submission> mine = submissionRepository.findByUserIdOrderBySubmittedAtDesc(userId);
         if (mine.isEmpty()) {
             return List.of();
         }
