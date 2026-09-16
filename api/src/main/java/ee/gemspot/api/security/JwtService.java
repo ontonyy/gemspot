@@ -34,8 +34,8 @@ public class JwtService {
     private final Duration refreshTtl;
 
     public JwtService(
-            @Value("${JWT_SECRET:gemspot-dev-access-secret}") String accessSecret,
-            @Value("${JWT_REFRESH_SECRET:gemspot-dev-refresh-secret}") String refreshSecret,
+            @Value("${JWT_SECRET}") String accessSecret,
+            @Value("${JWT_REFRESH_SECRET}") String refreshSecret,
             @Value("${JWT_ACCESS_TTL:15m}") String accessTtl,
             @Value("${JWT_REFRESH_TTL:30d}") String refreshTtl) {
         this.accessKey = deriveKey(accessSecret);

@@ -11,6 +11,8 @@ import ee.gemspot.api.repository.PlaceCategoryRepository;
 import ee.gemspot.api.repository.PlaceRepository;
 import ee.gemspot.api.repository.ProfileRepository;
 import ee.gemspot.api.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +34,8 @@ import java.util.List;
  */
 @Component
 public class DataSeeder implements ApplicationRunner {
+
+    private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
 
     // id, label, short, cssvar — sort = array order (mirrors seed.ts CATS).
     private static final String[][] CATS = {
@@ -145,14 +149,14 @@ public class DataSeeder implements ApplicationRunner {
         }
     }
 
-    // Upsert admin: existing → ensure ADMIN role; absent → create with hashed password + profile.
-    private void seedAdmin() {
+    // Create-only admin bootstrap: absent → create with hashed password + profile;
+    // already registered → skip (never promote an existing account, /auth/register is public).
+    void seedAdmin() {
         String email = envOr("ADMIN_EMAIL", "admin@gemspot.ee").toLowerCase();
         String password = envOr("ADMIN_PASSWORD", "admin1234");
         User existing = users.findByEmail(email).orElse(null);
         if (existing != null) {
-            existing.setRole(UserRole.ADMIN);
-            users.save(existing);
+            log.warn("Admin seed skipped: {} is already registered; not promoting it to ADMIN.", email);
             return;
         }
         User user = new User();

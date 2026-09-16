@@ -28,8 +28,27 @@ for each lint suppression).
 
 ## Open
 
-None — every plan written so far has landed. New work starts with a new plan at the top
-level of `plans/`, following the executor rules above.
+From the advisor pass of 2026-09-17 (against commit `0ce116c`). Recommended execution order is
+the numeric order; none of them depend on each other, so they can also run in parallel on
+separate branches.
+
+| Plan | Title | Category | Effort | Risk |
+|------|-------|----------|--------|------|
+| [013](013-admin-bootstrap-and-secret-hardening.md) | Close three fail-open auth/bootstrap holes | security | S | LOW |
+| [014](014-approve-submission-idempotency.md) | Idempotent approval + no place-ID collisions | bug | M | MED |
+| [015](015-admin-input-validation-400s.md) | 400 not 500 on malformed admin status input | bug | S | LOW |
+| [016](016-admin-api-refresh-retry.md) | Admin API through the 401→refresh→retry seam | bug | S | LOW |
+| [017](017-pr-ci-gate.md) | Lint/test gates on pull requests | dx | S | LOW |
+
+### Proposals — [`plans/proposals/`](proposals/)
+
+Decisions for the maintainer, not tasks. Do not implement these directly; turn an accepted one
+into a build-tier plan first.
+
+| Proposal | Question | Escalation trigger |
+|----------|----------|--------------------|
+| [018](proposals/018-abuse-controls-auth-and-events.md) | Rate limiting on `/auth/**` + `POST /events`, and event retention | multi-instance state (infra), event-table migration (DB), new 429 (public contract) |
+| [019](proposals/019-consolidate-web-http-clients.md) | How far to consolidate the five web HTTP clients | architecture — changes the seam every network call uses |
 
 ## Done — [`plans/done/`](done/)
 
@@ -122,4 +141,82 @@ findings below (each read + confirmed in source). Plans written for the high-lev
 - Map widget lifecycle beyond the cluster stale-closure (full memory-leak profiling not run).
 - The archived legacy NestJS backend (`../legacy-nest/`).
 - `design/`, `design_handoff_field_guide/`, `docs/mvp`, `docs/v2` content quality.
+- Secret material in `keys/` and `.env` (intentionally untouched).
+
+## Code findings (advisor pass, 2026-09-17, commit `0ce116c`)
+
+Third pass: correctness/security fan-out across `api/` and `web/`, plus a tests/debt/deps/DX/docs
+sweep. Every finding below was re-read and confirmed in source before planning.
+
+| ID | Severity | Type | file:line | Finding | Plan |
+|----|----------|------|-----------|---------|------|
+| D1 | HIGH | security | `api/.../seed/DataSeeder.java:150-157` | `seedAdmin()` promotes any pre-existing account owning `ADMIN_EMAIL` to ADMIN on every boot; `/auth/register` is public | 013 |
+| D2 | MED | security | `api/.../security/JwtService.java:37-38` | Hardcoded signing-secret fallbacks — a missing env var means tokens signed with a secret published in this repo | 013 |
+| D3 | MED | security | `api/.../service/MailService.java:35` | Email-change verification *link* logged at INFO in every env; the token is the whole authority | 013 |
+| D4 | HIGH | bug (data integrity) | `api/.../service/AdminService.java:117-176` | No PENDING guard (double approval publishes a duplicate place) and an unchecked derived place ID that makes `save()` silently overwrite a live place | 014 |
+| D5 | MED | bug | `api/.../service/AdminService.java:90,223`; `dto/SetPlaceStatusDto.java:5`, `SetReportStatusDto.java:5`, `ReportInputDto.java:13`, `SubmissionInputDto.java:16` | `Enum.valueOf` on raw params → 500 instead of 400; `@Pattern` without `@NotNull` lets null through | 015 |
+| D6 | MED | bug | `web/src/shared/api/adminApi.ts:83` | All 12 admin methods bypass `authedFetch`; admin panel hard-401s past the 15m token TTL | 016 |
+| D7 | MED | dx | `.github/workflows/deploy-*.yml` (`on: push` only) | Lint/test gates never run on a PR — regressions are found during the deploy after merge | 017 |
+| D8 | MED | security/arch | `config/SecurityConfig.java:60,66`; `service/EventsService.java:27-33,38` | No rate limiting anywhere; anonymous unbounded writes to `event`, read back via `findAll()` | 018 (propose) |
+| D9 | MED | tech-debt | `shared/api/{adminApi,authApi,httpPlacesApi,warmup,track}.ts` | Five copies of `BASE`, three of the error unwrapping, two of `authedFetch` — the mechanism behind D6 | 019 (propose) |
+
+### Confirmed but not planned this pass (plan budget)
+
+- **No web component/page test infrastructure** — all six web suites are module-level; no
+  `@testing-library/*`, no jsdom, no `test.environment` in `vite.config.ts`. `AdminModeration.tsx`
+  (approve/reject) and `AddSpot.tsx` (upload + submit) hold real logic with no automated cover.
+  Prerequisite for 019; worth a build plan on its own next pass. HIGH confidence.
+- **Swallowed errors in admin pages** — `AdminPlaces.tsx:20,34`, `AdminUsers.tsx:11`,
+  `AdminDashboard.tsx:18` use `.catch(() => undefined)`, so a failed load renders as "no rows" and
+  a failed status change leaves the `<select>` showing a value the server rejected.
+  `AdminModeration.tsx:26-36` already does this correctly — mirror it. MED-HIGH, S.
+- **No error state on spot detail** — `SpotDetail.tsx:28,54` renders `DetailSkeleton` whenever
+  `isLoading || !p`, so a settled-but-failed query shimmers forever. HIGH, S.
+- **Unhandled rejection on report submit** — `ReportModal.tsx:38-54` awaits with only a `finally`;
+  a failure leaves the modal open with no message. HIGH, S.
+- **Saved-place sync race** — `savedStore.ts:25-35` overwrites the whole set from whichever
+  response resolves last and swallows failures; two quick toggles can flip the UI back. HIGH, M.
+- **Refresh-token rotation check-then-act race** — `AuthService.java:277-307` reads `isUsed()` then
+  writes `setUsed(true)` non-atomically, so parallel replay bypasses reuse detection. MED
+  confidence; the fix is a conditional `update ... where used = false`.
+- **Map markers and carousel dots are not keyboard-reachable** — `SpotMap.tsx:340-349,365-372`
+  (bare `div` + `addEventListener`), `SpotDetail.tsx:126-131` (`<i onClick>`). HIGH, M.
+- **Whole-table loads for counting/filtering** — `AdminService.java:77-79` (`.size()` on three full
+  result sets), `SubmissionsService.java:62-64` (filters by `userId` in Java),
+  `ReportsService.java:71-72` (same). All fixable with derived/`count` queries. HIGH, S.
+- **Upload extension trusts the client filename** — `SupabaseStorageService.java:56-63` prefers the
+  original filename's suffix over the validated mime; `UploadsController.java:41` trusts the
+  declared `Content-Type` with no magic-byte check. Defence-in-depth, MED.
+- **No formatter / pre-commit / explicit typecheck script** — no `.editorconfig`, `.prettierrc`,
+  Spotless or hook anywhere; `tsc` only runs implicitly inside `npm run build`. MED, S.
+- **Dependency advisories** — `npm audit` reportedly flags `maplibre-gl` (critical, sanitizer
+  bypass) and `react-router-dom` (high, open redirect via backslash). **Not independently
+  verified in this pass** — re-run `cd web && npm audit` before acting. The maplibre fix is a major
+  bump against `SpotMap.tsx`; do it separately from the router bump.
+
+### Considered and rejected this pass
+
+- **`X-Correlation-Id` passthrough in `RequestLoggingFilter`**: bounded by the JSON encoder, and
+  correlation passthrough is the feature. Not a log-injection finding.
+- **Access tokens outliving `revokeAll` by up to 15 minutes**: documented trade-off at
+  `AuthService.java:365-366`. Accepted, not a defect.
+- **`SessionService.revokeOthers` issuing one delete per family**: bounded by device count.
+- **`AuthService.java` at 531 lines**: cohesive (auth, OAuth, tokens, email change). Splitting it
+  now buys nothing.
+- **Orphaned photos when add-spot is cancelled** (`AddSpot.tsx:59`): a storage-lifecycle concern,
+  not a web bug — belongs with a bucket lifecycle rule.
+- **`LocationPicker.tsx:21` reading `value` only at mount**: the sole caller passes a constant
+  (`AddSpot.tsx:145`), so it is currently correct.
+- **Dev-only npm advisories** (vitest, postcss, browserslist): noise floor.
+- **`docs/service-context` accuracy**: spot-checked against `build.gradle.kts` and `SecurityConfig`
+  — matches, the known `RUNBOOK.md` "URL ambiguous" TODO aside.
+
+### What was NOT audited in this pass
+
+- Runtime/load behaviour — every performance finding is from code inspection, not measurement.
+- Deep security testing (authz fuzzing, token forgery, CORS abuse) — static review only.
+- `npm audit` / Gradle dependency advisories were not re-run locally; the dependency finding above
+  is reported second-hand and flagged as such.
+- Test *quality* (assertion depth) in the existing api suites — only presence was mapped.
+- `design/`, `design_handoff_field_guide/`, `docs/mvp`, `docs/v2` content.
 - Secret material in `keys/` and `.env` (intentionally untouched).
