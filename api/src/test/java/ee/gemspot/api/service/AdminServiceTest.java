@@ -135,6 +135,50 @@ class AdminServiceTest {
     }
 
     @Test
+    void approveRejectsAlreadyApprovedSubmission() {
+        Submission sub = submission("s1", "Park", "scenic", List.of());
+        sub.setStatus(SubmissionStatus.APPROVED);
+        when(submissionRepo.findById("s1")).thenReturn(Optional.of(sub));
+
+        ResponseStatusException ex = catchThrowableOfType(
+                () -> svc.approveSubmission("s1"), ResponseStatusException.class);
+        assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        org.mockito.Mockito.verify(placeRepo, org.mockito.Mockito.never())
+                .save(org.mockito.ArgumentMatchers.any(Place.class));
+    }
+
+    @Test
+    void approveRejectsRejectedSubmission() {
+        Submission sub = submission("s1", "Park", "scenic", List.of());
+        sub.setStatus(SubmissionStatus.REJECTED);
+        when(submissionRepo.findById("s1")).thenReturn(Optional.of(sub));
+
+        ResponseStatusException ex = catchThrowableOfType(
+                () -> svc.approveSubmission("s1"), ResponseStatusException.class);
+        assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        org.mockito.Mockito.verify(placeRepo, org.mockito.Mockito.never())
+                .save(org.mockito.ArgumentMatchers.any(Place.class));
+    }
+
+    @Test
+    void approveSkipsPlaceIdAlreadyTaken() {
+        Submission sub = submission("s1", "Park", "scenic", List.of());
+        when(submissionRepo.findById("s1")).thenReturn(Optional.of(sub));
+        when(placeRepo.findAllByOrderBySortAsc()).thenReturn(List.of(place("10", 9))); // candidate "11"
+        when(placeRepo.existsById("11")).thenReturn(true);  // collides with a live row
+        when(placeRepo.existsById("12")).thenReturn(false);
+        when(placeRepo.findBySlug("park")).thenReturn(Optional.empty());
+        when(categoryRepo.findById("scenic")).thenReturn(Optional.of(category("scenic")));
+
+        ApproveResultDto res = svc.approveSubmission("s1");
+
+        ArgumentCaptor<Place> place = ArgumentCaptor.forClass(Place.class);
+        org.mockito.Mockito.verify(placeRepo).save(place.capture());
+        assertThat(place.getValue().getId()).isEqualTo("12");
+        assertThat(res.placeId()).isEqualTo("12");
+    }
+
+    @Test
     void rejectThrowsWhenMissing() {
         when(submissionRepo.findById("x")).thenReturn(Optional.empty());
         ResponseStatusException ex = catchThrowableOfType(
