@@ -300,9 +300,16 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
         }
 
-        // Rotate: mark presented jti used, issue a new pair in the SAME family.
-        row.setUsed(true);
-        refreshTokens.save(row);
+        // Rotate atomically: only one concurrent request can flip used false -> true.
+        // The isUsed() check above is a cheap fast path; THIS is the security boundary.
+        // A 0-row result means another request rotated this jti first — that is a reuse,
+        // so revoke the family and reject, same as the fast path.
+        // NB: the update bypasses the persistence context, so `row` is now stale —
+        // never save(row) after this point or the claim is undone.
+        if (refreshTokens.markUsedIfUnused(jti) == 0) {
+            refreshTokens.deleteByFamilyId(row.getFamilyId());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
+        }
         return session(user, row.getFamilyId());
     }
 

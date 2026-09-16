@@ -164,12 +164,34 @@ class AuthServiceTest {
             when(users.findById("u1")).thenReturn(Optional.of(
                     user("u1", "a@b.com", "x", UserRole.CLIENT)));
             when(profiles.findByUserId("u1")).thenReturn(Optional.empty());
+            when(refreshTokens.markUsedIfUnused("jti-1")).thenReturn(1); // claim won
 
             AuthResponseDto res = svc.refresh(signed.token());
             assertThat(res.user().id()).isEqualTo("u1");
             assertThat(res.accessToken()).isNotBlank();
             assertThat(res.refreshToken()).isNotBlank();
-            assertThat(row.isUsed()).isTrue(); // presented jti marked used (rotation)
+            // Rotation goes through the atomic claim, never a stale save of the
+            // presented row (session() still saves the NEW row — that one is fine).
+            verify(refreshTokens).markUsedIfUnused("jti-1");
+            ArgumentCaptor<RefreshToken> saved = ArgumentCaptor.forClass(RefreshToken.class);
+            verify(refreshTokens).save(saved.capture());
+            assertThat(saved.getValue().getJti()).isNotEqualTo("jti-1");
+            assertThat(row.isUsed()).isFalse(); // in-memory row untouched by the UPDATE
+        }
+
+        @Test
+        void losingTheAtomicClaimKillsTheFamily() {
+            // The race: row still reads used == false, but a concurrent refresh
+            // already claimed the jti, so the conditional UPDATE changes 0 rows.
+            JwtService.RefreshSigned signed = jwt.createRefresh("u1", "jti-1", "fam-1");
+            when(refreshTokens.findByJti("jti-1"))
+                    .thenReturn(Optional.of(refreshRow("jti-1", "u1", "fam-1", false)));
+            when(users.findById("u1")).thenReturn(Optional.of(
+                    user("u1", "a@b.com", "x", UserRole.CLIENT)));
+            when(refreshTokens.markUsedIfUnused("jti-1")).thenReturn(0); // claim lost
+
+            expectStatus(HttpStatus.UNAUTHORIZED, () -> svc.refresh(signed.token()));
+            verify(refreshTokens).deleteByFamilyId("fam-1");
         }
 
         @Test
