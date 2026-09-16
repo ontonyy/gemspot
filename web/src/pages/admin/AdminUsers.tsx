@@ -6,14 +6,16 @@ import { useAuthStore } from '../../shared/store/authStore'
 export default function AdminUsers() {
   const token = useAuthStore((s) => s.accessToken)!
   const [users, setUsers] = useState<AdminUser[]>([])
+  const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
-    adminApi.listUsers(token).then(setUsers).catch(() => undefined)
+    adminApi.listUsers(token).then(setUsers).catch(() => setMsg("Couldn't load users."))
   }, [token])
 
   return (
     <section>
       <h1 className="fg-adm-h1">Users</h1>
+      {msg && <div className="fg-adm-flash">{msg}</div>}
       <table className="fg-adm-table">
         <thead>
           <tr>
