@@ -4,6 +4,7 @@
    These types are admin-only and independent of the public DTO contract. */
 
 import type { CategoryId } from '../../entities/place/categories'
+import { BASE, authedFetch } from './authedFetch'
 
 export type AdminPlaceStatus = 'ACTIVE' | 'INACTIVE' | 'DRAFT'
 export type AdminSubmissionStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
@@ -78,17 +79,20 @@ export interface AdminApi {
   listUsers(token: string): Promise<AdminUser[]>
 }
 
-const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
-
-async function call<T>(path: string, init: RequestInit, token: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(init.headers as Record<string, string> | undefined),
+/* `token` is accepted for call-site compatibility but ignored: the store's
+   current token wins on every attempt, which is what makes the 401 retry work. */
+async function call<T>(path: string, init: RequestInit, _token: string): Promise<T> {
+  const res = await authedFetch((t) => ({
+    url: `${BASE}${path}`,
+    init: {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${t}`,
+        ...(init.headers as Record<string, string> | undefined),
+      },
     },
-  })
+  }))
   if (!res.ok) {
     let message = `${res.status} ${res.statusText}`
     try {
@@ -105,7 +109,7 @@ async function call<T>(path: string, init: RequestInit, token: string): Promise<
   return res.json() as Promise<T>
 }
 
-const httpAdminApi: AdminApi = {
+export const httpAdminApi: AdminApi = {
   stats: (t) => call('/admin/stats', { method: 'GET' }, t),
   eventCounts: (t) => call('/admin/events', { method: 'GET' }, t),
   listSubmissions: (t, status) =>

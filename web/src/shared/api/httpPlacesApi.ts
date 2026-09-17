@@ -9,30 +9,8 @@ import type {
   ReportDto, ReportInput, SubmissionDto, SubmissionInput,
 } from './types'
 import type { PlacesApi } from './placesApi'
-import { useAuthStore } from '../store/authStore'
+import { BASE, authedFetch } from './authedFetch'
 
-const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
-
-/* The access token is short-lived (15m); an open tab outlives it. Any auth call
-   can therefore 401 mid-session. authedFetch attaches the current token, and on
-   a 401 trades the (30d) refresh token for a fresh access token and retries once
-   before giving up. `build` is re-run per attempt so the retry uses the new token
-   and a fresh request body (FormData/streams are single-use). */
-async function authedFetch(
-  build: (token: string | null) => { url: string; init: RequestInit },
-): Promise<Response> {
-  const auth = useAuthStore.getState()
-  const attempt = (token: string | null) => {
-    const { url, init } = build(token)
-    return fetch(url, init)
-  }
-  let res = await attempt(auth.accessToken)
-  if (res.status === 401 && useAuthStore.getState().refreshToken) {
-    const ok = await useAuthStore.getState().refreshSession()
-    if (ok) res = await attempt(useAuthStore.getState().accessToken)
-  }
-  return res
-}
 
 function fail(res: Response, path: string): Error & { status?: number } {
   const err = new Error(`${res.status} ${res.statusText} for ${path}`) as Error & { status?: number }

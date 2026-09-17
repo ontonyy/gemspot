@@ -3,7 +3,7 @@
    backend. Tokens are opaque strings the SPA stores in authStore (localStorage).
    Authed methods take the access token explicitly — no hidden global. */
 
-import { useAuthStore } from '../store/authStore'
+import { BASE, authedFetch } from './authedFetch'
 
 export interface AuthUser {
   id: string
@@ -85,28 +85,6 @@ export interface AuthApi {
   addSaved(accessToken: string, placeId: string): Promise<string[]>
   removeSaved(accessToken: string, placeId: string): Promise<string[]>
   mergeSaved(accessToken: string, placeIds: string[]): Promise<string[]>
-}
-
-const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
-
-/* The access token is short-lived (15m); an open tab outlives it, so any authed
-   call can 401 mid-session. authedFetch attaches the current token and, on a 401,
-   trades the (30d) refresh token for a fresh access token and retries once before
-   giving up. `build` is re-run per attempt so the retry uses the new token and a
-   fresh request body (FormData/streams are single-use). Mirrors httpPlacesApi. */
-async function authedFetch(
-  build: (token: string | null) => { url: string; init: RequestInit },
-): Promise<Response> {
-  const attempt = (token: string | null) => {
-    const { url, init } = build(token)
-    return fetch(url, init)
-  }
-  let res = await attempt(useAuthStore.getState().accessToken)
-  if (res.status === 401 && useAuthStore.getState().refreshToken) {
-    const ok = await useAuthStore.getState().refreshSession()
-    if (ok) res = await attempt(useAuthStore.getState().accessToken)
-  }
-  return res
 }
 
 async function throwHttp(res: Response): Promise<never> {
