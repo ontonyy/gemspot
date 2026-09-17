@@ -2,6 +2,15 @@
 
 Date: 2026-09-17
 
+
+## Superseded
+
+Superseded on 2026-09-17 by `plans/026-maplibre-v6-worker-bundling.md`, which
+bundles the v6 module worker through Vite (`?worker&url` + `setWorkerUrl()`) and
+verifies the map renders in both `vite preview` and dev. `maplibre-gl` is now on
+`^6`; the advisory below is closed. The record below is kept unchanged — its
+lesson (a green lint/test/build does not prove a map change works) still stands.
+
 ## Status
 
 Accepted

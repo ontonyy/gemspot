@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
+import '../../widgets/map/maplibreWorker'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { Icon, Ic } from '../../shared/ui/Icon'
 import type { LatLng } from '../../shared/lib/geo'
