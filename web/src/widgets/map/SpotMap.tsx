@@ -9,7 +9,8 @@
    marker id and only re-rendered when their visual state key changes. */
 
 import { useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
+import './maplibreWorker'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { createRoot, type Root } from 'react-dom/client'
 import { CategoryGlyph, catColor, type CategoryId } from '../../entities/place/categories'
@@ -197,7 +198,7 @@ export function SpotMap({ items, selectedSlug, focusSlug, onSelect }: SpotMapPro
     // missing sprite icon); reacting to those used to hijack the basemap to the
     // fg palette. Genuine "style never loaded" is handled by the watchdog below.
     map.on('error', (e) => {
-      console.warn('[SpotMap]', (e as { error?: Error }).error?.message)
+      console.warn('[SpotMap]', e.error?.message)
     })
 
     // Bind to 'style.load' (not one-shot 'load') so the full source/marker setup

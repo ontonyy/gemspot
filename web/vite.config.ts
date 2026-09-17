@@ -8,6 +8,7 @@ export default defineConfig({
   base: '/',
   server: process.env.PORT ? { port: Number(process.env.PORT), strictPort: true } : undefined,
   plugins: [react()],
+  worker: { format: 'es' },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },

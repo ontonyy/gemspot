@@ -5,7 +5,8 @@
    opens the spot; the viewport itself is locked. */
 
 import { useEffect, useRef } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
+import './maplibreWorker'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { catColor, type CategoryId } from '../../entities/place/categories'
 import { buildStyle } from './buildStyle'
