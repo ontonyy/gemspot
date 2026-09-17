@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface ReportRepository extends JpaRepository<Report, String> {
     List<Report> findByStatusOrderByReportedAtDesc(ReportStatus status);
     List<Report> findAllByOrderByReportedAtDesc();
+    long countByStatus(ReportStatus status);
+    List<Report> findByUserIdOrderByReportedAtDesc(String userId);
 }
