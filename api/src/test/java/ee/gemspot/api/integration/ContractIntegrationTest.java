@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import ee.gemspot.api.security.RefreshCookies;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -23,6 +25,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @Transactional
 class ContractIntegrationTest extends AbstractIntegrationTest {
+
+    /** Matches the test default of app.cors.origin; the refresh endpoint's CSRF guard requires it. */
+    private static final String TRUSTED_ORIGIN = "http://localhost:5173";
 
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
@@ -76,7 +81,8 @@ class ContractIntegrationTest extends AbstractIntegrationTest {
                 .andReturn();
         JsonNode r = json.readTree(reg.getResponse().getContentAsString());
         String access = r.get("accessToken").asText();
-        String refresh = r.get("refreshToken").asText();
+        // Plan 032: the refresh token is no longer in the body — it is the cookie.
+        jakarta.servlet.http.Cookie refresh = reg.getResponse().getCookie(RefreshCookies.NAME);
 
         // login → 200
         mvc.perform(post("/auth/login")
@@ -90,16 +96,12 @@ class ContractIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.email").value("rt@gemspot.ee"));
 
         // refresh rotates the pair → 200
-        mvc.perform(post("/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"refreshToken\":\"" + refresh + "\"}"))
+        mvc.perform(post("/auth/refresh").header(HttpHeaders.ORIGIN, TRUSTED_ORIGIN).cookie(refresh))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists());
 
         // reusing the now-rotated refresh token → 401 (D4 reuse detection)
-        mvc.perform(post("/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"refreshToken\":\"" + refresh + "\"}"))
+        mvc.perform(post("/auth/refresh").header(HttpHeaders.ORIGIN, TRUSTED_ORIGIN).cookie(refresh))
                 .andExpect(status().isUnauthorized());
     }
 

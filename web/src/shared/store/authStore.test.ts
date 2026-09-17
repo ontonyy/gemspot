@@ -23,7 +23,6 @@ const refreshMock = vi.mocked(authApi.refresh)
 const session = (n: number): AuthResponse => ({
   user: { id: 'u1', email: 'a@b.ee', name: 'A', role: 'CLIENT' },
   accessToken: `access-${n}`,
-  refreshToken: `refresh-${n}`,
 })
 
 /** A refresh that stays pending until the returned resolve/reject is called. */
@@ -41,7 +40,7 @@ function deferredRefresh() {
 describe('refreshSession', () => {
   beforeEach(() => {
     refreshMock.mockReset()
-    useAuthStore.setState({ user: null, accessToken: 'stale', refreshToken: 'refresh-0' })
+    useAuthStore.setState({ user: null, accessToken: 'stale' })
   })
 
   it('dedupes concurrent callers into a single refresh request', async () => {
@@ -68,7 +67,7 @@ describe('refreshSession', () => {
     expect(useAuthStore.getState().accessToken).toBe('access-2')
   })
 
-  it('clears the session when the refresh token is dead', async () => {
+  it('clears the session when the refresh cookie is dead', async () => {
     refreshMock.mockRejectedValueOnce(new Error('401 Unauthorized'))
 
     await expect(useAuthStore.getState().refreshSession()).resolves.toBe(false)
@@ -76,24 +75,42 @@ describe('refreshSession', () => {
     const state = useAuthStore.getState()
     expect(state.user).toBeNull()
     expect(state.accessToken).toBeNull()
-    expect(state.refreshToken).toBeNull()
   })
 
   it('recovers after a failed refresh rather than wedging the guard', async () => {
     refreshMock.mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce(session(3))
 
     await expect(useAuthStore.getState().refreshSession()).resolves.toBe(false)
-    useAuthStore.setState({ refreshToken: 'refresh-reissued' })
     await expect(useAuthStore.getState().refreshSession()).resolves.toBe(true)
 
     expect(refreshMock).toHaveBeenCalledTimes(2)
   })
 
-  it('reports failure without calling the API when no refresh token is stored', async () => {
-    useAuthStore.setState({ refreshToken: null })
+})
 
-    await expect(useAuthStore.getState().refreshSession()).resolves.toBe(false)
+/* The point of plan 032 / ADR 0006. If this ever fails, a 30-day credential is
+   back in reach of any script on the origin and the change has been undone. */
+describe('persisted state', () => {
+  it('never writes a refresh token to localStorage after a session is applied', async () => {
+    refreshMock.mockResolvedValueOnce(session(1))
+    await useAuthStore.getState().refreshSession()
 
-    expect(refreshMock).not.toHaveBeenCalled()
+    const raw = localStorage.getItem('gemspot.auth') ?? ''
+
+    expect(raw).not.toContain('refreshToken')
+    expect(raw).toContain('accessToken')
+    expect(JSON.parse(raw).state).not.toHaveProperty('refreshToken')
+  })
+
+  it('drops a v1 refresh token rather than carrying it forward', () => {
+    const migrate = (useAuthStore.persist.getOptions().migrate ?? ((s: unknown) => s)) as (
+      s: unknown,
+      v: number,
+    ) => Record<string, unknown>
+
+    const migrated = migrate({ user: null, accessToken: 'a', refreshToken: 'leaked-30d-credential' }, 1)
+
+    expect(migrated).not.toHaveProperty('refreshToken')
+    expect(migrated).toHaveProperty('accessToken', 'a')
   })
 })
