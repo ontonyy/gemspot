@@ -142,7 +142,14 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
         {hasPhotos && photos.length > 1 && (
           <div className="fg-detail-dots">
             {photos.map((_, i) => (
-              <i key={i} data-on={i === shot} onClick={() => setShot(i)} />
+              <button
+                key={i}
+                type="button"
+                data-on={i === shot}
+                aria-label={`Show photo ${i + 1} of ${photos.length}`}
+                aria-current={i === shot}
+                onClick={() => setShot(i)}
+              />
             ))}
           </div>
         )}

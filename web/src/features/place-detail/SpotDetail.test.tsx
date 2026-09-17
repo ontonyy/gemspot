@@ -9,6 +9,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import type { UseQueryResult } from '@tanstack/react-query'
 import { SpotDetail } from './SpotDetail'
@@ -84,5 +85,54 @@ describe('<SpotDetail />', () => {
     expect(screen.getByText("Couldn't load this spot.")).toBeInTheDocument()
     expect(container.querySelector('.fg-skel')).toBeNull()
     expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
+  })
+})
+
+/* The carousel dots are the only path to photos 2..n — there is no list, no
+   arrows, no swipe fallback. As `<i onClick>` they were unreachable without a
+   mouse. These cases walk the whole journey: Tab to the dot, press the key,
+   assert the hero image actually changed. */
+describe('<SpotDetail /> photo carousel keyboard access', () => {
+  const PHOTOS = {
+    ...PLACE,
+    photos: [{ url: 'https://img.test/one.jpg' }, { url: 'https://img.test/two.jpg' }],
+  } as unknown as PlaceDetailDto
+
+  const heroSrc = (container: HTMLElement) =>
+    container.querySelector<HTMLImageElement>('.fg-detail-hero img')?.src
+
+  const focusSecondDot = async (user: ReturnType<typeof userEvent.setup>) => {
+    const dot = screen.getByRole('button', { name: 'Show photo 2 of 2' })
+    for (let i = 0; i < 10 && document.activeElement !== dot; i++) await user.tab()
+    expect(dot).toHaveFocus()
+  }
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('changes the hero photo when a dot is focused by Tab and activated with Enter', async () => {
+    const user = userEvent.setup()
+    queryResult({ data: PHOTOS })
+
+    const { container } = renderPanel()
+    expect(heroSrc(container)).toBe('https://img.test/one.jpg')
+
+    await focusSecondDot(user)
+    await user.keyboard('{Enter}')
+
+    expect(heroSrc(container)).toBe('https://img.test/two.jpg')
+  })
+
+  it('changes the hero photo when a dot is activated with Space', async () => {
+    const user = userEvent.setup()
+    queryResult({ data: PHOTOS })
+
+    const { container } = renderPanel()
+
+    await focusSecondDot(user)
+    await user.keyboard(' ')
+
+    expect(heroSrc(container)).toBe('https://img.test/two.jpg')
   })
 })
