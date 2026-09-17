@@ -1,0 +1,50 @@
+name: CI
+
+# Runs the same lint/test gates the deploy workflows run, but on pull requests —
+# before merge, instead of during the deploy that follows it. No paths: filter:
+# a PR runs both suites whichever directory it touches. The deploy workflows keep
+# their own gates for workflow_dispatch and direct pushes.
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+        working-directory: web
+
+      - run: npm run lint
+        working-directory: web
+
+      - run: npm run test
+        working-directory: web
+
+      # No VITE_* secrets: a PR build only needs to compile, and fork PRs
+      # cannot read them anyway. Unset VITE_API_URL → in-app mock fallback.
+      - run: npm run build
+        working-directory: web
+
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Runner has Docker, so the Testcontainers Postgres suite works.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Test
+        run: ./gradlew test
+        working-directory: api
