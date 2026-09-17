@@ -3,8 +3,11 @@ package ee.gemspot.api.integration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ee.gemspot.api.repository.RefreshTokenRepository;
+import ee.gemspot.api.security.RefreshCookies;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -38,6 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 class LoginRefreshRegressionTest extends AbstractIntegrationTest {
 
+    private static final String ORIGIN = "http://localhost:5173";
+
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
     @Autowired RefreshTokenRepository refreshTokens;
@@ -50,20 +55,21 @@ class LoginRefreshRegressionTest extends AbstractIntegrationTest {
                         .content("{\"email\":\"admin@gemspot.ee\",\"password\":\"admin1234\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
-        String loginRefresh = json.readTree(login.getResponse().getContentAsString())
-                .get("refreshToken").asText();
+        // Plan 032: the token now arrives as an HttpOnly cookie, not in the body.
+        Cookie loginRefresh = login.getResponse().getCookie(RefreshCookies.NAME);
+        assertThat(loginRefresh).isNotNull();
 
         // refresh with the login-issued token → 200 + a rotated (different) token
         MvcResult refresh = mvc.perform(post("/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"refreshToken\":\"" + loginRefresh + "\"}"))
+                        .header(HttpHeaders.ORIGIN, ORIGIN)
+                        .cookie(loginRefresh))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.refreshToken").exists())
                 .andReturn();
-        JsonNode rotated = json.readTree(refresh.getResponse().getContentAsString());
-        assertThat(rotated.get("refreshToken").asText())
-                .isNotEqualTo(loginRefresh); // rotated, not echoed
+        Cookie rotated = refresh.getResponse().getCookie(RefreshCookies.NAME);
+        assertThat(rotated).isNotNull();
+        assertThat(rotated.getValue())
+                .isNotEqualTo(loginRefresh.getValue()); // rotated, not echoed
     }
 
     /**
@@ -73,7 +79,7 @@ class LoginRefreshRegressionTest extends AbstractIntegrationTest {
      */
     @Test
     void markUsedIfUnusedClaimsExactlyOnce() throws Exception {
-        String jti = jtiOf(loginRefreshToken());
+        String jti = jtiOf(loginRefreshCookie().getValue());
 
         assertThat(refreshTokens.markUsedIfUnused(jti)).isEqualTo(1); // won
         assertThat(refreshTokens.markUsedIfUnused(jti)).isZero();     // already claimed
@@ -90,16 +96,16 @@ class LoginRefreshRegressionTest extends AbstractIntegrationTest {
      */
     @Test
     void concurrentRefreshOfTheSameTokenLetsExactlyOneThrough() throws Exception {
-        String token = loginRefreshToken();
-        String jti = jtiOf(token);
+        Cookie token = loginRefreshCookie();
+        String jti = jtiOf(token.getValue());
 
         CountDownLatch go = new CountDownLatch(1);
         ExecutorService pool = Executors.newFixedThreadPool(2);
         Callable<Integer> attempt = () -> {
             go.await();
             return mvc.perform(post("/auth/refresh")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"refreshToken\":\"" + token + "\"}"))
+                    .header(HttpHeaders.ORIGIN, ORIGIN)
+                    .cookie(token))
                     .andReturn().getResponse().getStatus();
         };
         Future<Integer> a = pool.submit(attempt);
@@ -121,15 +127,16 @@ class LoginRefreshRegressionTest extends AbstractIntegrationTest {
                 .isEmpty();
     }
 
-    /** Fresh login → its refresh token (own committed tx, like production). */
-    private String loginRefreshToken() throws Exception {
+    /** Fresh login → its refresh cookie (own committed tx, like production). */
+    private Cookie loginRefreshCookie() throws Exception {
         MvcResult login = mvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"admin@gemspot.ee\",\"password\":\"admin1234\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
-        return json.readTree(login.getResponse().getContentAsString())
-                .get("refreshToken").asText();
+        Cookie cookie = login.getResponse().getCookie(RefreshCookies.NAME);
+        assertThat(cookie).isNotNull();
+        return cookie;
     }
 
     /** Decodes the JWT payload (no verification needed — the test just wants the jti). */

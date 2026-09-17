@@ -29,7 +29,7 @@ describe('authedFetch 401 -> refresh -> retry', () => {
   beforeEach(() => {
     fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
-    useAuthStore.setState({ user: null, accessToken: 'stale-token', refreshToken: 'refresh-token' })
+    useAuthStore.setState({ user: { id: 'u1', email: 'a@b.ee', name: 'A', role: 'CLIENT' as const }, accessToken: 'stale-token' })
   })
 
   afterEach(() => {
@@ -89,9 +89,11 @@ describe('authedFetch 401 -> refresh -> retry', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
-  it('does not attempt a refresh without a refresh token', async () => {
+  /* Since plan 032 the refresh credential is an HttpOnly cookie we cannot see, so
+     the only thing worth gating on is whether anyone is signed in at all. */
+  it('does not attempt a refresh when nobody is signed in', async () => {
     const refreshSession = vi.fn(async () => true)
-    useAuthStore.setState({ refreshSession, refreshToken: null })
+    useAuthStore.setState({ refreshSession, user: null })
     fetchMock.mockResolvedValue(unauthorized())
 
     await expect(httpPlacesApi.getMySubmissions()).rejects.toMatchObject({ status: 401 })

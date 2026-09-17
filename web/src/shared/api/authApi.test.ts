@@ -17,7 +17,7 @@ describe('authApi error unwrapping', () => {
   beforeEach(() => {
     fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
-    useAuthStore.setState({ user: null, accessToken: null, refreshToken: null })
+    useAuthStore.setState({ user: null, accessToken: null })
   })
 
   afterEach(() => {
