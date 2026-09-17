@@ -118,11 +118,26 @@ public class AdminService {
         Submission sub = submissionRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "submission not found: " + id));
 
+        if (sub.getStatus() != SubmissionStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "submission is not pending: " + id);
+        }
+
         // next zero-padded place id + sort (after the existing 01..10 set)
         List<Place> all = placeRepo.findAllByOrderBySortAsc();
         Place last = all.isEmpty() ? null : all.get(all.size() - 1);
         int nextSort = (last != null ? last.getSort() : -1) + 1;
-        String nextId = String.format("%02d", nextSort + 1);
+        // ids are app-assigned, so save() merges: an id that already exists would silently
+        // overwrite a live place. Walk forward to the smallest free id instead.
+        int candidate = nextSort + 1;
+        String nextId = String.format("%02d", candidate);
+        int attempts = 0;
+        while (placeRepo.existsById(nextId)) {
+            if (++attempts > 1000) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "could not allocate a place id");
+            }
+            candidate += 1;
+            nextId = String.format("%02d", candidate);
+        }
 
         // unique slug
         String slug = slugify(sub.getName());
