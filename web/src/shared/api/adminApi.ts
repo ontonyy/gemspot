@@ -4,7 +4,7 @@
    These types are admin-only and independent of the public DTO contract. */
 
 import type { CategoryId } from '../../entities/place/categories'
-import { BASE, authedFetch } from './authedFetch'
+import { BASE, authedFetch, parseBody, throwHttp } from './authedFetch'
 
 export type AdminPlaceStatus = 'ACTIVE' | 'INACTIVE' | 'DRAFT'
 export type AdminSubmissionStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
@@ -93,20 +93,8 @@ async function call<T>(path: string, init: RequestInit, _token: string): Promise
       },
     },
   }))
-  if (!res.ok) {
-    let message = `${res.status} ${res.statusText}`
-    try {
-      const body = (await res.json()) as { message?: string | string[] }
-      if (body?.message) message = Array.isArray(body.message) ? body.message.join(', ') : body.message
-    } catch {
-      /* non-JSON error body */
-    }
-    const err = new Error(message) as Error & { status?: number }
-    err.status = res.status
-    throw err
-  }
-  if (res.status === 204) return undefined as T
-  return res.json() as Promise<T>
+  if (!res.ok) return throwHttp(res)
+  return parseBody<T>(res)
 }
 
 export const httpAdminApi: AdminApi = {

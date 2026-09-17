@@ -3,7 +3,7 @@
    no-op debug log so `npm run dev` against the mock stays silent-safe.
    Event names are fired from save/share/directions/pin/filter/submission. */
 
-const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+import { BASE } from './authedFetch'
 
 export type EventName =
   | 'save' | 'share' | 'directions' | 'pin' | 'filter' | 'submission'

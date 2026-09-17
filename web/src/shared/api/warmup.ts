@@ -4,7 +4,7 @@
    server. Fire-and-forget: the result is ignored, errors swallowed. No-op when
    running on the mock (VITE_API_URL unset). */
 
-const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+import { BASE } from './authedFetch'
 
 export function warmupBackend(): void {
   if (!BASE) return
