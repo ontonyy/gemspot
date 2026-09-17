@@ -72,3 +72,42 @@ describe('adminApi 401 -> refresh -> retry', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })
+
+/* Error unwrapping — characterised before plan 030 moved it into authedFetch.ts.
+   Identical semantics to authApi's throwHttp; that is the duplication 030 removes. */
+describe('adminApi error unwrapping', () => {
+  let fetchMock: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    useAuthStore.setState({ user: null, accessToken: 'token', refreshToken: null })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('throws the server message and carries the status', async () => {
+    fetchMock.mockResolvedValueOnce(json({ message: 'submission already approved' }, 409))
+
+    await expect(httpAdminApi.approveSubmission('token', 'sub-1')).rejects.toMatchObject({
+      message: 'submission already approved',
+      status: 409,
+    })
+  })
+
+  it('joins an array message and falls back on a non-JSON body', async () => {
+    fetchMock.mockResolvedValueOnce(json({ message: ['bad status', 'bad id'] }, 400))
+    await expect(httpAdminApi.listPlaces('token')).rejects.toThrow('bad status, bad id')
+
+    fetchMock.mockResolvedValueOnce(new Response('<html/>', { status: 500, statusText: 'Server Error' }))
+    await expect(httpAdminApi.listPlaces('token')).rejects.toThrow('500 Server Error')
+  })
+
+  it('resolves undefined on 204', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }))
+
+    await expect(httpAdminApi.rejectSubmission('token', 'sub-1')).resolves.toBeUndefined()
+  })
+})

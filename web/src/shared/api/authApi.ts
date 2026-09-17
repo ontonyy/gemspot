@@ -3,7 +3,7 @@
    backend. Tokens are opaque strings the SPA stores in authStore (localStorage).
    Authed methods take the access token explicitly — no hidden global. */
 
-import { BASE, authedFetch } from './authedFetch'
+import { BASE, authedFetch, parseBody, throwHttp } from './authedFetch'
 
 export interface AuthUser {
   id: string
@@ -87,19 +87,6 @@ export interface AuthApi {
   mergeSaved(accessToken: string, placeIds: string[]): Promise<string[]>
 }
 
-async function throwHttp(res: Response): Promise<never> {
-  let message = `${res.status} ${res.statusText}`
-  try {
-    const body = (await res.json()) as { message?: string | string[] }
-    if (body?.message) message = Array.isArray(body.message) ? body.message.join(', ') : body.message
-  } catch {
-    /* non-JSON error body */
-  }
-  const err = new Error(message) as Error & { status?: number }
-  err.status = res.status
-  throw err
-}
-
 /* When `token` is passed the path is authed: route through authedFetch so a stale
    access token is refreshed-and-retried once (the per-attempt token from the store
    overrides the caller's, which may be the expired one). Unauthed calls fetch plain. */
@@ -117,11 +104,10 @@ async function call<T>(path: string, init: RequestInit, token?: string): Promise
     ? await authedFetch((t) => ({ url: `${BASE}${path}`, init: buildInit(t) }))
     : await fetch(`${BASE}${path}`, buildInit(null))
   if (!res.ok) return throwHttp(res)
-  if (res.status === 204) return undefined as T
-  return res.json() as Promise<T>
+  return parseBody<T>(res)
 }
 
-const httpAuthApi: AuthApi = {
+export const httpAuthApi: AuthApi = {
   register: (input) => call<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify(input) }),
   login: (input) => call<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
   oauthGoogle: (idToken) =>
