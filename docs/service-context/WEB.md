@@ -26,7 +26,7 @@ contract. Built static, deployed to Firebase Hosting.
 
 | Store | Persistence |
 |-------|-------------|
-| authStore | localStorage `gemspot.auth` (tokens — see OBSERVABILITY trade-off) |
+| authStore | localStorage `gemspot.auth` (access token only; the refresh token is an HttpOnly cookie — ADR 0006) |
 | savedStore | localStorage `gemspot.saved` |
 | submissions / reports / geo / ui / toast | in-memory |
 
