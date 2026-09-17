@@ -25,7 +25,7 @@ interface SpotDetailProps {
 }
 
 export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
-  const { data: p, isLoading } = usePlace(slug)
+  const { data: p, isLoading, error } = usePlace(slug)
   usePageTitle(p?.name)
   const origin = useGeoStore((s) => s.origin)
   const isSaved = useSavedStore((s) => s.ids.includes(p?.id ?? ''))
@@ -51,10 +51,26 @@ export function SpotDetail({ slug, mobile, onClose }: SpotDetailProps) {
     ? { position: 'absolute', width: '100%', borderRight: 'none', boxShadow: 'none', zIndex: 45 }
     : {}
 
-  if (isLoading || !p) {
+  if (isLoading) {
     return (
       <aside className="fg-detail" style={mobileStyle}>
         <DetailSkeleton onClose={onClose} />
+      </aside>
+    )
+  }
+
+  // loaded but empty (failed request, unknown slug) — never leave the skeleton up forever
+  if (error || !p) {
+    return (
+      <aside className="fg-detail" style={mobileStyle}>
+        <div className="fg-detail-hero fg-detail-hero-skel">
+          <div className="fg-detail-top">
+            <button className="fg-iconbtn" onClick={onClose} aria-label="Back"><Icon d={Ic.back} size={18} /></button>
+          </div>
+        </div>
+        <div className="fg-detail-body">
+          <p className="fg-note">Couldn&apos;t load this spot.</p>
+        </div>
       </aside>
     )
   }
