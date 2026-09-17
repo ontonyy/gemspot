@@ -26,7 +26,7 @@ describe('adminApi 401 -> refresh -> retry', () => {
   beforeEach(() => {
     fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
-    useAuthStore.setState({ user: null, accessToken: 'stale-token', refreshToken: 'refresh-token' })
+    useAuthStore.setState({ user: { id: 'u1', email: 'a@b.ee', name: 'A', role: 'CLIENT' as const }, accessToken: 'stale-token' })
   })
 
   afterEach(() => {
@@ -81,7 +81,7 @@ describe('adminApi error unwrapping', () => {
   beforeEach(() => {
     fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
-    useAuthStore.setState({ user: null, accessToken: 'token', refreshToken: null })
+    useAuthStore.setState({ user: null, accessToken: 'token' })
   })
 
   afterEach(() => {
