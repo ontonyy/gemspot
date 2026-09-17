@@ -46,17 +46,32 @@ draft PR; `Status` tracks delivery, not merge.
 
 Status values: TODO | IN PROGRESS | DONE | PARTIAL (one-line reason) | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
-### Proposals — [`plans/proposals/`](proposals/)
+### Promoted proposals
 
-Decision documents, not executable plans. A maintainer answers one; only then is an
-implementation plan written. Promotion is a deliberate gesture: move the file out of
-`proposals/` into `plans/`. Nothing under `proposals/` is ever picked up as executable work.
+All three proposals were accepted by the maintainer on 2026-09-17 and moved out of
+`plans/proposals/` into `plans/` — that move is the approval gesture. Each keeps its decision
+record; the executable work is the build plan beside it.
 
-| Proposal | Question | Escalation trigger | Status |
-|----------|----------|--------------------|--------|
-| [018](proposals/018-abuse-controls-auth-and-events.md) | Rate limiting on `/auth/**` + `POST /events`, and event retention | multi-instance state (infra), event-table migration (DB), new 429 (public contract) | ACCEPTED 2026-09-17 — promoted |
-| [019](proposals/019-consolidate-web-http-clients.md) | How far to consolidate the five web HTTP clients | architecture — changes the seam every network call uses | ACCEPTED 2026-09-17 — promoted |
-| [025](proposals/025-httponly-refresh-cookie-auth.md) | Move the refresh token out of `localStorage` into an HttpOnly cookie | public API / contract break | ACCEPTED 2026-09-17 — promoted |
+| Decision record | Question it answered | Build plan |
+|-----------------|----------------------|------------|
+| [018](018-abuse-controls-auth-and-events.md) | Rate limiting on `/auth/**` + `POST /events`, and event retention | [031](031-abuse-controls.md) |
+| [019](019-consolidate-web-http-clients.md) | How far to consolidate the five web HTTP clients | [030](030-consolidate-web-http-clients.md) |
+| [025](025-httponly-refresh-cookie-auth.md) | Move the refresh token out of `localStorage` into an HttpOnly cookie | [032](032-httponly-refresh-cookie.md) |
+
+`plans/proposals/` is now empty. Nothing under it is ever picked up as executable work; a
+proposal becomes work only by being moved out.
+
+### Campaign 3 — operator-approved 2026-09-17
+
+| Plan | Title | Category | Depends on | Status |
+|------|-------|----------|------------|--------|
+| [026](026-maplibre-v6-worker-bundling.md) | Bundle the maplibre v6 worker via Vite | security/deps | — | DONE — PR #47, audit clean |
+| [027](027-map-and-carousel-keyboard-access.md) | Keyboard access for map markers and carousel dots | a11y | — | TODO |
+| [028](028-saved-place-sync-race.md) | Saved-place sync race | bug | — | TODO |
+| [029](029-formatter-precommit-typecheck.md) | Formatter, pre-commit hook, explicit typecheck script | dx | — | TODO |
+| [030](030-consolidate-web-http-clients.md) | Consolidate the web HTTP clients | tech-debt/arch | — | TODO |
+| [031](031-abuse-controls.md) | Abuse controls for public auth and event endpoints | security | — | TODO |
+| [032](032-httponly-refresh-cookie.md) | Move the refresh token to an HttpOnly cookie | security/arch | 030 | TODO |
 
 ### Dependency notes
 
