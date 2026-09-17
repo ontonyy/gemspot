@@ -48,6 +48,9 @@ export function ReportModal({ place, onClose }: ReportModalProps) {
       addReport(report)
       showToast('Thanks — report sent for review')
       onClose()
+    } catch {
+      // keep the modal open so the typed note survives a failed send
+      showToast("Couldn't send that report — please try again")
     } finally {
       setSubmitting(false)
     }

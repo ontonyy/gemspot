@@ -17,7 +17,10 @@ export default function AdminPlaces() {
   const [msg, setMsg] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    adminApi.listPlaces(token).then(setPlaces).catch(() => undefined)
+    adminApi
+      .listPlaces(token)
+      .then(setPlaces)
+      .catch(() => setMsg("Couldn't load places."))
   }, [token])
 
   useEffect(() => {
@@ -32,7 +35,8 @@ export default function AdminPlaces() {
       setMsg(`${updated.name} → ${status}`)
       setTimeout(() => setMsg(null), 2200)
     } catch {
-      /* ignore */
+      setMsg(`Couldn't set ${p.name} → ${status}`)
+      setTimeout(() => setMsg(null), 2200)
     }
   }
 
