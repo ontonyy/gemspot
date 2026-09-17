@@ -73,7 +73,7 @@ const MAX_BOUNDS: maplibregl.LngLatBoundsLike = [
 ]
 
 /* ── pin (unclustered specimen) — fg.css .fg-pin spec ────────────────────── */
-function SpotPin({
+export function SpotPin({
   cat,
   name,
   selected,
@@ -94,19 +94,19 @@ function SpotPin({
       data-dim={dim}
       style={{ position: 'relative', '--pc': catColor(cat) } as React.CSSProperties}
     >
-      <div className="fg-pinbtn">
+      <button type="button" className="fg-pinbtn" aria-label={name}>
         <span className="fg-pin-disc">
           <CategoryGlyph cat={cat} size={selected ? 22 : 16} />
         </span>
         <span className="fg-pin-stem" />
         {selected && <span className="fg-pin-tag mono">{name}</span>}
-      </div>
+      </button>
     </div>
   )
 }
 
 /* ── cluster count-pill — docs/01 §4 spec ────────────────────────────────── */
-function ClusterPill({
+export function ClusterPill({
   count,
   dots,
   active,
@@ -118,14 +118,20 @@ function ClusterPill({
   dim: boolean
 }) {
   return (
-    <div className="fg-cluster" data-active={active} data-dim={dim}>
+    <button
+      type="button"
+      className="fg-cluster"
+      data-active={active}
+      data-dim={dim}
+      aria-label={`Zoom in to ${count} spots`}
+    >
       <span className="fg-cluster-dots">
         {dots.slice(0, 3).map((c, i) => (
           <i key={i} style={{ '--dc': catColor(c) } as React.CSSProperties} />
         ))}
       </span>
       <span className="fg-cluster-n">{count}</span>
-    </div>
+    </button>
   )
 }
 
