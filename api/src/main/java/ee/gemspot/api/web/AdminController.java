@@ -13,6 +13,7 @@ import ee.gemspot.api.dto.SetReportStatusDto;
 import ee.gemspot.api.service.AdminService;
 import ee.gemspot.api.service.EventsService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -51,7 +52,8 @@ public class AdminController {
 
     @GetMapping("/submissions")
     public List<AdminSubmissionDto> submissions(
-            @RequestParam(name = "status", required = false) String status) {
+            @RequestParam(name = "status", required = false)
+            @Pattern(regexp = "PENDING|APPROVED|REJECTED") String status) {
         return admin.listSubmissions(status);
     }
 
@@ -79,7 +81,8 @@ public class AdminController {
 
     @GetMapping("/reports")
     public List<AdminReportDto> reports(
-            @RequestParam(name = "status", required = false) String status) {
+            @RequestParam(name = "status", required = false)
+            @Pattern(regexp = "OPEN|RESOLVED|DISMISSED") String status) {
         return admin.listReports(status);
     }
 
