@@ -68,8 +68,7 @@ public class ReportsService {
 
     /** OPEN reports for the signed-in user — survives reload (server-backed). */
     public List<ReportDto> listMine(String userId) {
-        return reportRepository.findAllByOrderByReportedAtDesc().stream()
-                .filter(r -> userId.equals(r.getUserId()))
+        return reportRepository.findByUserIdOrderByReportedAtDesc(userId).stream()
                 .map(r -> new ReportDto(
                         r.getPlaceId() != null ? r.getPlaceId() : "",
                         r.getPlaceSlug(),

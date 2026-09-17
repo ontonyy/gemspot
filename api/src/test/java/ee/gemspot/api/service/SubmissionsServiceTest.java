@@ -84,20 +84,50 @@ class SubmissionsServiceTest {
 
     @Test
     void listMineReturnsUserSubmissionsNewestFirst() {
-        Submission row = new Submission();
-        row.setId("s1");
-        row.setUserId("u1");
-        row.setName("A");
-        row.setCategoryId("football");
-        row.setNote("n");
-        row.setStatus(SubmissionStatus.PENDING);
-        ReflectionTestUtils.setField(row, "submittedAt", Instant.now());
-        when(submissions.findAllByOrderBySubmittedAtDesc()).thenReturn(List.of(row));
+        when(submissions.findByUserIdOrderBySubmittedAtDesc("u1"))
+                .thenReturn(List.of(row("s1", "u1", Instant.now())));
         when(submissionPhotos.findBySubmissionIdOrderBySortAsc("s1")).thenReturn(List.of());
 
         List<SubmissionDto> res = svc.listMine("u1");
         assertThat(res).hasSize(1);
         assertThat(res.get(0).id()).isEqualTo("s1");
+    }
+
+    /** The user filter is the query, not a stream stage: other users' rows never load. */
+    @Test
+    void listMineAsksTheDatabaseForOnlyThatUsersRowsAndKeepsPhotoBatching() {
+        Instant now = Instant.now();
+        when(submissions.findByUserIdOrderBySubmittedAtDesc("u1")).thenReturn(List.of(
+                row("s2", "u1", now),                      // newest first, as the query orders them
+                row("s1", "u1", now.minusSeconds(60))));
+        when(submissionPhotos.findUrlsBySubmissionIds(List.of("s2", "s1"))).thenReturn(List.of(
+                url("s2", "b.jpg"), url("s1", "a.jpg")));
+
+        List<SubmissionDto> res = svc.listMine("u1");
+
+        assertThat(res).extracting(SubmissionDto::id).containsExactly("s2", "s1");
+        assertThat(res.get(0).photoUrls()).containsExactly("b.jpg");
+        assertThat(res.get(1).photoUrls()).containsExactly("a.jpg");
+        verify(submissions, times(0)).findAllByOrderBySubmittedAtDesc();
+    }
+
+    private static Submission row(String id, String userId, Instant at) {
+        Submission row = new Submission();
+        row.setId(id);
+        row.setUserId(userId);
+        row.setName("A");
+        row.setCategoryId("football");
+        row.setNote("n");
+        row.setStatus(SubmissionStatus.PENDING);
+        ReflectionTestUtils.setField(row, "submittedAt", at);
+        return row;
+    }
+
+    private static SubmissionPhotoRepository.SubmissionPhotoUrl url(String submissionId, String url) {
+        return new SubmissionPhotoRepository.SubmissionPhotoUrl() {
+            @Override public String getSubmissionId() { return submissionId; }
+            @Override public String getUrl() { return url; }
+        };
     }
 
     private static SubmissionPhoto photo(String url, int sort) {

@@ -74,9 +74,9 @@ public class AdminService {
 
     public AdminStatsDto stats() {
         long places = placeRepo.count();
-        long activePlaces = placeRepo.findByStatusOrderBySortAsc(PlaceStatus.ACTIVE).size();
-        long pendingSubmissions = submissionRepo.findByStatusOrderBySubmittedAtDesc(SubmissionStatus.PENDING).size();
-        long openReports = reportRepo.findByStatusOrderByReportedAtDesc(ReportStatus.OPEN).size();
+        long activePlaces = placeRepo.countByStatus(PlaceStatus.ACTIVE);
+        long pendingSubmissions = submissionRepo.countByStatus(SubmissionStatus.PENDING);
+        long openReports = reportRepo.countByStatus(ReportStatus.OPEN);
         long users = userRepo.count();
         return new AdminStatsDto(places, activePlaces, pendingSubmissions, openReports, users);
     }

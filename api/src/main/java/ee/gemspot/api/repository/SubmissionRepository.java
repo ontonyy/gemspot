@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface SubmissionRepository extends JpaRepository<Submission, String> {
     List<Submission> findByStatusOrderBySubmittedAtDesc(SubmissionStatus status);
     List<Submission> findAllByOrderBySubmittedAtDesc();
+    long countByStatus(SubmissionStatus status);
+    List<Submission> findByUserIdOrderBySubmittedAtDesc(String userId);
 }

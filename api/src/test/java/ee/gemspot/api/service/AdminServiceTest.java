@@ -75,9 +75,9 @@ class AdminServiceTest {
     @Test
     void statsAggregatesDashboardCounters() {
         when(placeRepo.count()).thenReturn(12L);
-        when(placeRepo.findByStatusOrderBySortAsc(PlaceStatus.ACTIVE)).thenReturn(nPlaces(10));
-        when(submissionRepo.findByStatusOrderBySubmittedAtDesc(SubmissionStatus.PENDING)).thenReturn(nSubs(3));
-        when(reportRepo.findByStatusOrderByReportedAtDesc(ReportStatus.OPEN)).thenReturn(nReports(1));
+        when(placeRepo.countByStatus(PlaceStatus.ACTIVE)).thenReturn(10L);
+        when(submissionRepo.countByStatus(SubmissionStatus.PENDING)).thenReturn(3L);
+        when(reportRepo.countByStatus(ReportStatus.OPEN)).thenReturn(1L);
         when(userRepo.count()).thenReturn(5L);
 
         assertThat(svc.stats()).isEqualTo(new AdminStatsDto(12, 10, 3, 1, 5));
@@ -292,20 +292,6 @@ class AdminServiceTest {
         return u;
     }
 
-    private static List<Place> nPlaces(int n) {
-        return java.util.stream.IntStream.range(0, n).mapToObj(i -> place("p" + i, i)).toList();
-    }
 
-    private static List<Submission> nSubs(int n) {
-        return java.util.stream.IntStream.range(0, n)
-                .mapToObj(i -> submission("s" + i, "n", "scenic", List.of())).toList();
-    }
 
-    private static List<Report> nReports(int n) {
-        return java.util.stream.IntStream.range(0, n).mapToObj(i -> {
-            Report r = new Report();
-            r.setId("r" + i);
-            return r;
-        }).toList();
-    }
 }
