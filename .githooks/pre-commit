@@ -1,0 +1,21 @@
+#!/bin/sh
+# Opt-in pre-commit gate for web/. Not installed by default — enable per clone with:
+#
+#     git config core.hooksPath .githooks
+#
+# Deliberately web-only and lint+typecheck-only: a hook that runs the test suites
+# or Gradle would take minutes and get bypassed within a day. CI covers those.
+set -e
+
+if ! git diff --cached --name-only --diff-filter=ACM | grep -q '^web/'; then
+  echo "pre-commit: no web/ changes staged, skipping."
+  exit 0
+fi
+
+cd "$(git rev-parse --show-toplevel)/web"
+
+if ! npm run --silent lint || ! npm run --silent typecheck; then
+  echo
+  echo "pre-commit: web lint/typecheck failed. Fix it, or skip with: git commit --no-verify"
+  exit 1
+fi
