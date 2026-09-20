@@ -58,7 +58,7 @@ record; the executable work is the build plan beside it.
 |-----------------|----------------------|------------|
 | [018](018-abuse-controls-auth-and-events.md) | Rate limiting on `/auth/**` + `POST /events`, and event retention | [031](031-abuse-controls.md) |
 | [019](019-consolidate-web-http-clients.md) | How far to consolidate the five web HTTP clients | [030](030-consolidate-web-http-clients.md) |
-| [025](025-httponly-refresh-cookie-auth.md) | Move the refresh token out of `localStorage` into an HttpOnly cookie | 032 (held off `master`, see below) |
+| [025](025-httponly-refresh-cookie-auth.md) | Move the refresh token out of `localStorage` into an HttpOnly cookie | [032](032-httponly-refresh-cookie.md) |
 
 `plans/proposals/` is now empty. Nothing under it is ever picked up as executable work; a
 proposal becomes work only by being moved out.
@@ -73,7 +73,7 @@ proposal becomes work only by being moved out.
 | [029](029-formatter-precommit-typecheck.md) | Formatter, pre-commit hook, explicit typecheck script | dx | — | DONE — PR #52; Prettier/Spotless deferred, need a formatting sweep first |
 | [030](030-consolidate-web-http-clients.md) | Consolidate the web HTTP clients | tech-debt/arch | — | DONE — PR #53 |
 | [031](031-abuse-controls.md) | Abuse controls for public auth and event endpoints | security | — | DONE — PR #54; event retention deferred, needs a window from the maintainer |
-| 032 | Move the refresh token to an HttpOnly cookie | security/arch | 030 | **HELD OFF `master`** — built and verified as commit `249acfb`; the plan file and ADR 0006 live on `night-shift/integration` only. See "Held back" below. |
+| [032](032-httponly-refresh-cookie.md) | Move the refresh token to an HttpOnly cookie | security/arch | 030 | DONE — PR #55, landed via #49. Shipping it required the origin prerequisite in ADR 0006; do not merge this branch before that is done. |
 
 ### Dependency notes
 
@@ -189,11 +189,11 @@ findings below (each read + confirmed in source). Plans written for the high-lev
 
 ## Direction options (maintainer's call — not bugs)
 
-- ~~**Token storage hardening**~~ — **DECIDED 2026-09-17, NOT SHIPPED.** The maintainer's call
-  was made: move the refresh token to an HttpOnly cookie and keep only the short-lived access
-  token in `localStorage`. Recorded as ADR 0006 and built as plan 032. It is **not on `master`**
-  and this is not an open question any more — it is a blocked deployment. See "Held back" below.
-  Until it ships, the `localStorage` refresh token and its short-TTL mitigation stand.
+- ~~**Token storage hardening**~~ — **RESOLVED.** The refresh token moves to an HttpOnly cookie
+  and only the short-lived access token stays in `localStorage`. Decided 2026-09-17, recorded as
+  [ADR 0006](../docs/adr/0006-refresh-token-in-httponly-cookie.md), built as plan 032. Merging
+  this branch is what ships it, and ADR 0006's Consequences section names the operator act that
+  must happen first.
 - ~~**Deploy-target source of truth**~~ — **RESOLVED 2026-08-06.** Cloud Run is authoritative;
   `api/README.md` now names service `gemspot-api` (`europe-north1`, project `gemspot-498821`)
   and the stale `onrender.com` reference is gone (landed in `7c2f235`). Note
@@ -299,30 +299,21 @@ sweep. Every finding below was re-read and confirmed in source before planning.
 - `design/`, `design_handoff_field_guide/`, `docs/mvp`, `docs/v2` content.
 - Secret material in `keys/` and `.env` (intentionally untouched).
 
-## Held back — not on `master`
+## Before merging this branch
 
-One commit from the 2026-09-17 campaign was deliberately kept off `master` when the rest landed
-on 2026-09-20. It is built, tested and reviewed; what is missing is an operator act, not code.
-
-| Plan | Commit | Where it lives | Why it is held |
-|------|--------|----------------|----------------|
-| 032 — refresh token to an HttpOnly cookie | `249acfb` | `night-shift/integration` (with `docs/adr/0006-refresh-token-in-httponly-cookie.md` and `plans/032-httponly-refresh-cookie.md`) | A push to `master` deploys. ADR 0006's own Consequences section states that shipping the cookie before the web and the API share an origin is "a broken login, not a hardened one": `gemspot.web.app` and `*.run.app` are both Public Suffix List entries, so the cookie is third-party, `SameSite=Lax` suppresses it and Safari blocks it outright. |
-
-**The prerequisite, either branch of it:**
+Plan 032 ships the HttpOnly refresh cookie. `master` carried a `## Held back` section explaining
+why it was kept off; merging this branch is what retires that, and the prerequisite it named is
+**not optional**:
 
 - Add a Firebase Hosting rewrite proxying `/api/**` to the `gemspot-api` Cloud Run service and
-  repoint `VITE_API_URL` at `https://gemspot.web.app/api`. Then `SameSite=Lax` — the ADR's
-  default — is correct and nothing else changes. This is the intended path;
-  `.github/workflows/` and `firebase.json` were out of scope for plan 032, which is why the ADR
-  says so rather than assuming it done.
-- Or set `AUTH_COOKIE_SAMESITE=None` on the Cloud Run service, accepting a third-party cookie
-  that Safari blocks and Firefox partitions. The ADR rejected this as the *default* on purpose.
+  repoint `VITE_API_URL` at `https://gemspot.web.app/api` — then ADR 0006's `SameSite=Lax`
+  default is correct and nothing else changes. This is the intended path.
+- Or set `AUTH_COOKIE_SAMESITE=None`, accepting a third-party cookie that Safari blocks outright
+  and Firefox partitions.
 
-Until then the localStorage refresh-token exfiltration surface ADR 0006 closes stays open on
-`master`. That is the cost of the hold and it is a real one.
-
-Re-landing is a rebase, not a rescue: `night-shift/integration` still holds `249acfb` and
-`81e0b0b` unrewritten, and is now one commit behind `master` (this section).
+`gemspot.web.app` and `*.run.app` are both Public Suffix List entries, so without one of those
+two acts the cookie is third-party, `SameSite=Lax` suppresses it, and the result is a broken
+login rather than a hardened one. A push to `master` deploys, so the act comes first.
 
 ## Open follow-ups from the 2026-09-17 campaign
 
