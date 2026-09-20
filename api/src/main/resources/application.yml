@@ -104,6 +104,26 @@ app:
     log-links: ${MAIL_LOG_LINKS:false}
   web-url: ${WEB_URL:http://localhost:5173}
 
+  # Plan 032 / ADR 0006: the refresh token's transport. Defaults describe a
+  # SAME-ORIGIN deployment (web and API behind one host) — the safe target.
+  # The live deployment is still cross-site (gemspot.web.app vs *.run.app, both
+  # Public Suffix List entries), and until a Firebase Hosting rewrite puts the API
+  # under the web origin the operator must set AUTH_COOKIE_SAMESITE=None, which
+  # makes this a third-party cookie that Safari blocks outright.
+  # secure is NOT derived from request.isSecure(): Cloud Run terminates TLS at the
+  # front end, so the container sees plain HTTP and would silently drop the flag.
+  # Local dev over http://localhost sets AUTH_COOKIE_SECURE=false.
+  auth:
+    refresh-cookie:
+      secure: ${AUTH_COOKIE_SECURE:true}
+      same-site: ${AUTH_COOKIE_SAMESITE:Lax}
+      # Scoped to the only endpoints that read it, so it is not attached to every
+      # API call the SPA makes.
+      path: ${AUTH_COOKIE_PATH:/auth}
+      # Matches JWT_REFRESH_TTL (30d) — a cookie outliving the token strands a
+      # credential the server already rejects.
+      max-age: ${AUTH_COOKIE_MAX_AGE:30d}
+
   # Plan 031: abuse controls on the two unauthenticated surfaces (/auth/**, POST /events).
   # Per-INSTANCE fixed windows — Cloud Run runs N instances, so the real global budget is
   # N x these numbers (see docs/adr/0005). Deliberately generous: a real SPA boot fires a
