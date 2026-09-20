@@ -28,8 +28,10 @@ for each lint suppression).
 
 ## Open
 
-Two advisor passes on 2026-09-17, both against commit `0ce116c`. Every plan below has an open
-draft PR; `Status` tracks delivery, not merge.
+Two advisor passes on 2026-09-17, both against commit `0ce116c`. Every plan below is on
+`master` as of 2026-09-20; their individual draft PRs (#33-#46) were closed as subsumed by the
+integration PR #49 that landed them, not merged one by one. They stay listed here rather than
+archived into `done/` until someone does the file moves — see the archival follow-up below.
 
 | Plan | Title | Priority | Effort | Risk | Depends on | Status |
 |------|-------|----------|--------|------|------------|--------|
@@ -56,7 +58,7 @@ record; the executable work is the build plan beside it.
 |-----------------|----------------------|------------|
 | [018](018-abuse-controls-auth-and-events.md) | Rate limiting on `/auth/**` + `POST /events`, and event retention | [031](031-abuse-controls.md) |
 | [019](019-consolidate-web-http-clients.md) | How far to consolidate the five web HTTP clients | [030](030-consolidate-web-http-clients.md) |
-| [025](025-httponly-refresh-cookie-auth.md) | Move the refresh token out of `localStorage` into an HttpOnly cookie | [032](032-httponly-refresh-cookie.md) |
+| [025](025-httponly-refresh-cookie-auth.md) | Move the refresh token out of `localStorage` into an HttpOnly cookie | 032 (held off `master`, see below) |
 
 `plans/proposals/` is now empty. Nothing under it is ever picked up as executable work; a
 proposal becomes work only by being moved out.
@@ -66,12 +68,12 @@ proposal becomes work only by being moved out.
 | Plan | Title | Category | Depends on | Status |
 |------|-------|----------|------------|--------|
 | [026](026-maplibre-v6-worker-bundling.md) | Bundle the maplibre v6 worker via Vite | security/deps | — | DONE — PR #47, audit clean |
-| [027](027-map-and-carousel-keyboard-access.md) | Keyboard access for map markers and carousel dots | a11y | — | TODO |
-| [028](028-saved-place-sync-race.md) | Saved-place sync race | bug | — | TODO |
-| [029](029-formatter-precommit-typecheck.md) | Formatter, pre-commit hook, explicit typecheck script | dx | — | TODO |
-| [030](030-consolidate-web-http-clients.md) | Consolidate the web HTTP clients | tech-debt/arch | — | TODO |
-| [031](031-abuse-controls.md) | Abuse controls for public auth and event endpoints | security | — | TODO |
-| [032](032-httponly-refresh-cookie.md) | Move the refresh token to an HttpOnly cookie | security/arch | 030 | TODO |
+| [027](027-map-and-carousel-keyboard-access.md) | Keyboard access for map markers and carousel dots | a11y | — | DONE — PR #48 |
+| [028](028-saved-place-sync-race.md) | Saved-place sync race | bug | — | DONE — PR #51 |
+| [029](029-formatter-precommit-typecheck.md) | Formatter, pre-commit hook, explicit typecheck script | dx | — | DONE — PR #52; Prettier/Spotless deferred, need a formatting sweep first |
+| [030](030-consolidate-web-http-clients.md) | Consolidate the web HTTP clients | tech-debt/arch | — | DONE — PR #53 |
+| [031](031-abuse-controls.md) | Abuse controls for public auth and event endpoints | security | — | DONE — PR #54; event retention deferred, needs a window from the maintainer |
+| 032 | Move the refresh token to an HttpOnly cookie | security/arch | 030 | **HELD OFF `master`** — built and verified as commit `249acfb`; the plan file and ADR 0006 live on `night-shift/integration` only. See "Held back" below. |
 
 ### Dependency notes
 
@@ -187,11 +189,11 @@ findings below (each read + confirmed in source). Plans written for the high-lev
 
 ## Direction options (maintainer's call — not bugs)
 
-- **Token storage hardening**: move refresh token to an HttpOnly + SameSite cookie and
-  keep only the short-lived access token in memory. Removes the localStorage XSS surface
-  entirely. Trade-off: backend must set/read cookies and CORS `credentials` is already on,
-  but it changes the auth seam in `web/src/shared/api` and `SecurityConfig`. Non-trivial;
-  weigh against current short-TTL mitigation.
+- ~~**Token storage hardening**~~ — **DECIDED 2026-09-17, NOT SHIPPED.** The maintainer's call
+  was made: move the refresh token to an HttpOnly cookie and keep only the short-lived access
+  token in `localStorage`. Recorded as ADR 0006 and built as plan 032. It is **not on `master`**
+  and this is not an open question any more — it is a blocked deployment. See "Held back" below.
+  Until it ships, the `localStorage` refresh token and its short-TTL mitigation stand.
 - ~~**Deploy-target source of truth**~~ — **RESOLVED 2026-08-06.** Cloud Run is authoritative;
   `api/README.md` now names service `gemspot-api` (`europe-north1`, project `gemspot-498821`)
   and the stale `onrender.com` reference is gone (landed in `7c2f235`). Note
@@ -296,3 +298,48 @@ sweep. Every finding below was re-read and confirmed in source before planning.
 - Test *quality* (assertion depth) in the existing api suites — only presence was mapped.
 - `design/`, `design_handoff_field_guide/`, `docs/mvp`, `docs/v2` content.
 - Secret material in `keys/` and `.env` (intentionally untouched).
+
+## Held back — not on `master`
+
+One commit from the 2026-09-17 campaign was deliberately kept off `master` when the rest landed
+on 2026-09-20. It is built, tested and reviewed; what is missing is an operator act, not code.
+
+| Plan | Commit | Where it lives | Why it is held |
+|------|--------|----------------|----------------|
+| 032 — refresh token to an HttpOnly cookie | `249acfb` | `night-shift/integration` (with `docs/adr/0006-refresh-token-in-httponly-cookie.md` and `plans/032-httponly-refresh-cookie.md`) | A push to `master` deploys. ADR 0006's own Consequences section states that shipping the cookie before the web and the API share an origin is "a broken login, not a hardened one": `gemspot.web.app` and `*.run.app` are both Public Suffix List entries, so the cookie is third-party, `SameSite=Lax` suppresses it and Safari blocks it outright. |
+
+**The prerequisite, either branch of it:**
+
+- Add a Firebase Hosting rewrite proxying `/api/**` to the `gemspot-api` Cloud Run service and
+  repoint `VITE_API_URL` at `https://gemspot.web.app/api`. Then `SameSite=Lax` — the ADR's
+  default — is correct and nothing else changes. This is the intended path;
+  `.github/workflows/` and `firebase.json` were out of scope for plan 032, which is why the ADR
+  says so rather than assuming it done.
+- Or set `AUTH_COOKIE_SAMESITE=None` on the Cloud Run service, accepting a third-party cookie
+  that Safari blocks and Firefox partitions. The ADR rejected this as the *default* on purpose.
+
+Until then the localStorage refresh-token exfiltration surface ADR 0006 closes stays open on
+`master`. That is the cost of the hold and it is a real one.
+
+Re-landing is a rebase, not a rescue: `night-shift/integration` still holds `249acfb` and
+`81e0b0b` unrewritten, and is now one commit behind `master` (this section).
+
+## Open follow-ups from the 2026-09-17 campaign
+
+Named here so they are not rediscovered from scratch.
+
+- **`events` retention** — the table still grows unbounded and `EventsService.counts()`
+  whole-table loads it. Plan 031 rate-limits the ingress but deliberately did not pick a
+  retention window; that is a product number. Needs a window, then a Liquibase changeset and a
+  cleanup job.
+- **Prettier and Spotless** — both need a repo-wide reformatting sweep before their `--check`
+  command passes. Plan 029 shipped `.editorconfig`, the hook and `typecheck` instead of shipping
+  a documented command that fails.
+- **Proposal 019 option (c)** — moving the admin pages onto TanStack Query. Plan 030 took the
+  minimal seam; this remains a separate, open decision.
+- **Refresh-family revoke ordering** — if a losing refresh's family revoke commits before the
+  winner's new row inserts, the winner holds a live token in a nominally revoked family.
+  Narrower than the race plan 024 closed, and still open.
+- **Archive 013-031 into `done/`** — they are on `master` and the Layout rule says completed
+  plans move. Nineteen file moves plus link rewrites; not done here because it would bury the
+  substance of this correction in renames.
