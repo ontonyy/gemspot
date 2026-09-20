@@ -1,6 +1,8 @@
 /* Auth seam. Mirrors placesApi: http client against VITE_API_URL when set,
    otherwise an in-memory mock so the auth/gating UX is demoable without a
-   backend. Tokens are opaque strings the SPA stores in authStore (localStorage).
+   backend. The access token is an opaque string the SPA stores in authStore
+   (localStorage); the refresh token is NOT handled here at all — it lives in an
+   HttpOnly cookie the browser attaches automatically (plan 032 / ADR 0006).
    Authed methods take the access token explicitly — no hidden global. */
 
 import { BASE, authedFetch, parseBody, throwHttp } from './authedFetch'
@@ -23,7 +25,6 @@ export interface AuthUser {
 export interface AuthResponse {
   user: AuthUser
   accessToken: string
-  refreshToken: string
 }
 
 export interface RegisterInput {
@@ -65,7 +66,9 @@ export interface AuthApi {
   login(input: LoginInput): Promise<AuthResponse>
   oauthGoogle(idToken: string): Promise<AuthResponse>
   oauthFacebook(accessToken: string): Promise<AuthResponse>
-  refresh(refreshToken: string): Promise<AuthResponse>
+  /* No argument: the refresh token travels as an HttpOnly cookie, so it is not
+     readable here and must not be. */
+  refresh(): Promise<AuthResponse>
   logout(): Promise<void>
   me(accessToken: string): Promise<AuthUser>
   // own-profile edit (authed): PATCH /auth/me + multipart POST /uploads
@@ -114,9 +117,10 @@ export const httpAuthApi: AuthApi = {
     call<AuthResponse>('/auth/oauth/google', { method: 'POST', body: JSON.stringify({ idToken }) }),
   oauthFacebook: (accessToken) =>
     call<AuthResponse>('/auth/oauth/facebook', { method: 'POST', body: JSON.stringify({ accessToken }) }),
-  refresh: (refreshToken) =>
-    call<AuthResponse>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
-  logout: () => call<void>('/auth/logout', { method: 'POST', body: '{}' }),
+  // credentials: 'include' is what actually sends/receives the refresh cookie.
+  // Without it these two calls silently behave as if the user were signed out.
+  refresh: () => call<AuthResponse>('/auth/refresh', { method: 'POST', credentials: 'include' }),
+  logout: () => call<void>('/auth/logout', { method: 'POST', credentials: 'include' }),
   me: (accessToken) => call<AuthUser>('/auth/me', { method: 'GET' }, accessToken),
   updateProfile: (accessToken, input) =>
     call<AuthUser>('/auth/me', { method: 'PATCH', body: JSON.stringify(input) }, accessToken),
@@ -198,12 +202,14 @@ function mockAuthApi(): AuthApi {
       pendingEmail: u.pendingEmail, pendingExpiresAt: u.pendingExpiresAt, emailChangeStatus: status,
     }
   }
+  // Mock stand-in for the HttpOnly cookie: the "session" the browser would hold.
+  let sessionEmail: string | null = null
   const respond = (email: string): AuthResponse => {
     const u = users.get(email)!
+    sessionEmail = email
     return {
       user: view(email, u),
       accessToken: tok(u.id, 'access'),
-      refreshToken: tok(u.id, 'refresh'),
     }
   }
   const nowIso = () => new Date().toISOString()
@@ -267,13 +273,12 @@ function mockAuthApi(): AuthApi {
       }
       return delay(respond(email))
     },
-    async refresh(refreshToken) {
-      const id = refreshToken.split('.')[2]
-      const entry = [...users.entries()].find(([, u]) => u.id === id)
-      if (!entry) throw new Error('Invalid refresh token')
-      return delay(respond(entry[0]))
+    async refresh() {
+      if (!sessionEmail || !users.has(sessionEmail)) throw new Error('Invalid refresh token')
+      return delay(respond(sessionEmail))
     },
     async logout() {
+      sessionEmail = null
       return delay(undefined)
     },
     async me(accessToken) {

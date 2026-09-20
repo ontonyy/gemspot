@@ -1,7 +1,14 @@
-/* Auth session — current user + JWTs, persisted to localStorage (zustand persist)
-   so sign-in survives reloads and is available cross-device once the backend is
-   wired. Guest = user === null (default). login/register throw on failure so the
-   form can surface the message; logout clears locally (stateless server). */
+/* Auth session — current user + the short-lived access token, persisted to
+   localStorage (zustand persist) so sign-in survives reloads.
+
+   The REFRESH token is deliberately absent from this store (plan 032 / ADR 0006).
+   It lives in an HttpOnly cookie the browser attaches to /auth/refresh and
+   /auth/logout on its own, so an XSS cannot copy the 30-day credential off the
+   machine — it can still act as the user while the page is open, which is a
+   different and smaller thing. Nothing here may read or store it again.
+
+   Guest = user === null (default). login/register throw on failure so the form
+   can surface the message; logout asks the server to clear the cookie. */
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
@@ -20,7 +27,6 @@ import {
 interface AuthState {
   user: AuthUser | null
   accessToken: string | null
-  refreshToken: string | null
   busy: boolean
   register: (input: RegisterInput) => Promise<AuthUser>
   login: (input: LoginInput) => Promise<AuthUser>
@@ -35,9 +41,9 @@ interface AuthState {
   logoutAll: () => Promise<void>
   logout: () => void
   bootstrap: () => Promise<void>
-  /** Trade the stored refresh token for a fresh access token. Returns true on
-      success. Concurrent callers share one in-flight request. Clears session on
-      failure so a dead refresh token can't loop. */
+  /** Trade the refresh cookie for a fresh access token. Returns true on success.
+      Concurrent callers share one in-flight request. Clears session on failure so
+      a dead refresh cookie can't loop. */
   refreshSession: () => Promise<boolean>
 }
 
@@ -49,13 +55,12 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => {
       const apply = (r: AuthResponse): AuthUser => {
-        set({ user: r.user, accessToken: r.accessToken, refreshToken: r.refreshToken })
+        set({ user: r.user, accessToken: r.accessToken })
         return r.user
       }
       return {
         user: null,
         accessToken: null,
-        refreshToken: null,
         busy: false,
 
         async register(input) {
@@ -161,7 +166,7 @@ export const useAuthStore = create<AuthState>()(
           set({ busy: true })
           try {
             await authApi.verifyEmailChange(token)
-            set({ user: null, accessToken: null, refreshToken: null })
+            set({ user: null, accessToken: null })
           } finally {
             set({ busy: false })
           }
@@ -176,7 +181,7 @@ export const useAuthStore = create<AuthState>()(
           set({ busy: true })
           try {
             await authApi.deleteAccount(token, input)
-            set({ user: null, accessToken: null, refreshToken: null })
+            set({ user: null, accessToken: null })
           } finally {
             set({ busy: false })
           }
@@ -187,36 +192,34 @@ export const useAuthStore = create<AuthState>()(
         async logoutAll() {
           const token = get().accessToken
           if (token) await authApi.logoutAll(token).catch(() => undefined)
-          set({ user: null, accessToken: null, refreshToken: null })
+          set({ user: null, accessToken: null })
         },
 
         logout() {
           authApi.logout().catch(() => undefined)
-          set({ user: null, accessToken: null, refreshToken: null })
+          set({ user: null, accessToken: null })
         },
 
-        // App boot: trade a stored refresh token for a fresh session. Clears on
-        // failure (expired/invalid) so a stale token never traps the user.
+        // App boot: trade the refresh cookie for a fresh session. We cannot see the
+        // cookie, so a persisted user is the signal that there might be one; a 401
+        // (no cookie / expired) clears the session rather than trapping the user.
         async bootstrap() {
-          const rt = get().refreshToken
-          if (!rt) return
+          if (!get().user) return
           try {
-            apply(await authApi.refresh(rt))
+            apply(await authApi.refresh())
           } catch {
-            set({ user: null, accessToken: null, refreshToken: null })
+            set({ user: null, accessToken: null })
           }
         },
 
         refreshSession() {
           if (refreshInFlight) return refreshInFlight
           refreshInFlight = (async () => {
-            const rt = get().refreshToken
-            if (!rt) return false
             try {
-              apply(await authApi.refresh(rt))
+              apply(await authApi.refresh())
               return true
             } catch {
-              set({ user: null, accessToken: null, refreshToken: null })
+              set({ user: null, accessToken: null })
               return false
             } finally {
               refreshInFlight = null
@@ -228,7 +231,17 @@ export const useAuthStore = create<AuthState>()(
     },
     {
       name: 'gemspot.auth',
-      partialize: (s) => ({ user: s.user, accessToken: s.accessToken, refreshToken: s.refreshToken }),
+      partialize: (s) => ({ user: s.user, accessToken: s.accessToken }),
+      /* v2 (plan 032): the refresh token moved to an HttpOnly cookie. This drops
+         the one a v1 client already wrote — it is a live 30d credential sitting in
+         localStorage, so deleting it is the point, not housekeeping. Nothing reads
+         it: existing users are signed out once and sign in again, which is the
+         whole migration. Keep this migrate until v1 state is safely extinct. */
+      version: 2,
+      migrate: (persisted) => {
+        const { refreshToken: _dropped, ...rest } = (persisted ?? {}) as Record<string, unknown>
+        return rest as { user: AuthUser | null; accessToken: string | null }
+      },
     },
   ),
 )
