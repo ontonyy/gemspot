@@ -46,6 +46,16 @@ Three facts made the trade different from the last time it was weighed:
   subject and passed to repository methods as a **required parameter**, so a query missing the
   subject predicate does not compile. Authorization failure is raised by the resolver as
   `ForbiddenException`, not returned by each handler.
+
+  **This pattern is adopted from cvnoor, not invented here**, and the adoption is itself a
+  decision. cvnoor chose it for a Next.js SaaS whose chain runs subject -> `provider_identity` ->
+  `profile_id` -> `members` row, under multi-tenancy gemspot does not have. **The `members` half
+  does not transfer and is deliberately omitted.** What transfers is the required-parameter
+  discipline, because it converts a class of authorization bug into a compile error, and that
+  property is independent of tenancy. cvnoor also rejected `@PreAuthorize` with a permission
+  evaluator there, on the ground that the row must be read before it can be judged; that
+  rejection is scoped to its own contract-test gate and is **not** carried over — it stays a live
+  option here.
 - **Profile creation is lazy**, in the auth filter, inside one transaction; the `user.created`
   webhook is an idempotent warm-up, never the path of record.
 - **Profile fields are denormalised** — email, display name, avatar — kept current by the
