@@ -4,7 +4,17 @@ Date: 2026-09-17
 
 ## Status
 
-Accepted
+Superseded by [ADR 0007](0007-clerk-owns-identity.md), 2026-09-20 — hours after merging.
+
+Merged to `master` in `8afe993` **with its origin prerequisite unmet**, so the cookie it
+describes never served a working refresh: `gemspot.web.app` and `*.run.app` are both Public
+Suffix List entries. Nobody was affected — `users` is empty and the API had not deployed since
+2026-09-12. Clerk owns session transport, so `RefreshCookies`, the Origin allowlist guard and the
+zustand `version: 2` migration are all deleted by ADR 0007's rip-out.
+
+**Read this ADR anyway.** Its analysis of what an HttpOnly cookie does and does not buy — it
+removes exfiltration, not XSS — is why ADR 0007 was considered at all, and its rejection of
+`SameSite=None` as a default is the reasoning that made the split-origin deployment visible.
 
 Supersedes the localStorage trade-off recorded against `web/src/shared/store/authStore.ts`.
 Decided from proposal `plans/025-httponly-refresh-cookie-auth.md`; executed as
