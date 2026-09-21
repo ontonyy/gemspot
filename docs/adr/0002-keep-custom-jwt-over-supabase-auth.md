@@ -4,7 +4,13 @@ Date: 2026-06-13
 
 ## Status
 
-Accepted
+Superseded by [ADR 0007](0007-clerk-owns-identity.md), 2026-09-20.
+
+Accepted 2026-06-13 and correct for the migration it was scoped to — its own wording was "do not
+adopt Supabase Auth **in this migration**". The reuse-detection work it mandated shipped and was
+later hardened by plan 024. What overturned it was not a flaw in the reasoning but a change in
+the facts: `users` is empty, so the migration cost that justified keeping the custom scheme fell
+to zero.
 
 ## Context
 

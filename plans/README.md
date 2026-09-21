@@ -73,7 +73,7 @@ proposal becomes work only by being moved out.
 | [029](029-formatter-precommit-typecheck.md) | Formatter, pre-commit hook, explicit typecheck script | dx | — | DONE — PR #52; Prettier/Spotless deferred, need a formatting sweep first |
 | [030](030-consolidate-web-http-clients.md) | Consolidate the web HTTP clients | tech-debt/arch | — | DONE — PR #53 |
 | [031](031-abuse-controls.md) | Abuse controls for public auth and event endpoints | security | — | DONE — PR #54; event retention deferred, needs a window from the maintainer |
-| [032](032-httponly-refresh-cookie.md) | Move the refresh token to an HttpOnly cookie | security/arch | 030 | DONE — PR #55, landed via #49. Shipping it required the origin prerequisite in ADR 0006; do not merge this branch before that is done. |
+| [032](032-httponly-refresh-cookie.md) | Move the refresh token to an HttpOnly cookie | security/arch | 030 | **MERGED 2026-09-20 (`8afe993`) WITH ITS PREREQUISITE UNMET**, and superseded before it ever served a request — see "ADR 0006 landed and was immediately superseded" below. |
 
 ### Dependency notes
 
@@ -189,11 +189,12 @@ findings below (each read + confirmed in source). Plans written for the high-lev
 
 ## Direction options (maintainer's call — not bugs)
 
-- ~~**Token storage hardening**~~ — **RESOLVED.** The refresh token moves to an HttpOnly cookie
-  and only the short-lived access token stays in `localStorage`. Decided 2026-09-17, recorded as
-  [ADR 0006](../docs/adr/0006-refresh-token-in-httponly-cookie.md), built as plan 032. Merging
-  this branch is what ships it, and ADR 0006's Consequences section names the operator act that
-  must happen first.
+- ~~**Token storage hardening**~~ — **RESOLVED TWICE, and the second answer wins.** First as
+  [ADR 0006](../docs/adr/0006-refresh-token-in-httponly-cookie.md) (refresh token to an HttpOnly
+  cookie, plan 032, merged `8afe993`), then as
+  [ADR 0007](../docs/adr/0007-clerk-owns-identity.md) — Clerk owns session transport, so the
+  durable credential leaves this origin entirely and the cookie mechanism is deleted. The
+  `localStorage` question is closed either way.
 - ~~**Deploy-target source of truth**~~ — **RESOLVED 2026-08-06.** Cloud Run is authoritative;
   `api/README.md` now names service `gemspot-api` (`europe-north1`, project `gemspot-498821`)
   and the stale `onrender.com` reference is gone (landed in `7c2f235`). Note
@@ -299,21 +300,27 @@ sweep. Every finding below was re-read and confirmed in source before planning.
 - `design/`, `design_handoff_field_guide/`, `docs/mvp`, `docs/v2` content.
 - Secret material in `keys/` and `.env` (intentionally untouched).
 
-## Before merging this branch
+## ADR 0006 landed and was immediately superseded
 
-Plan 032 ships the HttpOnly refresh cookie. `master` carried a `## Held back` section explaining
-why it was kept off; merging this branch is what retires that, and the prerequisite it named is
-**not optional**:
+Plan 032 merged to `master` on 2026-09-20 in `8afe993`. Two things are true about it and neither
+is obvious from the commit, so they are written down here rather than rediscovered.
 
-- Add a Firebase Hosting rewrite proxying `/api/**` to the `gemspot-api` Cloud Run service and
-  repoint `VITE_API_URL` at `https://gemspot.web.app/api` — then ADR 0006's `SameSite=Lax`
-  default is correct and nothing else changes. This is the intended path.
-- Or set `AUTH_COOKIE_SAMESITE=None`, accepting a third-party cookie that Safari blocks outright
-  and Firefox partitions.
+**Its prerequisite was never done.** ADR 0006 requires the web app and the API to share an origin
+before `SameSite=Lax` is correct — `gemspot.web.app` and `*.run.app` are both Public Suffix List
+entries, so today the cookie is third-party, `SameSite=Lax` suppresses it and Safari blocks it
+outright. Neither the Firebase `/api/**` rewrite nor `AUTH_COOKIE_SAMESITE=None` was applied. The
+refresh flow on `master` is therefore **not working as shipped**. Nobody is affected: the user
+table is empty and the API has been failing to deploy since 2026-09-12.
 
-`gemspot.web.app` and `*.run.app` are both Public Suffix List entries, so without one of those
-two acts the cookie is third-party, `SameSite=Lax` suppresses it, and the result is a broken
-login rather than a hardened one. A push to `master` deploys, so the act comes first.
+**It is already superseded.** The project adopted Clerk on 2026-09-20 (ADR 0007), which owns
+session transport itself — cross-origin Clerk passes a ~60s token in an `Authorization` header,
+not a cookie. `RefreshCookies`, the Origin-guard CSRF check and the zustand `version: 2`
+migration are all deleted by the Clerk rip-out. ADR 0006's *reasoning* stands and is worth
+reading; its *mechanism* is dead code from the moment ADR 0007 lands.
+
+**Do not fix the prerequisite.** Unifying the origins to make this cookie work would be config
+work to repair a code path already scheduled for deletion. The origin proxy remains worth doing
+one day for the CORS preflight it removes, and that is its only remaining justification.
 
 ## Open follow-ups from the 2026-09-17 campaign
 
