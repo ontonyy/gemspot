@@ -1,0 +1,288 @@
+{
+  "campaignId": "gemspot-night-shift-2026-09-17-c3",
+  "campaignStackBase": "night-shift/integration",
+  "chainIndex": 2,
+  "frozenAt": "2026-09-17T05:24:58Z",
+  "frozenItemIds": [
+    "027",
+    "028",
+    "029",
+    "030",
+    "031",
+    "032"
+  ],
+  "gate": "cd web && npm run lint && npm run test && npm run build | cd api && ./gradlew build test",
+  "generation": {
+    "generatedAt": null,
+    "generator": null,
+    "note": "no generation: queue supplied by operator approval, not discovery"
+  },
+  "history": [
+    {
+      "at": 1789622698.336298,
+      "event": "freeze",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789622698.4648058,
+      "event": "acquire",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789622997.729994,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789623251.624115,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789623251.718833,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789623617.4118662,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789623926.245662,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789624362.7526479,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789625151.347442,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789625254.053737,
+      "event": "complete",
+      "owner": "night-shift-run-355b52"
+    }
+  ],
+  "integrationBranch": "night-shift/integration",
+  "integrationPr": "https://github.com/ontonyy/gemspot/pull/49",
+  "interruption": null,
+  "items": [
+    {
+      "acceptanceSource": "plans/README.md 'Confirmed but unplanned' a11y entries (SpotMap.tsx:340-349,365-372; SpotDetail.tsx:126-131)",
+      "attempts": 0,
+      "branch": "advisor/027-keyboard-access",
+      "category": "a11y",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "027",
+      "nextAction": "none - terminal",
+      "origin": "operator-approved",
+      "planPath": "plans/027-map-and-carousel-keyboard-access.md",
+      "planStatus": "AI_PLAN_WRITTEN",
+      "pr": "https://github.com/ontonyy/gemspot/pull/48",
+      "sources": [
+        "operator-approved:deferred-backlog"
+      ],
+      "stackParent": "night-shift/integration",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Keyboard access for map markers and carousel dots",
+      "userAction": null,
+      "verification": "cd web && npm run lint && npm run test && npm run build => exit 0; 11 files/46 tests; new tests drive Tab+Enter+Space and assert the resulting state change"
+    },
+    {
+      "acceptanceSource": "plans/README.md 'Confirmed but unplanned' (savedStore.ts:25-35)",
+      "attempts": 0,
+      "branch": "advisor/028-saved-place-sync-race",
+      "category": "bug",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "028",
+      "nextAction": "none - terminal",
+      "origin": "operator-approved",
+      "planPath": "plans/028-saved-place-sync-race.md",
+      "planStatus": "AI_PLAN_WRITTEN",
+      "pr": "https://github.com/ontonyy/gemspot/pull/51",
+      "sources": [
+        "operator-approved:deferred-backlog"
+      ],
+      "stackParent": "night-shift/integration",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Saved-place sync race",
+      "userAction": null,
+      "verification": "cd web && npm run lint && npm run test && npm run build => exit 0; 12 files/51 tests; 3 of 5 new tests confirmed red against the pre-fix store"
+    },
+    {
+      "acceptanceSource": "plans/README.md 'Confirmed but unplanned' dx entry",
+      "attempts": 0,
+      "branch": "advisor/029-formatter-precommit-typecheck",
+      "category": "dx",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "followUp": "Prettier and Spotless deliberately skipped: both need a repo-wide reformatting sweep first; recorded in plan 029",
+      "history": [],
+      "id": "029",
+      "nextAction": "none - terminal",
+      "origin": "operator-approved",
+      "planPath": "plans/029-formatter-precommit-typecheck.md",
+      "planStatus": "AI_PLAN_WRITTEN",
+      "pr": "https://github.com/ontonyy/gemspot/pull/52",
+      "sources": [
+        "operator-approved:deferred-backlog"
+      ],
+      "stackParent": "night-shift/integration",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Formatter, pre-commit hook and explicit typecheck script",
+      "userAction": "each developer runs `git config core.hooksPath .githooks` once per clone (opt-in by design)",
+      "verification": "web gate + api gate both exit 0; every documented command executed including the hook's pass and fail paths and an injected-type-error proof"
+    },
+    {
+      "acceptanceSource": "plans/019-consolidate-web-http-clients.md (promoted 2026-09-17)",
+      "attempts": 0,
+      "branch": "advisor/030-consolidate-web-http-clients",
+      "category": "tech-debt/architecture",
+      "decision": "proposal 019 option (a) minimal seam; option (b) typed getJson/postJson rejected because unifying httpPlacesApi's error string is a behaviour change; option (c) TanStack Query left open",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "030",
+      "nextAction": "none - terminal",
+      "origin": "operator-approved",
+      "planPath": "plans/030-consolidate-web-http-clients.md",
+      "planStatus": "AI_PLAN_WRITTEN",
+      "pr": "https://github.com/ontonyy/gemspot/pull/53",
+      "sources": [
+        "operator-approved:promoted-proposal-019"
+      ],
+      "stackParent": "night-shift/integration",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Consolidate the web HTTP clients",
+      "userAction": null,
+      "verification": "lint+typecheck+test+build exit 0; 51 -> 64 tests, all 51 pre-existing unedited; characterisation tests written against unmodified source first"
+    },
+    {
+      "acceptanceSource": "plans/018-abuse-controls-auth-and-events.md (promoted 2026-09-17)",
+      "attempts": 0,
+      "branch": "advisor/031-abuse-controls",
+      "category": "security",
+      "decision": "in-process fixed-window filter, no new dependency; per-instance weakness recorded in ADR 0005; Redis/Bucket4j/Cloud Armor rejected",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "031",
+      "nextAction": "none - terminal",
+      "origin": "operator-approved",
+      "planPath": "plans/031-abuse-controls.md",
+      "planStatus": "AI_PLAN_WRITTEN",
+      "pr": "https://github.com/ontonyy/gemspot/pull/54",
+      "sources": [
+        "operator-approved:promoted-proposal-018"
+      ],
+      "stackParent": "night-shift/integration",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Abuse controls for public auth and event endpoints",
+      "userAction": "event retention deliberately deferred: choose a retention window for the events table so the follow-up can be planned (events still grows unbounded; EventsService.counts() whole-table loads it)",
+      "verification": "cd api && ./gradlew build test => exit 0; 4 MockMvc tests drive real endpoints past the threshold; web gate also exit 0; ADR 0005 + vault index row, check-index.sh exit 0"
+    },
+    {
+      "acceptanceSource": "plans/025-httponly-refresh-cookie-auth.md (promoted 2026-09-17)",
+      "attempts": 0,
+      "branch": "advisor/032-httponly-refresh-cookie",
+      "category": "security/architecture",
+      "decision": "body refresh token deleted not deprecated; SameSite=Lax default; Origin allowlist for CSRF; forced single re-login on migration",
+      "delivered_in_campaign": true,
+      "dependencies": [
+        "030"
+      ],
+      "dependencyEvidence": "032 rewrites the auth transport through the same web HTTP client seam 030 consolidates; sequencing them avoids rewriting the same files twice",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "032",
+      "nextAction": "none - terminal",
+      "origin": "operator-approved",
+      "planPath": "plans/032-httponly-refresh-cookie.md",
+      "planStatus": "AI_PLAN_WRITTEN",
+      "pr": "https://github.com/ontonyy/gemspot/pull/55",
+      "sources": [
+        "operator-approved:promoted-proposal-025"
+      ],
+      "stackParent": "advisor/030-consolidate-web-http-clients (via night-shift/integration)",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Move the refresh token to an httpOnly cookie",
+      "userAction": "BLOCKING before deploy: either add a Firebase Hosting rewrite proxying /api/** to the gemspot-api Cloud Run service and set VITE_API_URL=https://gemspot.web.app/api (keeps SameSite=Lax, recommended), or set AUTH_COOKIE_SAMESITE=None and accept that Safari users cannot stay signed in. Confirm CORS_ORIGIN matches the browser Origin exactly or every refresh 403s. Also: all existing users are logged out once.",
+      "verification": "cd api && ./gradlew build test => 107 tests 0 failures; cd web && lint+typecheck+test+build exit 0, 15 files/65 tests; ADR 0006 + vault row"
+    }
+  ],
+  "lease": null,
+  "nextAction": "chain cap reached (chainIndex 2 of maxChainedCampaigns 2); human review and merge of PR #49",
+  "operations": [],
+  "predecessorCampaignId": "gemspot-night-shift-2026-09-17-c2",
+  "repository": {
+    "baseBranch": "master",
+    "remote": "ontonyy/gemspot",
+    "root": "/Users/ontony/Desktop/archivarius/codes/gemspot"
+  },
+  "revision": 10,
+  "schemaVersion": 2,
+  "sources": [
+    {
+      "availability": "AVAILABLE",
+      "evidenceReference": "operator message: 'lets not use it and build all related I approve everything' - ETO stays out, deferred backlog built, proposals 018/019/025 promoted",
+      "observedAt": "2026-09-17T05:24:58Z",
+      "reconciledAt": "2026-09-17T05:24:58Z",
+      "required": true,
+      "sourceId": "operator-approval",
+      "watermark": "2026-09-17T05:24:58Z"
+    }
+  ],
+  "startedAt": "2026-09-17T05:24:58Z",
+  "state": "COMPLETE",
+  "taskSources": [
+    {
+      "note": "user message 2026-09-17: approved the deferred backlog and all three proposals",
+      "type": "operator-approval"
+    }
+  ],
+  "updatedAt": "2026-09-17T06:07:34Z"
+}

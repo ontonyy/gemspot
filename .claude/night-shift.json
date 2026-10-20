@@ -1,0 +1,8 @@
+{
+  "queueLabel": "ready-for-agent",
+  "maxPerNight": 5,
+  "gate": "cd web && npm run lint && npm run test && npm run build",
+  "planDir": "plans",
+  "planFormat": "single-file-markdown",
+  "baseBranch": "master"
+}

@@ -1,0 +1,377 @@
+{
+  "campaignId": "gemspot-night-shift-2026-09-17",
+  "chainIndex": 0,
+  "frozenAt": "2026-09-16T22:07:16Z",
+  "frozenItemIds": [
+    "013",
+    "014",
+    "015",
+    "016",
+    "017",
+    "018",
+    "019"
+  ],
+  "gate": "cd web && npm run lint && npm run test && npm run build",
+  "generation": {
+    "admitted": 9,
+    "buildBudget": 5,
+    "effort": "standard",
+    "findingsConsidered": 30,
+    "generatedAt": "2026-09-16T22:07:16Z",
+    "generator": "improve",
+    "plansAdmitted": 7,
+    "proposeBudget": 3
+  },
+  "history": [
+    {
+      "at": 1789596436.65892,
+      "event": "freeze",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789596447.906163,
+      "event": "acquire",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789596728.966696,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789596974.140817,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789596974.2257411,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789597264.43488,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789597469.216432,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789597712.593188,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789597712.7150002,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789597712.865644,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789597731.978443,
+      "event": "complete",
+      "owner": "night-shift-run-355b52"
+    }
+  ],
+  "interruption": null,
+  "items": [
+    {
+      "acceptanceSource": "plans/013-admin-bootstrap-and-secret-hardening.md",
+      "attempts": 0,
+      "branch": "advisor/013-admin-bootstrap-and-secret-hardening",
+      "category": "security",
+      "changedPaths": [
+        "api/src/main/java/ee/gemspot/api/security/JwtService.java",
+        "api/src/main/java/ee/gemspot/api/seed/DataSeeder.java",
+        "api/src/main/java/ee/gemspot/api/service/MailService.java",
+        "api/src/main/resources/application.yml",
+        "api/src/test/java/ee/gemspot/api/seed/DataSeederAdminTest.java",
+        "api/src/test/resources/application.properties",
+        "plans/013-admin-bootstrap-and-secret-hardening.md",
+        "plans/README.md"
+      ],
+      "commits": [
+        "15d3628"
+      ],
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared; independent finding",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "013",
+      "nextAction": "none - terminal",
+      "origin": "generated",
+      "planPath": "plans/013-admin-bootstrap-and-secret-hardening.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/33",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "master",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Admin bootstrap and secret hardening",
+      "userAction": null,
+      "verification": "cd api && ./gradlew build test => exit 0, all pass; new DataSeederAdminTest"
+    },
+    {
+      "acceptanceSource": "plans/014-approve-submission-idempotency.md",
+      "attempts": 0,
+      "branch": "advisor/014-approve-submission-idempotency",
+      "category": "bug/data-integrity",
+      "changedPaths": [
+        "api/src/main/java/ee/gemspot/api/service/AdminService.java",
+        "api/src/test/java/ee/gemspot/api/service/AdminServiceTest.java",
+        "plans/014-approve-submission-idempotency.md"
+      ],
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared; independent finding",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "014",
+      "nextAction": "none - terminal",
+      "origin": "generated",
+      "planPath": "plans/014-approve-submission-idempotency.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/34",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "master",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Approve-submission idempotency",
+      "userAction": null,
+      "verification": "cd api && ./gradlew build test => exit 0; 3 new AdminServiceTest cases, both guards mutation-checked"
+    },
+    {
+      "acceptanceSource": "plans/015-admin-input-validation-400s.md",
+      "attempts": 0,
+      "branch": "advisor/015-admin-input-validation-400s",
+      "category": "bug",
+      "changedPaths": [
+        "api/src/main/java/ee/gemspot/api/dto/*.java",
+        "api/src/main/java/ee/gemspot/api/web/AdminController.java",
+        "api/src/test/java/ee/gemspot/api/integration/AdminInputValidationTest.java",
+        "plans/015-admin-input-validation-400s.md"
+      ],
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared; independent finding",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "015",
+      "nextAction": "none - terminal",
+      "origin": "generated",
+      "planPath": "plans/015-admin-input-validation-400s.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/35",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "master",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Admin input validation 400s",
+      "userAction": null,
+      "verification": "cd api && ./gradlew build test => exit 0; 4 new AdminInputValidationTest integration cases, annotations mutation-checked"
+    },
+    {
+      "acceptanceSource": "plans/016-admin-api-refresh-retry.md",
+      "attempts": 0,
+      "branch": "advisor/016-admin-api-refresh-retry",
+      "category": "bug",
+      "changedPaths": [
+        "web/src/shared/api/authedFetch.ts",
+        "web/src/shared/api/adminApi.ts",
+        "web/src/shared/api/authApi.ts",
+        "web/src/shared/api/httpPlacesApi.ts",
+        "web/src/shared/api/adminApi.test.ts",
+        "plans/016-admin-api-refresh-retry.md"
+      ],
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared; independent finding",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "016",
+      "nextAction": "none - terminal",
+      "origin": "generated",
+      "planPath": "plans/016-admin-api-refresh-retry.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/36",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "master",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Admin API 401 refresh-retry",
+      "userAction": null,
+      "verification": "cd web && npm run lint && npm run test && npm run build => exit 0; 7 files/33 tests; new adminApi.test.ts mutation-checked"
+    },
+    {
+      "acceptanceSource": "plans/017-pr-ci-gate.md",
+      "attempts": 0,
+      "branch": "advisor/017-pr-ci-gate",
+      "category": "dx",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared; independent finding",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "017",
+      "nextAction": "none - terminal",
+      "origin": "generated",
+      "planPath": "plans/017-pr-ci-gate.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/37",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "master",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "PR CI gate workflow",
+      "userAction": null,
+      "verification": "cd web && npm ci && npm run lint && npm run test && npm run build => exit 0; cd api && ./gradlew test => BUILD SUCCESSFUL; ci.yml YAML parsed"
+    },
+    {
+      "acceptanceSource": "plans/proposals/018-abuse-controls-auth-and-events.md",
+      "attempts": 0,
+      "branch": "advisor/018-proposal-abuse-controls",
+      "category": "security/arch",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared; independent finding",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "018",
+      "nextAction": "none - terminal",
+      "origin": "generated",
+      "planPath": "plans/proposals/018-abuse-controls-auth-and-events.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/38",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "master",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "propose",
+      "title": "PROPOSAL: abuse controls for auth and events",
+      "userAction": null,
+      "verification": "propose-tier: plan file + proposal PR is the terminal contract; no source change"
+    },
+    {
+      "acceptanceSource": "plans/proposals/019-consolidate-web-http-clients.md",
+      "attempts": 0,
+      "branch": "advisor/019-proposal-consolidate-http-clients",
+      "category": "tech-debt/arch",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared; independent finding",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "019",
+      "nextAction": "none - terminal",
+      "origin": "generated",
+      "planPath": "plans/proposals/019-consolidate-web-http-clients.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/39",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "master",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "propose",
+      "title": "PROPOSAL: consolidate web HTTP clients",
+      "userAction": null,
+      "verification": "propose-tier: plan file + proposal PR is the terminal contract; no source change"
+    }
+  ],
+  "lease": null,
+  "nextAction": "campaign 1 complete; chain campaign 2 (chainIndex 1)",
+  "operations": [],
+  "predecessorCampaignId": null,
+  "repository": {
+    "baseBranch": "master",
+    "remote": "ontonyy/gemspot",
+    "root": "/Users/ontony/Desktop/archivarius/codes/gemspot"
+  },
+  "revision": 11,
+  "schemaVersion": 2,
+  "sources": [
+    {
+      "availability": "AVAILABLE",
+      "evidenceReference": "gh issue list --label ready-for-agent --state open => 0",
+      "observedAt": "2026-09-16T22:07:16Z",
+      "reconciledAt": "2026-09-16T22:07:16Z",
+      "required": true,
+      "sourceId": "github-issues",
+      "watermark": "2026-09-16T22:07:16Z"
+    },
+    {
+      "availability": "AVAILABLE",
+      "evidenceReference": "plans/ had only done/ + README.md before generation",
+      "observedAt": "2026-09-16T22:07:16Z",
+      "reconciledAt": "2026-09-16T22:07:16Z",
+      "required": true,
+      "sourceId": "plan-directory",
+      "watermark": "2026-09-16T22:07:16Z"
+    },
+    {
+      "availability": "AVAILABLE",
+      "evidenceReference": "gh pr list --state open => 0; no unreconciled night/ branches",
+      "observedAt": "2026-09-16T22:07:16Z",
+      "reconciledAt": "2026-09-16T22:07:16Z",
+      "required": true,
+      "sourceId": "night-shift-branches",
+      "watermark": "2026-09-16T22:07:16Z"
+    }
+  ],
+  "startedAt": "2026-09-16T22:07:16Z",
+  "state": "COMPLETE",
+  "taskSources": [
+    {
+      "label": "ready-for-agent",
+      "type": "github-issues"
+    },
+    {
+      "format": "single-file-markdown",
+      "path": "plans",
+      "type": "plan-directory"
+    },
+    {
+      "type": "night-shift-branches"
+    }
+  ],
+  "updatedAt": "2026-09-16T22:28:51Z"
+}

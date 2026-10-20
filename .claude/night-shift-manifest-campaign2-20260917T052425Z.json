@@ -1,0 +1,349 @@
+{
+  "campaignId": "gemspot-night-shift-2026-09-17-c2",
+  "chainIndex": 1,
+  "frozenAt": "2026-09-16T22:39:42Z",
+  "frozenItemIds": [
+    "020",
+    "021",
+    "022",
+    "023",
+    "024",
+    "025"
+  ],
+  "gate": "cd web && npm run lint && npm run test && npm run build | cd api && ./gradlew build test",
+  "generation": {
+    "admitted": 7,
+    "buildBudget": 5,
+    "effort": "standard",
+    "exclusions": "campaign 1 PRs #33-#39 supplied to generator as do-not-repropose list",
+    "findingsConsidered": 13,
+    "generatedAt": "2026-09-16T22:39:42Z",
+    "generator": "improve",
+    "plansAdmitted": 6,
+    "proposeBudget": 1
+  },
+  "history": [
+    {
+      "at": 1789598382.748279,
+      "event": "freeze",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789598382.904783,
+      "event": "acquire",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789599005.991425,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789599185.880516,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789599185.971869,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789599389.688061,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789599584.563275,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789600021.927604,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789600045.0907478,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789600057.4224892,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789621733.017181,
+      "event": "acquire",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789621733.1094642,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789621733.199938,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789622665.739681,
+      "event": "<lambda>",
+      "owner": "night-shift-run-355b52"
+    },
+    {
+      "at": 1789622665.8185978,
+      "event": "complete",
+      "owner": "night-shift-run-355b52"
+    }
+  ],
+  "interruption": null,
+  "items": [
+    {
+      "acceptanceSource": "plans/020-web-dependency-advisories.md",
+      "attempts": 0,
+      "branch": "advisor/026-maplibre-v6-worker",
+      "category": "security/dependencies",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [
+        {
+          "event": "user-unblocked",
+          "note": "operator approved the vite.config.ts worker plumbing scope"
+        }
+      ],
+      "id": "020",
+      "nextAction": "none - terminal; remaining scope shipped as plan 026 / PR #47 after operator authorized the vite.config.ts scope",
+      "origin": "generated",
+      "planPath": "plans/020-web-dependency-advisories.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/47",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "master",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Web dependency advisories (maplibre-gl, react-router-dom)",
+      "userAction": null,
+      "verification": "npm audit 0 vulnerabilities; lint+test+build exit 0 (10 files/42 tests); browser-verified in vite preview and vite dev: tiles + pins render, worker chunk emitted and served 200, zero console errors"
+    },
+    {
+      "acceptanceSource": "plans/021-web-component-test-harness.md",
+      "attempts": 0,
+      "branch": "advisor/021-web-component-test-harness",
+      "category": "tests",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "021",
+      "nextAction": "none - terminal",
+      "origin": "generated",
+      "planPath": "plans/021-web-component-test-harness.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/41",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "master",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Web component test harness",
+      "userAction": null,
+      "verification": "cd web && npm ci && npm run lint && npm run test && npm run build => exit 0; 7 files/33 tests (baseline 6/30 +3 new component tests)"
+    },
+    {
+      "acceptanceSource": "plans/022-surface-swallowed-errors-web.md",
+      "attempts": 0,
+      "branch": "advisor/022-surface-swallowed-errors",
+      "category": "bug",
+      "delivered_in_campaign": true,
+      "dependencies": [
+        "021"
+      ],
+      "dependencyEvidence": "plan 022 line 19: Depends on plans/021-web-component-test-harness.md",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "022",
+      "nextAction": "none - terminal",
+      "origin": "generated",
+      "planPath": "plans/022-surface-swallowed-errors-web.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/42",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "advisor/021-web-component-test-harness",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Surface swallowed errors in web",
+      "userAction": null,
+      "verification": "cd web && npm run lint && npm run test && npm run build => exit 0; 9 files/39 tests (parent 7/33, +6 net-new); no .catch(() => undefined) left in web/src/pages/admin"
+    },
+    {
+      "acceptanceSource": "plans/023-api-whole-table-loads.md",
+      "attempts": 0,
+      "branch": "advisor/023-api-whole-table-loads",
+      "category": "perf",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "023",
+      "nextAction": "none - terminal",
+      "origin": "generated",
+      "planPath": "plans/023-api-whole-table-loads.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/43",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "master",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Replace whole-table loads for counting/filtering",
+      "userAction": null,
+      "verification": "cd api && ./gradlew build test => BUILD SUCCESSFUL; NPlusOneQueryCountTest pins admin stats at 5 statements and asserts flat as rows grow"
+    },
+    {
+      "acceptanceSource": "plans/024-refresh-token-rotation-race.md",
+      "attempts": 0,
+      "branch": "advisor/024-refresh-token-rotation-race",
+      "category": "security",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "024",
+      "nextAction": "none - terminal",
+      "origin": "generated",
+      "planPath": "plans/024-refresh-token-rotation-race.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/44",
+      "reviewNote": "residual narrower race flagged in PR body: loser family-revoke may commit before winner row insert",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "master",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "build",
+      "title": "Refresh-token rotation check-then-act race",
+      "userAction": null,
+      "verification": "cd api && ./gradlew build test => BUILD SUCCESSFUL, 84 tests 0 failures; concurrent two-thread refresh test against real Postgres re-run 5/5"
+    },
+    {
+      "acceptanceSource": "plans/proposals/025-httponly-refresh-cookie-auth.md",
+      "attempts": 0,
+      "branch": "advisor/025-proposal-httponly-refresh-cookie",
+      "category": "architecture/security",
+      "delivered_in_campaign": true,
+      "dependencies": [],
+      "dependencyEvidence": "none declared",
+      "executionLocation": "session-worktree",
+      "executionMode": "worker",
+      "executionWorktree": "/Users/ontony/Desktop/archivarius/codes/gemspot/.claude/worktrees/night-shift-run-355b52",
+      "history": [],
+      "id": "025",
+      "nextAction": "none - terminal",
+      "origin": "generated",
+      "planPath": "plans/proposals/025-httponly-refresh-cookie-auth.md",
+      "planStatus": "AI_PLAN_PRESENT",
+      "pr": "https://github.com/ontonyy/gemspot/pull/45",
+      "sources": [
+        "generated:improve"
+      ],
+      "stackParent": "master",
+      "state": "DELIVERED",
+      "terminal": true,
+      "tier": "propose",
+      "title": "PROPOSAL: httpOnly refresh-cookie auth transport",
+      "userAction": null,
+      "verification": "propose-tier: plan file + proposal PR is the terminal contract; no source change"
+    }
+  ],
+  "lease": null,
+  "nextAction": "campaign 2 complete; chain campaign 3 with the operator-approved scope",
+  "operations": [
+    {
+      "at": 1789621733.199935,
+      "ownerId": "night-shift-run-355b52"
+    }
+  ],
+  "predecessorCampaignId": "gemspot-night-shift-2026-09-17",
+  "repository": {
+    "baseBranch": "master",
+    "remote": "ontonyy/gemspot",
+    "root": "/Users/ontony/Desktop/archivarius/codes/gemspot"
+  },
+  "revision": 15,
+  "schemaVersion": 2,
+  "sources": [
+    {
+      "availability": "AVAILABLE",
+      "evidenceReference": "gh issue list => 0 open",
+      "observedAt": "2026-09-16T22:39:42Z",
+      "reconciledAt": "2026-09-16T22:39:42Z",
+      "required": true,
+      "sourceId": "github-issues",
+      "watermark": "2026-09-16T22:39:42Z"
+    },
+    {
+      "availability": "AVAILABLE",
+      "evidenceReference": "plans/ at origin/master had only done/ + README.md",
+      "observedAt": "2026-09-16T22:39:42Z",
+      "reconciledAt": "2026-09-16T22:39:42Z",
+      "required": true,
+      "sourceId": "plan-directory",
+      "watermark": "2026-09-16T22:39:42Z"
+    },
+    {
+      "availability": "AVAILABLE",
+      "evidenceReference": "branches advisor/013-019 all reconciled to campaign 1 items, PRs #33-#39 open",
+      "observedAt": "2026-09-16T22:39:42Z",
+      "reconciledAt": "2026-09-16T22:39:42Z",
+      "required": true,
+      "sourceId": "night-shift-branches",
+      "watermark": "2026-09-16T22:39:42Z"
+    }
+  ],
+  "startedAt": "2026-09-16T22:39:42Z",
+  "state": "COMPLETE",
+  "taskSources": [
+    {
+      "label": "ready-for-agent",
+      "type": "github-issues"
+    },
+    {
+      "format": "single-file-markdown",
+      "path": "plans",
+      "type": "plan-directory"
+    },
+    {
+      "type": "night-shift-branches"
+    }
+  ],
+  "updatedAt": "2026-09-17T05:24:25Z"
+}
