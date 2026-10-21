@@ -152,8 +152,12 @@ public class DataSeeder implements ApplicationRunner {
     // Create-only admin bootstrap: absent → create with hashed password + profile;
     // already registered → skip (never promote an existing account, /auth/register is public).
     void seedAdmin() {
+        String password = env("ADMIN_PASSWORD");
+        if (password == null || password.isBlank()) {
+            log.warn("Admin seed skipped: ADMIN_PASSWORD is not configured.");
+            return;
+        }
         String email = envOr("ADMIN_EMAIL", "admin@gemspot.ee").toLowerCase();
-        String password = envOr("ADMIN_PASSWORD", "admin1234");
         User existing = users.findByEmail(email).orElse(null);
         if (existing != null) {
             log.warn("Admin seed skipped: {} is already registered; not promoting it to ADMIN.", email);
@@ -171,8 +175,8 @@ public class DataSeeder implements ApplicationRunner {
         profiles.save(profile);
     }
 
-    private static String envOr(String key, String fallback) {
-        String v = System.getenv(key);
-        return v != null && !v.isEmpty() ? v : fallback;
+    private String envOr(String key, String fallback) {
+        String v = env(key);
+        return v != null && !v.isBlank() ? v : fallback;
     }
 }

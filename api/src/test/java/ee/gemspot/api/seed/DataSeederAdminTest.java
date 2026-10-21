@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,9 +37,14 @@ class DataSeederAdminTest {
     @Mock UserRepository users;
     @Mock ProfileRepository profiles;
 
-    private DataSeeder seeder() {
+    private DataSeeder seeder(Map<String, String> environment) {
         return new DataSeeder(categories, places, placeCategories, users, profiles,
-                new BCryptPasswordEncoder());
+                new BCryptPasswordEncoder()) {
+            @Override
+            protected String env(String key) {
+                return environment.get(key);
+            }
+        };
     }
 
     @Test
@@ -48,7 +54,8 @@ class DataSeederAdminTest {
         squatter.setRole(UserRole.CLIENT);
         when(users.findByEmail(any())).thenReturn(Optional.of(squatter));
 
-        seeder().seedAdmin();
+        seeder(Map.of("ADMIN_EMAIL", "admin@gemspot.ee", "ADMIN_PASSWORD", "test-admin-password"))
+                .seedAdmin();
 
         assertThat(squatter.getRole()).isEqualTo(UserRole.CLIENT);
         verify(users, never()).save(any());
@@ -60,12 +67,22 @@ class DataSeederAdminTest {
         when(users.findByEmail(any())).thenReturn(Optional.empty());
         when(users.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        seeder().seedAdmin();
+        seeder(Map.of("ADMIN_EMAIL", "admin@gemspot.ee", "ADMIN_PASSWORD", "test-admin-password"))
+                .seedAdmin();
 
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
         verify(users).save(saved.capture());
         assertThat(saved.getValue().getRole()).isEqualTo(UserRole.ADMIN);
         assertThat(saved.getValue().getPasswordHash()).startsWith("$2");
         verify(profiles).save(any(Profile.class));
+    }
+
+    @Test
+    void missingPasswordSkipsAdminCreation() {
+        seeder(Map.of()).seedAdmin();
+
+        verify(users, never()).findByEmail(any());
+        verify(users, never()).save(any());
+        verify(profiles, never()).save(any());
     }
 }
