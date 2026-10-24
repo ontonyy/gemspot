@@ -106,6 +106,31 @@ class ContractIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void passwordFlowsRejectValuesOverBcryptUtf8ByteLimit() throws Exception {
+        String oversized = "é".repeat(37); // 37 characters, 74 UTF-8 bytes
+        mvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(java.util.Map.of(
+                                "email", "too-long@gemspot.ee", "password", oversized))))
+                .andExpect(status().isBadRequest());
+
+        MvcResult registration = mvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"byte-limit@gemspot.ee\",\"password\":\"pw12345678\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String access = json.readTree(registration.getResponse().getContentAsString())
+                .get("accessToken").asText();
+
+        mvc.perform(post("/auth/password")
+                        .header("Authorization", "Bearer " + access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(java.util.Map.of(
+                                "currentPassword", "pw12345678", "newPassword", oversized))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void adminApprovePublishesPaddedActivePlace() throws Exception {
         // admin login (seeded)
         MvcResult adminLogin = mvc.perform(post("/auth/login")
