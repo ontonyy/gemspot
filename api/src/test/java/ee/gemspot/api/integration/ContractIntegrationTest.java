@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import ee.gemspot.api.security.RefreshCookies;
+import ee.gemspot.api.domain.PlaceStatus;
+import ee.gemspot.api.repository.PlaceRepository;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,6 +33,7 @@ class ContractIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @Autowired PlaceRepository placeRepository;
 
     @Test
     void getPlacesReturnsTenActiveCardsNoRating() throws Exception {
@@ -67,6 +70,16 @@ class ContractIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(get("/places/lowenruh-pitch"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.verifiedAt").doesNotExist());
+    }
+
+    @Test
+    void getPlaceBySlugHidesInactivePlaces() throws Exception {
+        placeRepository.findBySlug("politseiaia-ping-pong")
+                .orElseThrow()
+                .setStatus(PlaceStatus.INACTIVE);
+
+        mvc.perform(get("/places/politseiaia-ping-pong"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
