@@ -44,6 +44,9 @@ public class PlacesService {
         Place place = placeRepo.findBySlug(slug)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "place not found: " + slug));
+        if (place.getStatus() != PlaceStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "place not found: " + slug);
+        }
         return mapper.toDetail(place);
     }
 }
