@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -39,6 +40,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -92,6 +94,17 @@ class AuthServiceTest {
             when(users.existsByEmail("a@b.com")).thenReturn(true);
             expectStatus(HttpStatus.CONFLICT,
                     () -> svc.register("A@B.com", "pw123456", null));
+        }
+
+        @Test
+        void returnsConflictWhenEmailBecomesTakenBeforeInsertFlushes() {
+            when(users.existsByEmail("a@b.com")).thenReturn(false);
+            doThrow(new DataIntegrityViolationException("duplicate email"))
+                    .when(users).flush();
+
+            expectStatus(HttpStatus.CONFLICT,
+                    () -> svc.register("A@B.com", "pw123456", null));
+            verify(profiles, never()).save(any());
         }
 
         @Test

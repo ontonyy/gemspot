@@ -13,6 +13,7 @@ import ee.gemspot.api.repository.UserRepository;
 import ee.gemspot.api.security.JwtService;
 import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -92,7 +93,14 @@ public class AuthService {
         User user = new User();
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(password));
-        user = users.save(user);
+        try {
+            user = users.save(user);
+            // The pre-check gives a friendly response in the common case, but a
+            // concurrent registration can still win the unique email index first.
+            users.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered", ex);
+        }
 
         String name = nameIn != null && !nameIn.trim().isEmpty() ? nameIn.trim() : null;
         Profile profile = new Profile();
