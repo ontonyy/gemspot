@@ -11,6 +11,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -31,6 +34,38 @@ class ContractIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+
+    @Test
+    void rejectsEventPropsAboveSerializedByteLimitWithClearBadRequest() throws Exception {
+        assertEventPropsRejected(Map.of("value", "x".repeat(8192)),
+                "must not exceed 8192 serialized bytes");
+    }
+
+    @Test
+    void rejectsEventPropsAboveNestingDepthLimitWithClearBadRequest() throws Exception {
+        Map<String, Object> props = Map.of("level", Map.of("level", Map.of("level",
+                Map.of("level", Map.of("level", Map.of("level", "too deep"))))));
+
+        assertEventPropsRejected(props, "must not exceed nesting depth 5");
+    }
+
+    @Test
+    void rejectsEventPropsObjectsAboveKeyLimitWithClearBadRequest() throws Exception {
+        Map<String, Object> props = new LinkedHashMap<>();
+        for (int i = 0; i <= 50; i++) {
+            props.put("key" + i, i);
+        }
+
+        assertEventPropsRejected(props, "maximum of 50 keys");
+    }
+
+    private void assertEventPropsRejected(Map<String, Object> props, String message) throws Exception {
+        mvc.perform(post("/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("name", "test", "props", props))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString(message)));
+    }
 
     @Test
     void getPlacesReturnsTenActiveCardsNoRating() throws Exception {

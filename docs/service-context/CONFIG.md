@@ -25,6 +25,14 @@ values live in env / secret manager and must **never** be copied here — only k
 | `app.web-url` | `${WEB_URL:http://localhost:5173}` | SPA base for email links |
 | `supabase.s3.*` | endpoint/region `eu-north-1`/bucket `place-photos` | keys from env |
 
+## Event props limits
+
+| Env var | Default | Meaning |
+|---------|---------|---------|
+| `EVENTS_MAX_PROPS_BYTES` | `8192` | Maximum serialized `props` size for `POST /events` |
+| `EVENTS_MAX_PROPS_DEPTH` | `5` | Maximum nested object/array depth for `props` |
+| `EVENTS_MAX_OBJECT_KEYS` | `50` | Maximum keys in any `props` object |
+
 ## Env var NAMES (values in secret manager — never reproduce)
 
 `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_MIGRATION_URL`,
@@ -33,7 +41,8 @@ values live in env / secret manager and must **never** be copied here — only k
 `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, `CORS_ORIGIN`, `MAIL_FROM`, `WEB_URL`,
 `SUPABASE_S3_ENDPOINT`, `SUPABASE_S3_REGION`, `SUPABASE_S3_ACCESS_KEY`,
 `SUPABASE_S3_SECRET_KEY`, `SUPABASE_BUCKET`, `JWT_SECRET`, `JWT_REFRESH_SECRET`,
-`JWT_ACCESS_TTL` (15m), `JWT_REFRESH_TTL` (30d), `PORT`.
+`JWT_ACCESS_TTL` (15m), `JWT_REFRESH_TTL` (30d), `EVENTS_MAX_PROPS_BYTES`,
+`EVENTS_MAX_PROPS_DEPTH`, `EVENTS_MAX_OBJECT_KEYS`, `PORT`.
 
 ## Config classes
 
